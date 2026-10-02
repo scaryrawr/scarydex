@@ -1,0 +1,17 @@
+{
+  "name": "screen-record",
+  "version": "0.1.0",
+  "description": "Record agent-driven demos and edit them into polished videos with local FFmpeg.",
+  "author": {
+    "name": "Mike Wallio"
+  },
+  "repository": "https://github.com/scaryrawr/scarydex",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "screen-record",
+    "shortDescription": "Record agent-driven demos and edit them into polished videos with local FFmpeg.",
+    "developerName": "ScaryDex",
+    "category": "Developer Tools"
+  },
+  "license": "MIT"
+}

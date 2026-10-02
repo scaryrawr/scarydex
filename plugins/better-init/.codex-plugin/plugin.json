@@ -1,0 +1,17 @@
+{
+  "name": "better-init",
+  "version": "0.1.0",
+  "description": "Create concise Codex repository guidance and task-specific skills.",
+  "author": {
+    "name": "Mike Wallio"
+  },
+  "repository": "https://github.com/scaryrawr/scarydex",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "better-init",
+    "shortDescription": "Create concise Codex repository guidance and task-specific skills.",
+    "developerName": "ScaryDex",
+    "category": "Developer Tools"
+  },
+  "license": "MIT"
+}

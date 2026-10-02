@@ -1,0 +1,17 @@
+{
+  "name": "pstack",
+  "version": "0.15.4-codex.1",
+  "description": "Rigorous planning, review, delegation, and verification workflows for Codex.",
+  "author": {
+    "name": "Lauren Tan"
+  },
+  "repository": "https://github.com/scaryrawr/scarydex",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "pstack",
+    "shortDescription": "Rigorous planning, review, delegation, and verification workflows for Codex.",
+    "developerName": "ScaryDex",
+    "category": "Developer Tools"
+  },
+  "license": "MIT"
+}

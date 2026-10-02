@@ -1,0 +1,73 @@
+{
+  "skill_name": "better-init",
+  "evals": [
+    {
+      "id": 1,
+      "name": "minimal-codex-guidance",
+      "prompt": "Initialize this small repository for Codex. Inspect the build and test scripts and write only useful guidance.",
+      "expected_output": "A concise AGENTS.md with verified commands and no unnecessary configuration.",
+      "files": [],
+      "expectations": [
+        "Commands are verified from executable sources.",
+        "No Copilot-specific files or Codex user configuration are generated."
+      ]
+    },
+    {
+      "id": 2,
+      "name": "preserve-existing-clients",
+      "prompt": "Refresh AGENTS.md for Codex. Keep the existing Copilot instructions useful for teammates; do not migrate those files.",
+      "expected_output": "Focused AGENTS.md updates that preserve other clients\u2019 instructions.",
+      "files": [],
+      "expectations": [
+        "Existing user constraints remain intact.",
+        "No duplicate guidance or unrelated migration is introduced."
+      ]
+    },
+    {
+      "id": 3,
+      "name": "nested-monorepo-guidance",
+      "prompt": "Initialize shared root guidance. services/payments requires its own emulator and integration checks; generated files must not be edited.",
+      "expected_output": "Shared commands at the root and meaningful nested AGENTS.md boundaries.",
+      "files": [],
+      "expectations": [
+        "services/payments/AGENTS.md owns package-specific requirements.",
+        "Generated-code restrictions are placed at the narrowest useful scope.",
+        "No .github/instructions showcase files are created."
+      ]
+    },
+    {
+      "id": 4,
+      "name": "repeatable-workflow-skill",
+      "prompt": "Initialize this workspace and add an on-demand workflow for creating an app package from a template, registering it, and checking it.",
+      "expected_output": "Root facts plus .agents/skills/new-app-package/SKILL.md.",
+      "files": [],
+      "expectations": [
+        "The skill\u2019s name matches its directory and its description identifies the task.",
+        "Template paths and validation commands are verified."
+      ]
+    },
+    {
+      "id": 5,
+      "name": "codex-review-guidance",
+      "prompt": "Add Codex review guidance for db/migrations changes requiring a schema snapshot, public API compatibility checks, and incident context from the configured MCP service.",
+      "expected_output": "A project review skill with concrete checks and verified available context.",
+      "files": [],
+      "expectations": [
+        "Checks are repository-specific, not a generic review checklist.",
+        "No special GitHub Copilot code-review skill name is assumed.",
+        "Unavailable MCP access is not invented."
+      ]
+    },
+    {
+      "id": 6,
+      "name": "override-precedence",
+      "prompt": "AGENTS.override.md already exists beside AGENTS.md. Refresh guidance without creating a shadowed duplicate.",
+      "expected_output": "The active override is inspected and existing ownership is respected.",
+      "files": [],
+      "expectations": [
+        "The result accounts for same-directory override precedence.",
+        "No redundant instruction surface is created."
+      ]
+    }
+  ]
+}

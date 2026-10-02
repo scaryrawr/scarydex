@@ -1,0 +1,103 @@
+import { createHash } from "node:crypto";
+import { lstat, readFile, readdir, realpath } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { parse } from "yaml";
+
+export const EXPECTED_PLUGINS = ["pstack", "anti-slop", "better-init", "digivolution", "omlx-media", "screen-record"];
+const EVENTS = new Set(["PreToolUse", "PostToolUse", "UserPromptSubmit", "Stop", "SessionEnd"]);
+const readJson = async (file) => JSON.parse(await readFile(file, "utf8"));
+const inside = (root, file) => { const relative = path.relative(root, file); return relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative); };
+
+async function filesIn(root) {
+  const files = [];
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    const file = path.join(root, entry.name);
+    if (entry.name === "node_modules" || entry.name === "__pycache__") continue;
+    if (entry.isSymbolicLink()) throw new Error(`Unexpected symlink in shipped content: ${file}`);
+    if (entry.isDirectory()) files.push(...await filesIn(file));
+    else files.push(file);
+  }
+  return files;
+}
+
+export async function validateMarketplace(directory) {
+  const root = await realpath(directory);
+  const marketplace = await readJson(path.join(root, ".agents/plugins/marketplace.json"));
+  if (marketplace.name !== "scarydex" || !Array.isArray(marketplace.plugins)) throw new Error("Invalid ScaryDex marketplace");
+  const names = marketplace.plugins.map((plugin) => plugin.name);
+  if (names.length !== EXPECTED_PLUGINS.length || new Set(names).size !== names.length ||
+      EXPECTED_PLUGINS.some((name) => !names.includes(name))) throw new Error("Marketplace must contain exactly the six requested plugins");
+  const inventory = (await readdir(path.join(root, "plugins"), { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  if (inventory.length !== names.length || inventory.some((name) => !names.includes(name))) throw new Error("Plugin directories and marketplace inventory differ");
+  const skillNames = new Set();
+  let skills = 0;
+  for (const entry of marketplace.plugins) {
+    if (entry.source?.source !== "local" || entry.source.path !== `./plugins/${entry.name}`) throw new Error(`Invalid local source for ${entry.name}`);
+    const plugin = await realpath(path.resolve(root, entry.source.path));
+    if (!inside(root, plugin)) throw new Error("Plugin escaped marketplace root");
+    const manifest = await readJson(path.join(plugin, ".codex-plugin/plugin.json"));
+    if (manifest.name !== entry.name || !/^\d+\.\d+\.\d+(?:-[a-z0-9.]+)?$/.test(manifest.version) || !manifest.description) throw new Error(`Invalid manifest for ${entry.name}`);
+    if (manifest.skills !== "./skills/" || manifest.extensions || manifest.agents || manifest.mcpServers) throw new Error(`Unexpected runtime declaration in ${entry.name}`);
+    for (const file of await filesIn(plugin)) {
+      if (file.endsWith(".json")) await readJson(file);
+      if (!file.endsWith(".md")) continue;
+      const text = await readFile(file, "utf8");
+      if (path.basename(file) === "SKILL.md") {
+        const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text);
+        if (!match) throw new Error(`Missing skill frontmatter: ${file}`);
+        const metadata = parse(match[1]);
+        if (metadata.name !== path.basename(path.dirname(file)) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(metadata.name) || metadata.name.length > 64 || typeof metadata.description !== "string" || !metadata.description.trim()) throw new Error(`Invalid skill metadata: ${file}`);
+        if (skillNames.has(metadata.name)) throw new Error(`Duplicate skill name: ${metadata.name}`);
+        skillNames.add(metadata.name); skills++;
+        if (/run_dynamic_workflow|dynamic_workflows_manage|session_store_sql|COPILOT_HOME|\.cursor\//.test(text)) throw new Error(`Unported runtime reference: ${file}`);
+      }
+      const prose = text.replace(/```[\s\S]*?```/g, "").replace(/`[^`\n]+`/g, "");
+      for (const match of prose.matchAll(/\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
+        const href = match[1];
+        if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#")) continue;
+        const linked = path.resolve(path.dirname(file), decodeURIComponent(href.split("#")[0]));
+        if (!inside(plugin, linked)) throw new Error(`Link leaves plugin: ${file} -> ${href}`);
+        await lstat(linked).catch(() => { throw new Error(`Broken link: ${file} -> ${href}`); });
+      }
+    }
+    await lstat(path.join(plugin, "README.md"));
+    if (manifest.hooks) {
+      if (manifest.hooks !== "./hooks/hooks.json") throw new Error("Unexpected hooks path");
+      const hookFile = await readJson(path.join(plugin, manifest.hooks));
+      for (const [event, rules] of Object.entries(hookFile.hooks)) {
+        if (!EVENTS.has(event)) throw new Error(`Unsupported hook event: ${event}`);
+        for (const rule of rules) {
+          if (rule.matcher) new RegExp(rule.matcher);
+          for (const handler of rule.hooks) {
+            if (handler.type !== "command" || handler.timeout < 1 || handler.timeout > (event === "SessionEnd" ? 3 : 120)) throw new Error("Invalid command hook");
+            const command = /^node "\$\{PLUGIN_ROOT\}\/([^"\n]+)"$/.exec(handler.command);
+            if (!command || !inside(plugin, path.resolve(plugin, command[1]))) throw new Error("Unsafe or nonportable hook command");
+            await lstat(path.join(plugin, command[1]));
+          }
+        }
+      }
+    }
+  }
+  return { plugins: names.length, skills };
+}
+
+export async function validateBundle(root) {
+  for (const plugin of ["omlx-media", "pstack"]) {
+    const manifest = await readJson(path.join(root, `plugins/${plugin}/bundle-manifest.json`));
+    for (const [file, expected] of Object.entries(manifest.files)) {
+      if (!inside(root, path.resolve(root, file))) throw new Error("Bundle path escaped root");
+      const actual = createHash("sha256").update(await readFile(path.join(root, file))).digest("hex");
+      if (actual !== expected) throw new Error(`Stale bundle input or output: ${file}. Run npm run build.`);
+    }
+  }
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+  try {
+    const result = await validateMarketplace(root);
+    await validateBundle(root);
+    console.log(`Validated ${result.plugins} plugins and ${result.skills} skills; bundles are current.`);
+  } catch (error) { console.error(error.message); process.exitCode = 1; }
+}

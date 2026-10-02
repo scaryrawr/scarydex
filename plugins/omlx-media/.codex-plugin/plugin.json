@@ -1,0 +1,17 @@
+{
+  "name": "omlx-media",
+  "version": "0.1.0",
+  "description": "Generate images and speech, transcribe audio, and turn recordings into grounded documents using local OMLX models.",
+  "author": {
+    "name": "Mike Wallio"
+  },
+  "repository": "https://github.com/scaryrawr/scarydex",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "omlx-media",
+    "shortDescription": "Generate images and speech, transcribe audio, and turn recordings into grounded documents using local OMLX models.",
+    "developerName": "ScaryDex",
+    "category": "Developer Tools"
+  },
+  "license": "MIT"
+}

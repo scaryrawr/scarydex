@@ -1,0 +1,40 @@
+---
+name: digivolution
+description: Use for "digivolve", "use digivolution", adaptive end-of-turn reflection prompts, or requests that ask whether durable repo-specific guidance, AGENTS.md/Codex instructions, or in-repo SKILL.md instructions are stale, missing, or should be updated.
+---
+
+# Digivolution Skill
+
+Use this skill for post-task reflection: if the work revealed durable knowledge that would help the next agent, improve the repo's guidance. Keep changes concise, local to the right instruction surface, and high signal.
+
+## When to update guidance
+
+Update instructions or skills only when at least one is true:
+
+- You repeatedly had to rediscover a durable repo-specific fact.
+- Existing instructions were misleading, outdated, incomplete, or contradicted the repo.
+- You learned validation, setup, workflow, safety, or convention details likely to be useful next time.
+
+## Where to put changes
+
+- Shared durable guidance -> the narrowest relevant `AGENTS.md`. Use the root file for truly repo-wide rules, but prefer a nested `AGENTS.md` when guidance applies only to a subtree and would clutter higher-level instructions.
+- Root `CLAUDE.md`, when used, should remain exactly a one-line `@AGENTS.md` shim.
+- Misleading or stale in-repo skills -> correct the relevant `.agents/skills/**/SKILL.md` or repo plugin `plugins/*/skills/**/SKILL.md`.
+- Deeper docs -> link to them when helpful instead of dumping large documentation into immediate context.
+
+## Non-goals and safety
+
+- Do not add generic advice, one-off task details, secrets, private data, or speculative preferences.
+- Do not create nested instructions unless the scope differs meaningfully from parent guidance.
+- Do not update instructions or skills merely because this reflection was requested.
+- When there is no durable improvement, make no change and do not interrupt task completion with a no-op status.
+- When an adaptive hook requested the reflection and no update is warranted, finish silently without acknowledging the hook.
+- If an eval harness or explicit user instruction requires a final decision artifact, produce it even when no update is needed.
+
+## Checklist
+
+1. Review what you learned during the task and identify only durable, repo-specific facts.
+2. Check existing guidance before adding new text; prefer correcting or tightening over duplicating.
+3. Choose the narrowest appropriate destination from the list above.
+4. Write concise, actionable guidance with links to deeper docs when useful.
+5. Validate the edited Markdown/frontmatter and ensure no unrelated files were changed.

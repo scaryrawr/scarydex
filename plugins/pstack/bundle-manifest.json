@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "files": {
+    "package-lock.json": "39d1207c0719659590ce2e09f4159c202edbb246c090552960f6ca3cfd0dd820",
+    "plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs": "833fa4bc832412fdf8550dec43b0a81ca03dcd87f25a8713503741ea276cb8e3",
+    "plugins/pstack/skills/poteto-mode/scripts/orch/orch.ts": "0870d7075e199ed71e4dad09a155b2f41a0d36f3055b01529efc54fb762b4cbd",
+    "plugins/pstack/skills/poteto-mode/scripts/orch/store.ts": "cb865c8db6025ee334b4b3829960445e7d6d957d05ae5a2e8cfad6766c235836",
+    "plugins/pstack/skills/poteto-mode/scripts/watch-pr/cli.ts": "bf6e34fe4c8d8f3ae6cd3a29d658431260d297db28501d85a8f19e6a429a2d97",
+    "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts": "6f92b21fb07d726d6ad9288d11815752d6e3e3821f42610bd979964728cc176e",
+    "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts": "45cad88c87afbdeed82ca5468b81f3bf03813d53cdcfb763c2aca71374e133ad",
+    "plugins/pstack/skills/poteto-mode/scripts/watch-pr/render.ts": "6993a24343a92fb5c4a69948139b6d631585f56c309509fdb3e158169b7af3d1",
+    "plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.ts": "77fabcd4fc07c3291512cb508b595920d17eaa7745716443dee35107b59cc307",
+    "plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs": "a62a456bc9fe5b544e0d3e21f9b5ea28c33972868ce3a5547499e9184fd91d0d",
+    "tools/build.mjs": "9b8cab2a0e13bbc274e81d063aa98f72158e9350f57f20064a3a5dfa5e397210",
+    "tools/entries/orch.mjs": "700d66816d854335e32a61788bc843a0cbc4adb5558b0dfc7d4b9adbf8ec0bc8",
+    "tools/entries/watch-pr.mjs": "6a9c97cf53e21f46d6e9d1e2cdc75d0a6f057f9232b641f5e3fefedc211ec4c5"
+  }
+}

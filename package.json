@@ -1,0 +1,24 @@
+{
+  "name": "scarydex",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "check": "node tools/check-marketplace.mjs",
+    "test": "node --test tests/*.test.mjs plugins/anti-slop/hooks/*.test.mjs plugins/anti-slop/skills/anti-slop/scripts/*.test.mjs plugins/digivolution/hooks/*.test.mjs && node --test --experimental-strip-types plugins/omlx-media/tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@sinclair/typebox": "0.34.49",
+    "@types/node": "^24.12.2",
+    "esbuild": "^0.25.12",
+    "typescript": "^5.9.3",
+    "oxlint": "1.83.0",
+    "yaml": "2.8.1",
+    "commander": "14.0.0"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}
