@@ -9,13 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: arttor/actions-setup-bun@v1
         with:
-          node-version: '22.18.0'
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run check
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+          bun-version: '1.4.2'
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run build
       - run: git diff --exit-code -- plugins/omlx-media/scripts/media.mjs plugins/omlx-media/bundle-manifest.json plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs plugins/pstack/bundle-manifest.json
