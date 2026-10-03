@@ -134,6 +134,11 @@ export async function validateUpstreamSetup(root) {
   const text = await readFile(path.join(root, ".github/workflows/upstream-sync.md"), "utf8");
   const source = parse(/^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? "");
   const lock = parse(await readFile(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
+  const actionPins = await readJson(path.join(root, ".github/aw/actions-lock.json"));
+  const setupPin = actionPins.entries?.["github/gh-aw-actions/setup@v0.88.7"]?.sha;
+  if (setupPin !== "5e508589e03a7757a7e05b26e834292f5445bfb6" ||
+      Object.values(lock.jobs).some(job => job.steps?.some(step =>
+        step.uses?.startsWith("github/gh-aw-actions/setup@") && step.uses !== `github/gh-aw-actions/setup@${setupPin}`))) throw new Error("Compiler setup action pin drift");
   const output = source?.["safe-outputs"]?.["create-pull-request"];
   if (source.engine?.id !== "codex" || source.engine.model !== "copilot/gpt-5.3-codex" ||
       source.permissions?.contents !== "read" || source.permissions?.["pull-requests"] !== "read" ||

@@ -170,7 +170,9 @@ unchanged inventory, review registry, tests, and narrow build/package inputs.
 Workflow files, `AGENTS.md`, repo skills, provenance, and original plugins are
 not proposal targets.
 
-CI recompiles with the pinned compiler and compares the generated lock. The
+CI recompiles with the pinned compiler and compares the generated lock and
+action-pin registry. `.github/aw/actions-lock.json` includes the compiler setup
+action so local and CI compilation use the same verified release SHA. The
 compiler's action/container pins are preserved in the lock manifest. Compiler
 upgrade, instruction, policy, and skill changes require human maintenance.
 Both the main agent and detection use Copilot authentication. The compiled
