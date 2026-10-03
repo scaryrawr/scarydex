@@ -107,7 +107,8 @@ async function request(base, endpoint, body) {
       signal: AbortSignal.timeout(body === undefined ? LIST_TIMEOUT_MS : DECISION_TIMEOUT_MS),
     });
   } catch (error) {
-    throw new Error(`Ollama request failed. Start Ollama or set OLLAMA_BASE_URL. ${error.message}`);
+    const cause = error instanceof Error && error.cause instanceof Error ? error.cause.code ?? error.cause.message : undefined;
+    throw new Error(`Ollama request failed${cause ? ` (${cause})` : ""}. Start Ollama or set OLLAMA_BASE_URL. If the agent runs commands in a sandbox, the sandbox may block local HTTP even when Ollama is running; rerun this command outside the sandbox.`);
   }
   if (!response.ok) {
     const hint = endpoint === "/v1/systemone" && response.status === 404 ? " Upgrade to Ollama 0.35 or newer for SystemOne support." : "";

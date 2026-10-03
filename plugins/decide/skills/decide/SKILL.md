@@ -13,6 +13,16 @@ Ollama's Jev-style API answers named, typed questions about supplied `state`.
 It uses `POST /v1/systemone`, not `/api/chat`, and returns structured answers
 rather than a reasoning trace. It requires Ollama 0.35 or newer.
 
+## Sandboxed execution
+
+Every helper command makes an HTTP request, including `models` and even when
+Ollama runs on `localhost`. Sandboxed agent environments often block local
+HTTP, so a sandboxed run can fail with `fetch failed` or `EPERM` while Ollama
+is healthy. Rerun the same command unsandboxed through the host's normal
+approval flow (approving a reusable `node .../decide.mjs` prefix is fine). Do
+not diagnose a blocked request as Ollama being down, and do not fall back to
+`/api/chat` or fabricate an answer.
+
 ## Discover models
 
 ```sh
@@ -61,6 +71,7 @@ normal assistant workflow instead of treating SystemOne as a chat model.
 
 The helper exits nonzero for invalid arguments, unreadable JSON inputs, network
 failures, HTTP errors, or malformed answers. Fix input errors before retrying.
-For an unreachable endpoint, check Ollama and `OLLAMA_BASE_URL`. For a SystemOne
-404, check the Ollama version and endpoint. Do not substitute a chat call or
-fabricate a decision when the API fails.
+For an unreachable endpoint, first rule out sandbox blocking by rerunning the
+same command unsandboxed, then check Ollama and `OLLAMA_BASE_URL`. For a
+SystemOne 404, check the Ollama version and endpoint. Do not substitute a chat
+call or fabricate a decision when the API fails.
