@@ -45,6 +45,13 @@
         "source": "local",
         "path": "./plugins/screen-record"
       }
+    },
+    {
+      "name": "decide",
+      "source": {
+        "source": "local",
+        "path": "./plugins/decide"
+      }
     }
   ]
 }

@@ -9,5 +9,14 @@
     "version": "0.15.4",
     "comparisonCommit": "c47b12849e43f18d5c374c7069c744cc55b0ea00",
     "comparisonVersion": "0.15.5"
+  },
+  "decide": {
+    "upstream": {
+      "name": "Ollama",
+      "description": "JEV-style decision models (Judgment-Evaluation-Decision framework)",
+      "source": "https://ollama.com/blog/ollama-now-supports-jev-style-decision-models",
+      "api": "Ollama chat/generate endpoints with structured JEV system prompts"
+    },
+    "port_notes": "Ports the JEV decision framework as a Codex skill + self-contained Node helper. No Copilot SDK extensions or browser servers registered."
   }
 }

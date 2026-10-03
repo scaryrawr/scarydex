@@ -1,0 +1,17 @@
+{
+  "name": "decide",
+  "version": "0.1.0",
+  "description": "Discover and leverage Ollama decision models using the JEV (Judgment-Evaluation-Decision) framework.",
+  "author": {
+    "name": "Mike Wallio"
+  },
+  "repository": "https://github.com/scaryrawr/scarydex",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "decide",
+    "shortDescription": "Discover and leverage Ollama decision models using the JEV (Judgment-Evaluation-Decision) framework.",
+    "developerName": "ScaryDex",
+    "category": "Developer Tools"
+  },
+  "license": "MIT"
+}

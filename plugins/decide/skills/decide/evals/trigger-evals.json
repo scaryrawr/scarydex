@@ -1,0 +1,50 @@
+[
+  {
+    "query": "Help me decide between these two deployment strategies.",
+    "should_trigger": true
+  },
+  {
+    "query": "Run a JEV decision analysis on this architectural option.",
+    "should_trigger": true
+  },
+  {
+    "query": "What decision models do I have available via Ollama?",
+    "should_trigger": true
+  },
+  {
+    "query": "I need to choose a database: Postgres or DynamoDB. Help me think it through.",
+    "should_trigger": true
+  },
+  {
+    "query": "Use decide to evaluate these vendor options for our data residency needs.",
+    "should_trigger": true
+  },
+  {
+    "query": "What is the best practice for handling authentication in a microservices architecture?",
+    "should_trigger": false
+  },
+  {
+    "query": "Explain how Ollama's decision model API works.",
+    "should_trigger": false
+  },
+  {
+    "query": "List all the models I have installed in Ollama.",
+    "should_trigger": true
+  },
+  {
+    "query": "What's the difference between ECS and EKS?",
+    "should_trigger": false
+  },
+  {
+    "query": "Can you help me make a decision about my tech stack? I'm torn between React and Vue.",
+    "should_trigger": true
+  },
+  {
+    "query": "Write a unit test for this function.",
+    "should_trigger": false
+  },
+  {
+    "query": "I need a second opinion on this design choice before I commit to it.",
+    "should_trigger": true
+  }
+]

@@ -1,0 +1,75 @@
+{
+  "skill_name": "decide",
+  "evals": [
+    {
+      "id": 1,
+      "name": "list-decision-models",
+      "prompt": "What decision-capable models are available via Ollama?",
+      "expected_output": "A list of models from the Ollama endpoint with decision-capable ones highlighted.",
+      "files": [],
+      "expectations": [
+        "The skill runs node scripts/decide.mjs models.",
+        "Decision-capable models are identified by name keywords.",
+        "The full model list is also shown."
+      ]
+    },
+    {
+      "id": 2,
+      "name": "run-jev-deployment-choice",
+      "prompt": "Use decide to help me choose between deploying to ECS Fargate vs. EKS for a mid-size microservices platform.",
+      "expected_output": "A JEV-structured decision analysis with Judgment, Evaluation, and Decision sections.",
+      "files": [],
+      "expectations": [
+        "The skill identifies available decision models first.",
+        "The JEV prompt covers judgment (situation assessment), evaluation (tradeoffs per option), and decision (concrete recommendation).",
+        "The output is challenged against real operational knowledge, not just accepted."
+      ]
+    },
+    {
+      "id": 3,
+      "name": "evaluate-architectural-options",
+      "prompt": "I need to decide between a monolith, microservices, or modular monolith for a new product team of 6 engineers. Use decide to run the analysis.",
+      "expected_output": "A JEV decision with team-size considerations, tradeoffs per architecture, and a clear recommendation.",
+      "files": [],
+      "expectations": [
+        "The evaluation considers team size as a key constraint.",
+        "Each option gets explicit tradeoff analysis, not just description.",
+        "The decision is concrete, not 'it depends' without guidance."
+      ]
+    },
+    {
+      "id": 4,
+      "name": "decide-without-helper",
+      "prompt": "I have a reasoning model in Ollama. Show me how to run a JEV decision directly against the API without the helper script.",
+      "expected_output": "A curl or fetch example sending a JEV system prompt to /api/chat.",
+      "files": [],
+      "expectations": [
+        "The reference doc's prompt template is used.",
+        "The endpoint and body structure match Ollama's API."
+      ]
+    },
+    {
+      "id": 5,
+      "name": "decline-factual-query",
+      "prompt": "What is the capital of France?",
+      "expected_output": "The skill recognizes this is a factual query and does not invoke the JEV framework.",
+      "files": [],
+      "expectations": [
+        "The skill correctly declines to use the decision framework.",
+        "A direct factual answer is provided instead."
+      ]
+    },
+    {
+      "id": 6,
+      "name": "choose-llm-provider",
+      "prompt": "Help me decide whether to use OpenAI, Anthropic, or an open-source model for a customer-facing chatbot with strict data residency requirements in the EU.",
+      "expected_output": "A JEV analysis weighing provider options against data residency, capability, and cost tradeoffs.",
+      "files": [],
+      "expectations": [
+        "Data residency is a key evaluation criterion.",
+        "Each provider gets an explicit tradeoff analysis.",
+        "The decision accounts for the compliance constraint."
+      ]
+    }
+  ]
+}
