@@ -153,6 +153,34 @@ test("bounded candidate prefix exposes remaining work and resumes only after mer
   assert.equal(next.base, track.reviewHead);
 });
 
+test("bounded review resumes across sibling branches without replaying final dispositions", { timeout: 30000 }, () => {
+  const f = fixture();
+  git(f.scarypilot, "switch", "-qc", "side", f.scaryBase);
+  for (let i = 0; i < 11; i++) {
+    write(f.scarypilot, "plugins/anti-slop/side.md", `${i}\n`); commit(f.scarypilot, `side ${i}`);
+  }
+  git(f.scarypilot, "switch", "-q", "main");
+  for (let i = 0; i < 11; i++) {
+    write(f.scarypilot, "plugins/anti-slop/main.md", `${i}\n`); commit(f.scarypilot, `main ${i}`);
+  }
+  git(f.scarypilot, "merge", "--no-ff", "-qm", "merge siblings", "side");
+  const p = plan(f), first = p.tracks[0];
+  assert.equal(first.commits.length, LIMITS.candidates);
+  assert.ok(first.commits.some(change =>
+    spawnSync("git", ["-C", f.scarypilot, "merge-base", "--is-ancestor", change.commit, first.reviewHead]).status === 1));
+  review(f, p, first.id);
+  cli(f, "verify", ["--plan", savePlan(f, p)]);
+  commit(f.local, "Merge first bounded review");
+  const next = plan(f);
+  const reviewed = new Set(first.commits.map(change => change.commit));
+  assert.ok(next.tracks[0].commits.length > 0);
+  assert.ok(next.tracks[0].commits.every(change => !reviewed.has(change.commit)));
+  review(f, next, first.id);
+  cli(f, "verify", ["--plan", savePlan(f, next)]);
+  commit(f.local, "Merge remaining sibling reviews");
+  assert.deepEqual(plan(f).tracks[0].commits, []);
+});
+
 test("complete exclusions advance review only, preserving provenance and append-only evidence", () => {
   const f = fixture(), p = plan(f), file = savePlan(f, p);
   const before = readFileSync(path.join(f.local, "port-provenance.json"), "utf8");
@@ -225,7 +253,7 @@ test("untracked invalid names and oversized proposed content are included in the
   assert.match(cli(f, "verify", ["--plan", file], 1), /Invalid path/);
   rmSync(path.join(f.local, "tests/invalid\nname"));
   write(f.local, "tests/large.mjs", "x".repeat(LIMITS.bytes + 1));
-  assert.match(cli(f, "verify", ["--plan", file], 1), /patch size/);
+  assert.match(cli(f, "verify", ["--plan", file], 1), /patch size|uncompressed blob size/);
 });
 
 test("root-only and cosmetic registry proposals cannot publish without semantic review state", () => {
@@ -311,6 +339,142 @@ test("actual publication bundle and patch are verified and malicious transport i
   rmSync(path.join(f.local, ".github/workflows/bad.yml")); commit(f.local, "Remove malicious final-tree change");
   write(artifact, "aw-upstream-sync-review.patch", git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n");
   assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /Disallowed intermediate/);
+});
+
+test("invalid UTF-8 Git paths fail closed before nonregular-file mode lookup", () => {
+  const f = fixture(), p = plan(f), file = savePlan(f, p);
+  review(f, p, "cursor/pstack");
+  const blob = spawnSync("git", ["-C", f.local, "hash-object", "-w", "--stdin"], { input: "/tmp", encoding: "utf8" });
+  assert.equal(blob.status, 0, blob.stderr);
+  git(f.local, "add", "upstream-sync.json");
+  const entry = Buffer.concat([Buffer.from(`120000 ${blob.stdout.trim()}\ttests/`), Buffer.from([0xff, 0])]);
+  const update = spawnSync("git", ["-C", f.local, "update-index", "-z", "--index-info"], { input: entry });
+  assert.equal(update.status, 0, update.stderr.toString());
+  git(f.local, "commit", "-qm", "Nonregular file with unsupported filename bytes");
+  assert.match(cli(f, "verify", ["--plan", file], 1), /UTF-8/);
+});
+
+test("compressed bundles and binary patches cannot exceed expanded content budget", () => {
+  const f = fixture(), p = plan(f), file = savePlan(f, p);
+  review(f, p, "cursor/pstack");
+  mkdirSync(path.join(f.local, "tests"));
+  writeFileSync(path.join(f.local, "tests/large.bin"), Buffer.alloc(LIMITS.bytes + 1));
+  git(f.local, "switch", "-qc", "upstream-sync/large");
+  commit(f.local, "Highly compressible oversized blob");
+  const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
+  write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/large", base: "main" }] });
+  const bundle = path.join(artifact, "aw-upstream-sync-large.bundle");
+  git(f.local, "bundle", "create", bundle, `${f.base}..upstream-sync/large`);
+  assert.ok(readFileSync(bundle).length < LIMITS.bytes);
+  assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /expanded|uncompressed/);
+  assert.notEqual(spawnSync("git", ["-C", f.local, "rev-parse", "--verify", "FETCH_HEAD"]).status, 0);
+  rmSync(bundle);
+  const patch = git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n";
+  const split = patch.indexOf("\n\n");
+  const mime = patch.slice(0, split) + "\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: base64\n\n" +
+    Buffer.from(patch.slice(split + 2)).toString("base64").replace(/.{76}/g, "$&\n") + "\n";
+  for (const content of [patch, patch.replaceAll("\n", "\r\n"), mime]) {
+    write(artifact, "aw-upstream-sync-large.patch", content);
+    assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /expanded|uncompressed/);
+    assert.equal(spawnSync("test", ["-d", path.join(f.local, ".git/worktrees")]).status, 1);
+  }
+});
+
+test("transport expansion caps aggregate objects and oversized binary delta results", () => {
+  for (const scenario of ["aggregate", "deduplicated", "delta"]) {
+    const f = fixture();
+    mkdirSync(path.join(f.local, "tests"));
+    if (scenario === "delta") {
+      writeFileSync(path.join(f.local, "tests/blob.bin"), Buffer.alloc(LIMITS.bytes + 1));
+      f.base = commit(f.local, "Trusted existing large binary");
+    }
+    const p = plan(f), file = savePlan(f, p);
+    review(f, p, "cursor/pstack");
+    if (scenario !== "delta") {
+      for (const name of ["one", "two"]) {
+        const bytes = Buffer.alloc(LIMITS.bytes / 2 + 1);
+        if (scenario === "aggregate" && name === "two") bytes[1234] = 1;
+        writeFileSync(path.join(f.local, `tests/${name}.bin`), bytes);
+      }
+    } else {
+      const bytes = Buffer.alloc(LIMITS.bytes + 1); bytes[1234] = 1;
+      writeFileSync(path.join(f.local, "tests/blob.bin"), bytes);
+    }
+    git(f.local, "switch", "-qc", "upstream-sync/binary");
+    commit(f.local, "Compressed binary proposal");
+    const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
+    write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/binary", base: "main" }] });
+    const bundle = path.join(artifact, "aw-upstream-sync-binary.bundle");
+    git(f.local, "bundle", "create", bundle, `${f.base}..upstream-sync/binary`);
+    assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /expanded|uncompressed/);
+    assert.notEqual(spawnSync("git", ["-C", f.local, "rev-parse", "--verify", "FETCH_HEAD"]).status, 0);
+    rmSync(bundle);
+    const patch = git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n";
+    if (scenario === "delta") assert.match(patch, /^delta /m);
+    write(artifact, "aw-upstream-sync-binary.patch", patch);
+    assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /expanded|uncompressed/);
+    assert.equal(spawnSync("test", ["-d", path.join(f.local, ".git/worktrees")]).status, 1);
+  }
+});
+
+test("valid UTF-8 replacement characters and bounded binary literals/deltas still publish", () => {
+  const f = fixture();
+  mkdirSync(path.join(f.local, "tests"));
+  writeFileSync(path.join(f.local, "tests/existing.bin"), Buffer.alloc(65536));
+  write(f.local, "tests/old.md", "text file to rename\n");
+  f.base = commit(f.local, "Existing binary");
+  const p = plan(f), file = savePlan(f, p);
+  review(f, p, "cursor/pstack");
+  const bytes = Buffer.alloc(65536); bytes[1234] = 1;
+  writeFileSync(path.join(f.local, "tests/existing.bin"), bytes);
+  writeFileSync(path.join(f.local, "tests/new.bin"), Buffer.alloc(1024));
+  renameSync(path.join(f.local, "tests/old.md"), path.join(f.local, "tests/renamed.md"));
+  write(f.local, "tests/\uFFFD.md", "valid UTF-8 filename\n");
+  git(f.local, "switch", "-qc", "upstream-sync/valid-binary");
+  commit(f.local, "Bounded binary literals and deltas");
+  const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
+  write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/valid-binary", base: "main" }] });
+  git(f.local, "bundle", "create", path.join(artifact, "aw-upstream-sync-valid-binary.bundle"), `${f.base}..upstream-sync/valid-binary`);
+  const patch = git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n";
+  assert.match(patch, /^delta /m);
+  assert.match(patch, /^literal /m);
+  assert.ok(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact]).files.includes("tests/new.bin"));
+  rmSync(path.join(artifact, "aw-upstream-sync-valid-binary.bundle"));
+  write(artifact, "aw-upstream-sync-valid-binary.patch", patch);
+  assert.ok(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact]).files.includes("tests/new.bin"));
+});
+
+test("patch preflight caps existing textual blobs before materializing changes", () => {
+  const f = fixture();
+  write(f.local, "tests/large.txt", "existing line\n".repeat(700000));
+  f.base = commit(f.local, "Trusted large text");
+  const p = plan(f), file = savePlan(f, p);
+  review(f, p, "cursor/pstack");
+  write(f.local, "tests/large.txt", "existing line\n".repeat(700000) + "small addition\n");
+  commit(f.local, "Small diff against oversized text");
+  const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
+  write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/text", base: "main" }] });
+  const patch = git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n";
+  assert.ok(Buffer.byteLength(patch) < LIMITS.bytes);
+  write(artifact, "aw-upstream-sync-text.patch", patch);
+  assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /uncompressed/);
+  assert.equal(spawnSync("test", ["-d", path.join(f.local, ".git/worktrees")]).status, 1);
+});
+
+test("publication rejects Git-invalid branch names even for patch-only proposals", () => {
+  const f = fixture(), p = plan(f), file = savePlan(f, p);
+  review(f, p, "cursor/pstack");
+  commit(f.local, "Review capability boundary");
+  const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
+  const patch = git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n";
+  for (const suffix of ["a..b", "a/", "a.lock", "a//b", "a/.b"]) {
+    const branch = `upstream-sync/${suffix}`;
+    const stem = `aw-${branch.replaceAll("/", "-").replace(/-{2,}/g, "-").replace(/^-|-$/g, "")}`;
+    write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch, base: "main" }] });
+    write(artifact, `${stem}.patch`, patch);
+    assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /Invalid Git branch/);
+    rmSync(path.join(artifact, `${stem}.patch`));
+  }
 });
 
 test("native repo skills validate independently without altering published skill count; compiled publication gate is credential-separated", async () => {

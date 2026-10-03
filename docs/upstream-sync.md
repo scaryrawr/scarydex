@@ -44,7 +44,10 @@ Do not dispatch a live run to test this setup without explicit authorization.
 The combined workflow runs Mondays at **08:17 UTC** and supports manual
 dispatch. Runs serialize without canceling a running sync. A pre-activation
 search skips inference when an open PR has the `[upstream-sync]` title marker.
-Search failures fail closed. A deterministic empty plan skips inference too.
+Search failures fail closed. A deterministic empty plan writes a noop before
+execution. The pinned gh-aw Codex harness checks that noop before starting
+Codex or validating inference credentials; its execution step still runs,
+but exits without inference.
 The documented `features.group-concurrency-queue: false` avoids newer `queue`
 syntax unsupported by local actionlint 1.7.12. Standard Actions concurrency
 keeps one pending run; a newer pending trigger can replace an older pending
@@ -64,7 +67,10 @@ Each track plans at most 20 relevant candidates per run with an explicit
 `remaining` count. No upstream history is silently truncated. More than 5,000
 commits, 20,000 changed paths, or an 8 MiB command/diff fails explicitly and
 requires human reconciliation. One proposal may modify at most two shipped
-plugins, 100 files, 100 commits, and an 8 MiB patch.
+plugins, 100 files, 100 commits, and an 8 MiB patch. Compressed bundles and
+binary patches also have an 8 MiB aggregate expansion budget, including delta
+sources/results and reverse patches. Changed blob sizes are checked in aggregate;
+duplicated paths count separately even if Git deduplicates their content.
 
 ## Sources and review state
 
@@ -112,6 +118,10 @@ local plugin path, including manifests and generated bundles. A cursor means
 for the next run. A closed unmerged proposal is reviewed again.
 Every commit through the last reviewed candidate needs an explicit disposition,
 even when the cursor remains stationary.
+On branched histories, final ledger entries are checked and omitted from later
+candidate batches even when they are not ancestors of the current cursor.
+The cursor and append-only ledger together track reviewed work; a single
+topological boundary alone does not describe the reviewed branches.
 
 ## Local commands
 
@@ -148,8 +158,10 @@ policy code with read credentials and invokes:
 node tools/upstream-sync.mjs verify --root <trusted-checkout> --plan <artifact-plan.json> --artifact-dir <agent-artifact-directory>
 ```
 
-The gate inspects the bundle's actual commit/tree and applies the fallback
-format-patch in an isolated temporary worktree without executing proposal code.
+The gate validates expanded pack objects before importing bundles into an
+isolated object-only repository. It decodes patch mail with Git and checks
+binary literal/delta expansion before applying the fallback format-patch in an
+isolated temporary worktree, without executing proposal code.
 Both transports must agree. Disallowed paths, provenance changes, missing
 dispositions, cursor gaps, symlinks, missing version bumps, or excessive changes
 fail the job **before** publication credentials are used. Every proposal also
@@ -169,6 +181,9 @@ Allowed paths cover selected tracked plugins, directly coupled README/notices,
 unchanged inventory, review registry, tests, and narrow build/package inputs.
 Workflow files, `AGENTS.md`, repo skills, provenance, and original plugins are
 not proposal targets.
+Git output is decoded as strict UTF-8, so unsupported filename bytes cannot
+turn into a different path during mode checks. Requested branches must pass
+Git's ref-format validation before any transport is accepted.
 
 CI recompiles with the pinned compiler and compares the generated lock and
 action-pin registry. `.github/aw/actions-lock.json` includes the compiler setup

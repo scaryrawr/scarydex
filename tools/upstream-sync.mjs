@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, appendFileSync, mkdirSync, readdirSync, ls
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { inflateSync } from "node:zlib";
 
 export const TRACKS = [
   ...["anti-slop", "better-init", "digivolution", "omlx-media", "screen-record", "pstack"].map(plugin => ({
@@ -30,12 +31,15 @@ function safePath(value) {
     !path.posix.isAbsolute(value) && value.split("/").every(p => p && p !== "." && p !== ".."), `Invalid path: ${value}`);
   return value;
 }
-function git(directory, args, allowed = [0]) {
+function git(directory, args, allowed = [0], input) {
   const result = spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "core.quotePath=false", "-C", directory, ...args], {
-    encoding: "utf8", maxBuffer: LIMITS.bytes, env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_CONFIG_NOSYSTEM: "1" },
+    input, maxBuffer: LIMITS.bytes, env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_CONFIG_NOSYSTEM: "1" },
   });
-  if (result.error || !allowed.includes(result.status)) throw new Error(`git ${args[0]} failed in ${directory}: ${result.error?.message ?? result.stderr.trim()}`);
-  return { text: result.stdout, status: result.status };
+  if (result.error || !allowed.includes(result.status)) throw new Error(`git ${args[0]} failed in ${directory}: ${result.error?.message ?? result.stderr.toString("utf8").trim()}`);
+  let text;
+  try { text = new TextDecoder("utf-8", { fatal: true }).decode(result.stdout); }
+  catch (error) { throw new Error(`git ${args[0]} returned unsupported UTF-8 bytes`, { cause: error }); }
+  return { text, status: result.status };
 }
 const lines = text => text.trim() ? text.trim().split("\n") : [];
 function commit(directory, ref) { return sha(git(directory, ["rev-parse", "--verify", `${ref}^{commit}`]).text.trim()); }
@@ -134,7 +138,12 @@ export function planSync({ root = ROOT, scarypilot, cursor, heads = {} }) {
       const review = reviewed.get(change.commit);
       requireThat(review && FINAL.has(review.disposition) && same(review.paths, change.paths), "Existing cursor has a review gap");
     }
-    const all = history(directory, track, base, head);
+    const all = history(directory, track, base, head).filter(change => {
+      const review = reviewed.get(change.commit);
+      if (!FINAL.has(review?.disposition)) return true;
+      requireThat(same(review.paths, change.paths), "Existing final review paths changed");
+      return false;
+    });
     const candidates = all.slice(0, LIMITS.candidates);
     return { ...TRACKS.find(t => t.id === track.id), repository: SOURCES[track.source], base, head,
       reviewHead: all.length > candidates.length ? candidates.at(-1).commit : head,
@@ -168,6 +177,7 @@ function verifyCommits(root, base, head) {
     const parents = git(root, ["show", "-s", "--format=%P", id]).text.trim().split(" ");
     for (const parent of parents) {
       const changes = changedPaths(root, parent, id);
+      verifyBlobSizes(root, id, changes.flatMap(change => change.paths));
       requireThat(changes.every(change => change.paths.every(file => allowedPath(file, plugins))), "Disallowed intermediate commit path");
       for (const file of changes.flatMap(change => change.paths)) {
         const mode = git(root, ["ls-tree", id, "--", file]).text.split(" ")[0];
@@ -175,6 +185,18 @@ function verifyCommits(root, base, head) {
       }
     }
   }
+}
+function verifyBlobSizes(root, ref, files) {
+  if (!files.length) return 0;
+  const entries = git(root, ["ls-tree", "-r", "-l", "-z", ref, "--", ...files]).text.split("\0").filter(Boolean);
+  let total = 0;
+  for (const entry of entries) {
+    const size = /^\d+ blob [0-9a-f]+ +(\d+)\t/.exec(entry)?.[1];
+    if (size === undefined) continue;
+    total += Number(size);
+    requireThat(total <= LIMITS.bytes, "Proposal exceeds aggregate uncompressed blob size limit");
+  }
+  return total;
 }
 export function verifyProposal({ root = ROOT, plan, base = plan.base, head }) {
   sha(base);
@@ -198,6 +220,7 @@ export function verifyProposal({ root = ROOT, plan, base = plan.base, head }) {
     }
   }
   requireThat(files.length <= LIMITS.proposalFiles, "Proposal exceeds 100 files");
+  verifyBlobSizes(root, head ?? commit(root, "HEAD"), files.flatMap(change => change.paths));
   const selected = new Set();
   const portedPaths = new Set();
   proposed.tracks.forEach((track, index) => {
@@ -233,6 +256,14 @@ export function verifyProposal({ root = ROOT, plan, base = plan.base, head }) {
     }
   });
   const changed = new Set(files.flatMap(change => change.paths));
+  if (!head) {
+    let total = 0;
+    for (const file of changed) {
+      const stat = lstatSync(path.join(root, file), { throwIfNoEntry: false });
+      if (stat?.isFile()) total += stat.size;
+      requireThat(total <= LIMITS.bytes, "Proposal exceeds aggregate uncompressed blob size limit");
+    }
+  }
   requireThat(changed.has("upstream-sync.json") && proposed.tracks.some((track, index) =>
     track.reviews.length !== original.tracks[index].reviews.length || track.reviewedThrough !== original.tracks[index].reviewedThrough),
   "Proposal requires a semantic review registry update");
@@ -260,6 +291,122 @@ export function verifyProposal({ root = ROOT, plan, base = plan.base, head }) {
   requireThat(Buffer.byteLength(patch) + untrackedBytes <= LIMITS.bytes, "Proposal exceeds patch size limit");
   return { files: [...changed].sort(), plugins: [...selected].sort() };
 }
+
+function deltaSize(data) {
+  let offset = 0;
+  const read = () => {
+    let value = 0, shift = 0, byte;
+    do {
+      requireThat(offset < data.length && shift <= 49, "Invalid binary delta size");
+      byte = data[offset++];
+      value += (byte & 0x7f) * 2 ** shift;
+      shift += 7;
+    } while (byte & 0x80);
+    requireThat(Number.isSafeInteger(value) && value <= LIMITS.bytes, "Transport exceeds expanded delta size limit");
+    return value;
+  };
+  return Math.max(read(), read());
+}
+function boundedInflate(data) {
+  try { return inflateSync(data, { maxOutputLength: LIMITS.bytes, info: true }); }
+  catch (error) { throw new Error(`Invalid or oversized expanded transport data: ${error.message}`, { cause: error }); }
+}
+function verifyBundleExpansion(data) {
+  const headerEnd = data.indexOf("\n\n");
+  requireThat(headerEnd >= 0 && /^# v[23] git bundle\n/.test(data.subarray(0, headerEnd).toString("ascii")), "Invalid bundle header");
+  let offset = headerEnd + 2, total = 0;
+  requireThat(data.subarray(offset, offset + 4).toString("ascii") === "PACK" && data.length >= offset + 12, "Invalid bundle pack");
+  const version = data.readUInt32BE(offset + 4);
+  const count = data.readUInt32BE(offset + 8);
+  requireThat((version === 2 || version === 3) && count <= LIMITS.paths, "Invalid or excessive pack objects");
+  offset += 12;
+  for (let index = 0; index < count; index++) {
+    requireThat(offset < data.length - 20, "Truncated bundle pack");
+    let byte = data[offset++], size = byte & 15, shift = 4;
+    const type = (byte >> 4) & 7;
+    while (byte & 0x80) {
+      requireThat(offset < data.length - 20 && shift <= 49, "Invalid pack object size");
+      byte = data[offset++];
+      size += (byte & 0x7f) * 2 ** shift;
+      shift += 7;
+    }
+    requireThat(size <= LIMITS.bytes && [1, 2, 3, 4, 6, 7].includes(type), "Transport exceeds expanded pack object size limit");
+    if (type === 6) {
+      do {
+        requireThat(offset < data.length - 20, "Truncated pack delta offset");
+        byte = data[offset++];
+      } while (byte & 0x80);
+    } else if (type === 7) offset += 20;
+    const inflated = boundedInflate(data.subarray(offset, data.length - 20));
+    requireThat(inflated.buffer.length === size, "Pack object size mismatch");
+    offset += inflated.engine.bytesWritten;
+    total += type === 6 || type === 7 ? Math.max(size, deltaSize(inflated.buffer)) : size;
+    requireThat(total <= LIMITS.bytes, "Transport exceeds aggregate expanded pack size limit");
+  }
+  requireThat(offset === data.length - 20, "Invalid bundle pack trailer");
+}
+const BASE85 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~";
+function expandedPatchSize(data) {
+  const text = new TextDecoder("utf-8", { fatal: true }).decode(data).replace(/\r\n/g, "\n");
+  let total = data.length;
+  for (const block of text.matchAll(/^GIT binary patch\n([\s\S]*?)(?=\ndiff --git |\n-- \n|(?![\s\S]))/gm)) {
+    const sections = block[1].trimEnd().split("\n\n");
+    requireThat(sections.length <= 2, "Invalid binary patch sections");
+    for (const section of sections) {
+      const [header, ...lines] = section.split("\n");
+      const match = /^(literal|delta) (\d+)$/.exec(header);
+      requireThat(match && Number(match[2]) <= LIMITS.bytes, "Transport exceeds expanded binary patch size limit");
+      const chunks = lines.map(line => {
+        const marker = line.charCodeAt(0);
+        const length = marker >= 65 && marker <= 90 ? marker - 64 : marker >= 97 && marker <= 122 ? marker - 70 : 0;
+        requireThat(length > 0 && line.length === 1 + Math.ceil(length / 4) * 5, "Invalid binary patch encoding");
+        const chunk = Buffer.alloc(Math.ceil(length / 4) * 4);
+        for (let offset = 1; offset < line.length; offset += 5) {
+          let value = 0;
+          for (const character of line.slice(offset, offset + 5)) {
+            const digit = BASE85.indexOf(character);
+            requireThat(digit >= 0, "Invalid binary patch digit");
+            value = value * 85 + digit;
+          }
+          requireThat(value <= 0xffffffff, "Invalid binary patch word");
+          chunk.writeUInt32BE(value, (offset - 1) / 5 * 4);
+        }
+        return chunk.subarray(0, length);
+      });
+      const inflated = boundedInflate(Buffer.concat(chunks));
+      requireThat(inflated.buffer.length === Number(match[2]), "Binary patch size mismatch");
+      total += match[1] === "delta" ? Math.max(inflated.buffer.length, deltaSize(inflated.buffer)) : inflated.buffer.length;
+      requireThat(total <= LIMITS.bytes, "Transport exceeds aggregate expanded binary patch size limit");
+    }
+  }
+  return total;
+}
+function verifyPatchExpansion(root, file, base) {
+  const temporary = mkdtempSync(path.join(tmpdir(), "upstream-sync-mail-"));
+  try {
+    const count = Number(git(root, ["mailsplit", "--mboxrd", `-o${temporary}`, file]).text.trim());
+    requireThat(Number.isInteger(count) && count > 0 && count <= 100, "Invalid or excessive patch messages");
+    let total = 0;
+    for (const name of readdirSync(temporary).sort()) {
+      const body = path.join(temporary, "body"), patch = path.join(temporary, "patch");
+      git(root, ["mailinfo", body, patch], [0], readFileSync(path.join(temporary, name)));
+      const data = readFileSync(patch);
+      requireThat(data.length <= LIMITS.bytes, "Transport exceeds decoded patch size limit");
+      total += expandedPatchSize(data);
+      const stats = git(root, ["apply", "--numstat", "-z", "-"], [0], data).text.split("\0").filter(Boolean);
+      const textPaths = stats.flatMap(record => {
+        const match = /^(\d+|-)\t(\d+|-)\t([\s\S]+)$/.exec(record);
+        requireThat(match, "Invalid patch path statistics");
+        safePath(match[3]);
+        return match[1] === "-" ? [] : [match[3]];
+      });
+      total += verifyBlobSizes(root, base, textPaths);
+      requireThat(total <= LIMITS.bytes, "Transport exceeds aggregate expanded patch size limit");
+    }
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+}
 export function verifyArtifact({ root = ROOT, plan, directory }) {
   const entries = readdirSync(directory);
   const output = json(path.join(directory, "agent_output.json"));
@@ -275,19 +422,31 @@ export function verifyArtifact({ root = ROOT, plan, directory }) {
   requireThat(!request.base || request.base === "main", "PR must target main");
   requireThat(!request.repo || request.repo === "scaryrawr/scarydex", "Unexpected PR repository");
   requireThat(typeof request.branch === "string" && /^upstream-sync\/[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(request.branch), "Explicit upstream-sync/ PR branch required");
+  requireThat(git(root, ["check-ref-format", "--branch", request.branch], [0, 128]).status === 0, "Invalid Git branch name");
   const stem = `aw-${request.branch.replace(/[/\\:*?"<>|]/g, "-").replace(/-{2,}/g, "-").replace(/^-|-$/g, "").toLowerCase()}`;
   requireThat(transports.length > 0 && transports.every(file => file === `${stem}.bundle` || file === `${stem}.patch`), "Unexpected transport filename");
   const results = [];
   for (const file of transports) {
     requireThat(lstatSync(path.join(directory, file)).isFile() && lstatSync(path.join(directory, file)).size <= LIMITS.bytes, "Invalid or oversized transport");
+    const data = readFileSync(path.join(directory, file));
     if (file.endsWith(".bundle")) {
+      verifyBundleExpansion(data);
       const bundle = path.join(directory, file);
       const heads = lines(git(root, ["bundle", "list-heads", bundle]).text);
       requireThat(heads.length === 1 && heads[0].endsWith(` refs/heads/${request.branch}`), "Bundle must contain exactly the requested branch");
-      git(root, ["fetch", "--no-tags", bundle, `refs/heads/${request.branch}`]);
-      const head = commit(root, "FETCH_HEAD");
-      results.push({ head, tree: git(root, ["rev-parse", `${head}^{tree}`]).text.trim(), result: verifyProposal({ root, plan, head }) });
+      const temporary = mkdtempSync(path.join(tmpdir(), "upstream-sync-bundle-"));
+      try {
+        git(root, ["init", "-q", temporary]);
+        const objects = path.resolve(root, git(root, ["rev-parse", "--git-path", "objects"]).text.trim());
+        writeFileSync(path.join(temporary, ".git/objects/info/alternates"), `${objects}\n`);
+        git(temporary, ["bundle", "unbundle", bundle]);
+        const head = commit(temporary, heads[0].split(" ")[0]);
+        results.push({ head, tree: git(temporary, ["rev-parse", `${head}^{tree}`]).text.trim(), result: verifyProposal({ root: temporary, plan, head }) });
+      } finally {
+        rmSync(temporary, { recursive: true, force: true });
+      }
     } else {
+      verifyPatchExpansion(root, path.join(directory, file), plan.base);
       const temporary = mkdtempSync(path.join(tmpdir(), "upstream-sync-patch-"));
       const checkout = path.join(temporary, "proposal");
       try {
