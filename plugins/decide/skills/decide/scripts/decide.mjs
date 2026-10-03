@@ -6,6 +6,7 @@ import { parseArgs } from "node:util";
 const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 const LIST_TIMEOUT_MS = 10_000;
 const DECISION_TIMEOUT_MS = 300_000;
+const PROBABILITY_SUM_EPSILON = 0.01;
 
 function object(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -17,6 +18,21 @@ function nonempty(value) {
 
 function probability(value) {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+function validateDistribution(probabilities, keys) {
+  if (!object(probabilities)) return false;
+  const actual = Object.keys(probabilities);
+  if (actual.length !== keys.length || keys.some((key) => !Object.hasOwn(probabilities, key)) || actual.some((key) => !keys.includes(key))) {
+    return false;
+  }
+  let total = 0;
+  for (const key of keys) {
+    const value = probabilities[key];
+    if (!probability(value)) return false;
+    total += value;
+  }
+  return Math.abs(total - 1) <= PROBABILITY_SUM_EPSILON;
 }
 
 function requireOption(options, name) {
@@ -67,7 +83,7 @@ function validateAnswers(result, questions) {
       continue;
     }
     const keys = question.type === "choice" ? Object.keys(question.criteria) : question.criteria.map((_, index) => String(index));
-    if (!object(answer.probabilities) || keys.some((key) => !probability(answer.probabilities[key])) || !probability(answer.confidence)) {
+    if (!validateDistribution(answer.probabilities, keys) || !probability(answer.confidence)) {
       throw new Error(`Unexpected SystemOne response: invalid probabilities or confidence for ${name}.`);
     }
     if (question.type === "choice" && !keys.includes(answer.choice)) throw new Error(`Unexpected SystemOne response: invalid choice for ${name}.`);

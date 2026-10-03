@@ -128,6 +128,9 @@ test("malformed and incomplete SystemOne answers are rejected, not reported as d
     { ...answer, answers: { ...answer.answers, refund: { type: "noul", noul: 2 } } },
     { ...answer, answers: { ...answer.answers, team: { ...answer.answers.team, choice: "unknown" } } },
     { ...answer, answers: { ...answer.answers, team: { ...answer.answers.team, probabilities: {} } } },
+    { ...answer, answers: { ...answer.answers, team: { ...answer.answers.team, probabilities: { billing: 0.7, technical: 0.3, other: 0.1 } } } },
+    { ...answer, answers: { ...answer.answers, team: { ...answer.answers.team, probabilities: { billing: 0.8, technical: 0.2, extra: 0 } } } },
+    { ...answer, answers: { ...answer.answers, urgency: { ...answer.answers.urgency, probabilities: { "0": 0.7, "1": 0.1, "2": 0.3 } } } },
     { ...answer, answers: { ...answer.answers, urgency: { ...answer.answers.urgency, score: null } } },
     { ...answer, answers: { ...answer.answers, urgency: { ...answer.answers.urgency, legend: {} } } },
   ]) {
@@ -137,6 +140,32 @@ test("malformed and incomplete SystemOne answers are rejected, not reported as d
     assert.match(result.stderr, /Unexpected SystemOne response/);
     assert.equal(result.stdout, "");
   }
+});
+
+test("probability maps accept near-1 rounding and reject mismatched score keys", async () => {
+  const rounded = {
+    ...answer,
+    answers: {
+      ...answer.answers,
+      team: { ...answer.answers.team, probabilities: { billing: 0.985, technical: 0.012, other: 0.0029 } },
+      urgency: { ...answer.answers.urgency, probabilities: { "0": 0.3333, "1": 0.3333, "2": 0.3333 } },
+    },
+  };
+  const { file: roundedFile, invoke: invokeRounded } = await fixture({ response: rounded });
+  const roundedResult = await invokeRounded(["run", "--model", "nimble", "--input", roundedFile]);
+  assert.equal(roundedResult.status, 0, roundedResult.stderr);
+
+  const badScoreKeys = {
+    ...answer,
+    answers: {
+      ...answer.answers,
+      urgency: { ...answer.answers.urgency, probabilities: { "0": 0.5, "1": 0.5, "3": 0 } },
+    },
+  };
+  const { file, invoke } = await fixture({ response: badScoreKeys });
+  const badResult = await invoke(["run", "--model", "nimble", "--input", file]);
+  assert.equal(badResult.status, 1);
+  assert.match(badResult.stderr, /invalid probabilities or confidence/);
 });
 
 test("HTTP failures and invalid JSON return actionable errors", async () => {
