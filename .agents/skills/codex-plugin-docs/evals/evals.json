@@ -1,0 +1,15 @@
+{
+  "skill_name": "codex-plugin-docs",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Update ScaryDex install guidance for the desktop app and CLI using current manifest layout. Explain whether installation grants recording permission.",
+      "expected_output": "Client-specific guidance that preserves compatibility manifests, avoids publication claims, and requires explicit permission for capture.",
+      "assertions": [
+        "Documentation distinguishes CLI marketplace installation from desktop-app support and public-directory publication.",
+        "Documentation does not claim installation grants tools or hook trust.",
+        "External claims have primary-source URLs and dates."
+      ]
+    }
+  ]
+}

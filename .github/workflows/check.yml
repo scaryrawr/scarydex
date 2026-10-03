@@ -18,3 +18,14 @@ jobs:
       - run: bun test
       - run: bun run build
       - run: git diff --exit-code -- plugins/omlx-media/scripts/media.mjs plugins/omlx-media/bundle-manifest.json plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs plugins/pstack/bundle-manifest.json
+      - name: Install pinned gh-aw compiler
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh extension install github/gh-aw --pin v0.88.7
+      - name: Check agentic workflow compilation freshness
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh aw version 2>&1 | grep -F 'v0.88.7'
+          gh aw compile upstream-sync --no-check-update
+          git diff --exit-code -- .github/workflows/upstream-sync.lock.yml .github/aw/actions-lock.json .gitattributes

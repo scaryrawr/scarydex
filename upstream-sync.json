@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "tracks": [
+    { "id": "scarypilot/anti-slop", "source": "scarypilot", "plugin": "anti-slop", "path": "plugins/anti-slop", "reviewedThrough": null, "reviews": [] },
+    { "id": "scarypilot/better-init", "source": "scarypilot", "plugin": "better-init", "path": "plugins/better-init", "reviewedThrough": null, "reviews": [] },
+    { "id": "scarypilot/digivolution", "source": "scarypilot", "plugin": "digivolution", "path": "plugins/digivolution", "reviewedThrough": null, "reviews": [] },
+    { "id": "scarypilot/omlx-media", "source": "scarypilot", "plugin": "omlx-media", "path": "plugins/omlx-media", "reviewedThrough": null, "reviews": [] },
+    { "id": "scarypilot/screen-record", "source": "scarypilot", "plugin": "screen-record", "path": "plugins/screen-record", "reviewedThrough": null, "reviews": [] },
+    { "id": "scarypilot/pstack", "source": "scarypilot", "plugin": "pstack", "path": "external_plugins/pstack", "reviewedThrough": null, "reviews": [] },
+    { "id": "cursor/pstack", "source": "cursor", "plugin": "pstack", "path": "pstack", "reviewedThrough": null, "reviews": [] }
+  ]
+}

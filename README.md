@@ -107,3 +107,9 @@ agent behavior is retained as prompt references, not unsupported registrations.
 Original Cursor pstack was inspected as a comparison; Cursor-only UI and
 cloud-worker assumptions were not imported. See `THIRD_PARTY_NOTICES.md` and
 plugin-specific notices for attribution and licenses.
+
+The [upstream-sync setup](docs/upstream-sync.md) provides a weekly, review-only
+Codex port workflow, an incremental review registry, and offline safety checks.
+Activation requires two separately scoped Actions secrets. Repository-native
+maintenance and documentation skills live in `.agents/skills`, outside the
+published plugin inventory.
