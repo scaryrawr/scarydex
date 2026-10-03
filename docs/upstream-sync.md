@@ -26,6 +26,11 @@ Preflight receives booleans, not its value. The agent has read-only Contents
 and Pull requests permissions and runs behind AWF. The publication PAT avoids
 the default `GITHUB_TOKEN` PR-creation setting and its suppression of ordinary
 PR CI events. No extra empty commit or third secret is needed.
+Duplicate detection defaults to the repository owner's login as the trusted
+publisher. If the publication PAT belongs to another account (required for
+organization-owned repositories), set the non-secret Actions variable
+`UPSTREAM_SYNC_PR_AUTHOR` to that account's login. Keep it aligned with the
+publication PAT owner; changing it does not grant that account any permissions.
 
 The v0.88.7 compiler materializes a handler-level `${{ secrets.NAME }}` into
 the agent's generated config. To avoid that leak, this workflow deliberately
@@ -42,9 +47,12 @@ Do not dispatch a live run to test this setup without explicit authorization.
 ## Cadence and bounds
 
 The combined workflow runs Mondays at **08:17 UTC** and supports manual
-dispatch. Runs serialize without canceling a running sync. A pre-activation
-search skips inference when an open PR has the `[upstream-sync]` title marker.
-Search failures fail closed. A deterministic empty plan writes a noop before
+dispatch. Runs serialize without canceling a running sync. A read-only,
+paginated pre-activation check skips activation only for an open PR with the
+`[upstream-sync] ` title prefix, the configured trusted publisher, and a
+same-repository `upstream-sync/` head branch. Fork PRs and unrelated marker
+titles cannot suppress runs. API failures fail closed.
+A deterministic empty plan writes a noop before
 execution. The pinned gh-aw Codex harness checks that noop before starting
 Codex or validating inference credentials; its execution step still runs,
 but exits without inference.
@@ -64,8 +72,9 @@ into `/tmp/gh-aw/bin`, verifies its version, and prepends the mounted directory
 to PATH so validation does not depend on the runner's home directory.
 
 Each track plans at most 20 relevant candidates per run with an explicit
-`remaining` count. No upstream history is silently truncated. More than 5,000
-commits, 20,000 changed paths, or an 8 MiB command/diff fails explicitly and
+`remaining` count. No upstream history is silently truncated. In the incremental
+cursor-to-head range, more than 5,000 commits, 20,000 changed paths, or an
+8 MiB command/diff fails explicitly and
 requires human reconciliation. One proposal may modify at most two shipped
 plugins, 100 files, 100 commits, and an 8 MiB patch. Compressed bundles and
 binary patches also have an 8 MiB aggregate expansion budget, including delta
@@ -122,6 +131,11 @@ On branched histories, final ledger entries are checked and omitted from later
 candidate batches even when they are not ancestors of the current cursor.
 The cursor and append-only ledger together track reviewed work; a single
 topological boundary alone does not describe the reviewed branches.
+Historical cursor integrity is audited separately with commit/path metadata,
+without re-expanding old patches or applying the incremental commit/path-count
+limits. This audit retains the 8 MiB command-output bound and rejects missing,
+non-final, or mismatched historic dispositions. Results are shared across
+tracks with the same source and cursor.
 
 ## Local commands
 
@@ -181,6 +195,10 @@ Allowed paths cover selected tracked plugins, directly coupled README/notices,
 unchanged inventory, review registry, tests, and narrow build/package inputs.
 Workflow files, `AGENTS.md`, repo skills, provenance, and original plugins are
 not proposal targets.
+Every path touched in intermediate commits must also appear in the verified
+final proposal. Modifying a plugin and reverting it before publication cannot
+bypass selected-plugin, ported-evidence, or two-plugin limits; multiple revisions
+of a verified final path remain supported.
 Git output is decoded as strict UTF-8, so unsupported filename bytes cannot
 turn into a different path during mode checks. Requested branches must pass
 Git's ref-format validation before any transport is accepted.

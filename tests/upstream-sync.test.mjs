@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, renameSync
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
-import { TRACKS, SOURCES, LIMITS } from "../tools/upstream-sync.mjs";
+import { TRACKS, SOURCES, LIMITS, hasOpenProposal } from "../tools/upstream-sync.mjs";
 import { parse } from "yaml";
 import { validateRepoSkills, validateUpstreamSetup } from "../tools/check-marketplace.mjs";
 
@@ -105,6 +105,10 @@ test("renames crossing track boundaries, deletes, shared dependencies, and merge
   assert.ok(anti.commits.some(c => c.commit === deleted && c.shared.includes("package.json")));
   assert.ok(anti.commits.some(c => c.parents.length === 2));
   assert.ok(p.tracks.find(t => t.id === "scarypilot/better-init").commits.some(c => c.changes.some(change => change.status === "D")));
+  for (const track of p.tracks.filter(track => track.source === "scarypilot")) review(f, p, track.id);
+  cli(f, "verify", ["--plan", savePlan(f, p)]);
+  commit(f.local, "Merge reviews across renames and merge parents");
+  assert.ok(plan(f).tracks.filter(track => track.source === "scarypilot").every(track => !track.commits.length));
 });
 
 test("divergence, missing objects, incorrect remotes, and invalid source paths fail explicitly", () => {
@@ -151,6 +155,32 @@ test("bounded candidate prefix exposes remaining work and resumes only after mer
   const next = plan(f).tracks[0];
   assert.equal(next.commits.length, 2);
   assert.equal(next.base, track.reviewHead);
+});
+
+test("historical cursor audit outlives the incremental commit bound without accepting review gaps", { timeout: 30000 }, () => {
+  const f = fixture();
+  let input = "";
+  for (let i = 1; i <= LIMITS.commits + 1; i++) {
+    const subject = `historical ${i}`, content = `${i}\n`;
+    input += `commit refs/heads/main\nmark :${i}\ncommitter Fixture <fixture@localhost> ${1700000000 + i} +0000\ndata ${subject.length}\n${subject}\nfrom ${i === 1 ? f.scaryBase : `:${i - 1}`}\nM 100644 inline plugins/anti-slop/series.md\ndata ${content.length}\n${content}\n`;
+  }
+  const imported = spawnSync("git", ["-C", f.scarypilot, "fast-import", "--quiet"], { input, encoding: "utf8" });
+  assert.equal(imported.status, 0, imported.stderr);
+  assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /History exceeds review bound/);
+  const commits = git(f.scarypilot, "rev-list", "--reverse", `${f.scaryBase}..HEAD`).split("\n");
+  const data = registry(f);
+  for (const track of data.tracks.filter(track => track.source === "scarypilot")) track.reviewedThrough = commits.at(-1);
+  data.tracks[0].reviews = commits.map(commit => ({
+    commit, disposition: "excluded", reason: "Historical capability review was merged by a maintainer.",
+    paths: ["plugins/anti-slop/series.md"], localPaths: [], evidence: ["Historical paths and capability boundary were reviewed."],
+  }));
+  write(f.local, "upstream-sync.json", data); commit(f.local, "Previously merged review ledger");
+  git(f.scarypilot, "read-tree", "HEAD");
+  write(f.scarypilot, "plugins/anti-slop/series.md", "incremental\n");
+  const next = commit(f.scarypilot, "One incremental change");
+  assert.deepEqual(plan(f).tracks[0].commits.map(change => change.commit), [next]);
+  data.tracks[0].reviews.shift(); write(f.local, "upstream-sync.json", data);
+  assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /review gap/);
 });
 
 test("bounded review resumes across sibling branches without replaying final dispositions", { timeout: 30000 }, () => {
@@ -339,6 +369,90 @@ test("actual publication bundle and patch are verified and malicious transport i
   rmSync(path.join(f.local, ".github/workflows/bad.yml")); commit(f.local, "Remove malicious final-tree change");
   write(artifact, "aw-upstream-sync-review.patch", git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n");
   assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /Disallowed intermediate/);
+});
+
+test("reverted intermediate paths cannot escape final proposal scope in either transport", () => {
+  const f = fixture(), p = plan(f), file = savePlan(f, p);
+  review(f, p, "cursor/pstack");
+  git(f.local, "switch", "-qc", "upstream-sync/reverted");
+  const paths = ["plugins/anti-slop/transient.md", "plugins/better-init/transient.md", "plugins/screen-record/transient.md", "plugins/pstack/transient.md"];
+  for (const file of paths) write(f.local, file, "unreviewed intermediate content\n");
+  commit(f.local, "Temporary unreviewed changes");
+  for (const file of paths) rmSync(path.join(f.local, file));
+  commit(f.local, "Revert plugin changes, retaining only review state");
+  assert.match(cli(f, "verify", ["--plan", file], 1), /Intermediate path absent/);
+  const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
+  write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/reverted", base: "main" }] });
+  const bundle = path.join(artifact, "aw-upstream-sync-reverted.bundle");
+  git(f.local, "bundle", "create", bundle, `${f.base}..upstream-sync/reverted`);
+  assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /Intermediate path absent/);
+  rmSync(bundle);
+  write(artifact, "aw-upstream-sync-reverted.patch", git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n");
+  assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /Intermediate path absent/);
+});
+
+test("multiple commits on verified final paths remain valid", () => {
+  const f = fixture(), p = plan(f), file = savePlan(f, p);
+  review(f, p, "cursor/pstack", "ported", ["plugins/pstack/skill.md", "plugins/pstack/.codex-plugin/plugin.json"]);
+  write(f.local, "plugins/pstack/skill.md", "first reviewed revision\n");
+  write(f.local, "plugins/pstack/.codex-plugin/plugin.json", { name: "pstack", version: "1.0.1" });
+  commit(f.local, "First reviewed revision");
+  write(f.local, "plugins/pstack/skill.md", "final reviewed revision\n");
+  commit(f.local, "Final reviewed revision");
+  assert.ok(cli(f, "verify", ["--plan", file]).files.includes("plugins/pstack/skill.md"));
+});
+
+test("duplicate detection ignores marker PRs unless publisher and source repository are trusted", () => {
+  const trusted = {
+    state: "open", title: "[upstream-sync] Reviewed port", user: { login: "publisher" },
+    head: { ref: "upstream-sync/review", repo: { full_name: "scaryrawr/scarydex" } },
+  };
+  assert.equal(hasOpenProposal([trusted], "scaryrawr/scarydex", "publisher"), true);
+  for (const pr of [
+    { ...trusted, user: { login: "outsider" } },
+    { ...trusted, head: { ...trusted.head, repo: { full_name: "outsider/scarydex" } } },
+    { ...trusted, head: { ...trusted.head, repo: null } },
+    { ...trusted, head: { ...trusted.head, ref: "ordinary-change" } },
+    { ...trusted, state: "closed" },
+    { ...trusted, title: "Mention [upstream-sync] in an ordinary title" },
+  ]) assert.equal(hasOpenProposal([pr], "scaryrawr/scarydex", "publisher"), false);
+  assert.equal(hasOpenProposal([], "scaryrawr/scarydex", "publisher"), false);
+  assert.throws(() => hasOpenProposal([], "scaryrawr/scarydex", ""), /publisher/);
+});
+
+test("compiled pre-activation duplicate check uses paginated API results and fails closed", async () => {
+  const workflow = parse(readFileSync(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
+  const step = workflow.jobs.pre_activation.steps.find(step => step.id === "existing_proposal");
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const execute = new AsyncFunction("github", "context", "core", "process", step.with.script);
+  const trusted = {
+    state: "open", title: "[upstream-sync] Reviewed port", user: { login: "publisher" },
+    head: { ref: "upstream-sync/review", repo: { full_name: "scaryrawr/scarydex" } },
+  };
+  const context = { repo: { owner: "scaryrawr", repo: "scarydex" } };
+  const environment = { env: { GITHUB_WORKSPACE: root, PUBLISHER_LOGIN: "publisher" } };
+  const list = () => {};
+  for (const [pulls, expected] of [
+    [[], "true"],
+    [[{ ...trusted, user: { login: "outsider" } }], "true"],
+    [[{ ...trusted, head: { ...trusted.head, repo: { full_name: "publisher/fork" } } }], "true"],
+    [[{ ...trusted, title: "ordinary PR" }, trusted], "false"],
+  ]) {
+    const output = {};
+    await execute({
+      rest: { pulls: { list } },
+      paginate: async (method, params) => {
+        assert.equal(method, list);
+        assert.deepEqual(params, { owner: "scaryrawr", repo: "scarydex", state: "open", per_page: 100 });
+        return pulls;
+      },
+    }, context, { setOutput: (key, value) => { output[key] = value; } }, environment);
+    assert.equal(output.run_sync, expected);
+  }
+  await assert.rejects(execute({
+    rest: { pulls: { list } },
+    paginate: async () => { throw new Error("API unavailable"); },
+  }, context, { setOutput: () => assert.fail("Failure must not emit a success-shaped output") }, environment), /API unavailable/);
 });
 
 test("invalid UTF-8 Git paths fail closed before nonregular-file mode lookup", () => {

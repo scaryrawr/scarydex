@@ -121,10 +121,29 @@ function history(directory, track, base, head) {
   }
   return candidates;
 }
+function cursorHistory(directory, base, head) {
+  const parts = git(directory, ["log", "--format=%H", "--name-status", "-z", "-M", "--diff-merges=separate", `${base}..${head}`]).text.split("\0");
+  const commits = new Map();
+  let current;
+  for (let index = 0; index < parts.length;) {
+    const field = parts[index++].trim();
+    if (!field) continue;
+    if (SHA.test(field)) {
+      current = field;
+      if (!commits.has(current)) commits.set(current, new Set());
+      continue;
+    }
+    requireThat(current && /^[ACDMRTUXB][0-9]*$/.test(field), "Invalid cursor audit metadata");
+    commits.get(current).add(safePath(parts[index++]));
+    if (/^[RC]/.test(field)) commits.get(current).add(safePath(parts[index++]));
+  }
+  return commits;
+}
 export function planSync({ root = ROOT, scarypilot, cursor, heads = {} }) {
   const provenance = json(path.join(root, "port-provenance.json"));
   const registry = validateRegistry(json(path.join(root, "upstream-sync.json")), provenance);
   const repositories = { scarypilot, cursor };
+  const audits = new Map();
   const tracks = registry.tracks.map(track => {
     const directory = repositories[track.source];
     requireThat(directory, `Missing --${track.source} upstream directory`);
@@ -134,9 +153,13 @@ export function planSync({ root = ROOT, scarypilot, cursor, heads = {} }) {
     const head = commit(directory, heads[track.source] ?? "HEAD");
     ancestor(directory, baseline(track, provenance), base);
     const reviewed = new Map(track.reviews.map(review => [review.commit, review]));
-    for (const change of history(directory, track, baseline(track, provenance), base)) {
-      const review = reviewed.get(change.commit);
-      requireThat(review && FINAL.has(review.disposition) && same(review.paths, change.paths), "Existing cursor has a review gap");
+    const auditKey = `${track.source}:${baseline(track, provenance)}:${base}`;
+    if (!audits.has(auditKey)) audits.set(auditKey, cursorHistory(directory, baseline(track, provenance), base));
+    for (const [id, changed] of audits.get(auditKey)) {
+      const paths = [...changed].filter(file => relevant(track, file)).sort();
+      if (!paths.length) continue;
+      const review = reviewed.get(id);
+      requireThat(review && FINAL.has(review.disposition) && same(review.paths, paths), "Existing cursor has a review gap");
     }
     const all = history(directory, track, base, head).filter(change => {
       const review = reviewed.get(change.commit);
@@ -150,6 +173,18 @@ export function planSync({ root = ROOT, scarypilot, cursor, heads = {} }) {
       remaining: all.length - candidates.length, commits: candidates };
   });
   return { schemaVersion: 1, repository: "scaryrawr/scarydex", base: commit(root, "HEAD"), tracks };
+}
+export function hasOpenProposal(pulls, repository, publisher) {
+  requireThat(Array.isArray(pulls) && typeof repository === "string" && repository.length &&
+    typeof publisher === "string" && publisher.length, "Duplicate check requires repository and trusted publisher");
+  return pulls.some(pull => {
+    requireThat(typeof pull.state === "string" && typeof pull.title === "string" &&
+      typeof pull.user?.login === "string" && typeof pull.head?.ref === "string", "Invalid pull request response");
+    return pull.state === "open" && pull.title.startsWith("[upstream-sync] ") &&
+      pull.user.login.toLowerCase() === publisher.toLowerCase() &&
+      pull.head.repo?.full_name?.toLowerCase() === repository.toLowerCase() &&
+      pull.head.ref.startsWith("upstream-sync/");
+  });
 }
 export function allowedPath(file, plugins) {
   safePath(file);
@@ -173,6 +208,7 @@ function verifyCommits(root, base, head) {
   const ids = lines(git(root, ["rev-list", `${base}..${head}`]).text);
   requireThat(ids.length <= 100, "Proposal exceeds 100 commits");
   const plugins = new Set(TRACKS.map(track => track.plugin));
+  const paths = new Set();
   for (const id of ids) {
     const parents = git(root, ["show", "-s", "--format=%P", id]).text.trim().split(" ");
     for (const parent of parents) {
@@ -180,11 +216,13 @@ function verifyCommits(root, base, head) {
       verifyBlobSizes(root, id, changes.flatMap(change => change.paths));
       requireThat(changes.every(change => change.paths.every(file => allowedPath(file, plugins))), "Disallowed intermediate commit path");
       for (const file of changes.flatMap(change => change.paths)) {
+        paths.add(file);
         const mode = git(root, ["ls-tree", id, "--", file]).text.split(" ")[0];
         requireThat(!mode || mode === "100644" || mode === "100755", `Nonregular intermediate file: ${file}`);
       }
     }
   }
+  return paths;
 }
 function verifyBlobSizes(root, ref, files) {
   if (!files.length) return 0;
@@ -200,7 +238,7 @@ function verifyBlobSizes(root, ref, files) {
 }
 export function verifyProposal({ root = ROOT, plan, base = plan.base, head }) {
   sha(base);
-  verifyCommits(root, base, head ? sha(head) : commit(root, "HEAD"));
+  const intermediate = verifyCommits(root, base, head ? sha(head) : commit(root, "HEAD"));
   requireThat(plan.schemaVersion === 1 && plan.repository === "scaryrawr/scarydex" && plan.base === base, "Plan/base mismatch");
   requireThat(plan.tracks.length === TRACKS.length, "Invalid plan tracks");
   const provenance = readAt(root, base, "port-provenance.json");
@@ -256,6 +294,7 @@ export function verifyProposal({ root = ROOT, plan, base = plan.base, head }) {
     }
   });
   const changed = new Set(files.flatMap(change => change.paths));
+  for (const file of intermediate) requireThat(changed.has(file), `Intermediate path absent from final proposal: ${file}`);
   if (!head) {
     let total = 0;
     for (const file of changed) {

@@ -153,6 +153,16 @@ export async function validateUpstreamSetup(root) {
       JSON.stringify(output["protected-files"]?.exclude) !== JSON.stringify(["README.md", "package.json", "package-lock.json", "bun.lock"])) throw new Error("Upstream workflow policy drift");
   const mutationKeys = Object.keys(source["safe-outputs"]).filter(key => !["create-pull-request", "missing-tool", "missing-data", "report-failed-jobs", "report-incomplete", "report-failure-as-issue", "threat-detection"].includes(key));
   if (mutationKeys.length) throw new Error("Unexpected upstream safe output");
+  const duplicateCheck = lock.jobs.pre_activation.steps.find(step => step.id === "existing_proposal");
+  const duplicateCheckout = lock.jobs.pre_activation.steps.findIndex(step => step.name === "Checkout trusted duplicate-check helper");
+  if (source.on?.["skip-if-match"] || source.if !== "needs.pre_activation.outputs.run_sync == 'true'" ||
+      lock.jobs.pre_activation.outputs?.run_sync !== "${{ steps.existing_proposal.outputs.run_sync }}" ||
+      !lock.jobs.activation.if?.includes("needs.pre_activation.outputs.run_sync == 'true'") ||
+      duplicateCheckout < 0 || duplicateCheckout >= lock.jobs.pre_activation.steps.indexOf(duplicateCheck) ||
+      duplicateCheck?.["continue-on-error"] ||
+      duplicateCheck?.env?.PUBLISHER_LOGIN !== "${{ vars.UPSTREAM_SYNC_PR_AUTHOR || github.repository_owner }}" ||
+      !duplicateCheck?.with?.script?.includes("github.paginate(github.rest.pulls.list") ||
+      !duplicateCheck.with.script.includes("hasOpenProposal(pulls")) throw new Error("Trusted duplicate suppression gate drift");
   if (source["safe-outputs"]["report-failure-as-issue"] !== false ||
       source["safe-outputs"]["threat-detection"]?.engine?.id !== "copilot" ||
       source["safe-outputs"]["threat-detection"]?.["max-ai-credits"] !== 400) throw new Error("Failure reporting or detection policy drift");

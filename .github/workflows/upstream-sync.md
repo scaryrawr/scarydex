@@ -4,8 +4,25 @@ on:
   schedule:
     - cron: "17 8 * * 1"
   workflow_dispatch:
-  skip-if-match: 'repo:scaryrawr/scarydex is:pr is:open in:title "[upstream-sync]"'
+  permissions:
+    contents: read
+    pull-requests: read
   steps:
+    - name: Checkout trusted duplicate-check helper
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+    - name: Check open proposals from the trusted publisher
+      id: existing_proposal
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+      env:
+        PUBLISHER_LOGIN: ${{ vars.UPSTREAM_SYNC_PR_AUTHOR || github.repository_owner }}
+      with:
+        script: |
+          const { hasOpenProposal } = await import(`${process.env.GITHUB_WORKSPACE}/tools/upstream-sync.mjs`);
+          const pulls = await github.paginate(github.rest.pulls.list, { ...context.repo, state: "open", per_page: 100 });
+          const existing = hasOpenProposal(pulls, `${context.repo.owner}/${context.repo.repo}`, process.env.PUBLISHER_LOGIN);
+          core.setOutput("run_sync", String(!existing));
     - name: Require inference and publication credentials
       env:
         INFERENCE_PRESENT: ${{ secrets.COPILOT_GITHUB_TOKEN != '' }}
@@ -13,6 +30,7 @@ on:
       run: |
         test "$INFERENCE_PRESENT" = true || { echo "::error::Install COPILOT_GITHUB_TOKEN with user Copilot Requests read access."; exit 1; }
         test "$PUBLICATION_PRESENT" = true || { echo "::error::Install UPSTREAM_SYNC_PR_TOKEN scoped to scarydex Contents and Pull requests read/write."; exit 1; }
+if: needs.pre_activation.outputs.run_sync == 'true'
 permissions:
   contents: read
   pull-requests: read
@@ -28,6 +46,9 @@ max-ai-credits: 2000
 max-turns: 200
 timeout-minutes: 60
 jobs:
+  pre-activation:
+    outputs:
+      run_sync: ${{ steps.existing_proposal.outputs.run_sync }}
   agent:
     timeout-minutes: 90
   safe_outputs:
