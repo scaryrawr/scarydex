@@ -1,0 +1,23 @@
+{
+  "skill_name": "codex-plugin-maintenance",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review a pinned pstack upstream commit that registers a Cursor cloud worker. Make a Codex-native maintenance proposal without running upstream scripts.",
+      "expected_output": "An explicit excluded disposition with commit/path evidence. No unsupported registration or provenance edit.",
+      "assertions": [
+        "The proposal preserves immutable provenance and the published inventory.",
+        "The review records excluded capability evidence rather than claiming parity."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Two commits are planned. The first needs unresolved shared lockfile analysis; the second is straightforward. Record the review state.",
+      "expected_output": "The first commit stays deferred or unresolved. Evidence is preserved and the cursor cannot advance past the gap.",
+      "assertions": [
+        "The first commit is not silently skipped or called integrated.",
+        "The proposed registry passes the deterministic verify command only with a non-advancing cursor."
+      ]
+    }
+  ]
+}
