@@ -49,11 +49,11 @@ try {
   assert.ok(entry, "Codex did not return skills for the checkout");
   assert.deepEqual(entry.errors, []);
   const installed = entry.skills.filter((skill) => skill.path.includes(home) && path.relative(home, skill.path).split(path.sep).includes("plugins"));
-  assert.equal(installed.length, 55, `Expected 55 installed skills, got ${installed.length}`);
-  for (const name of ["pstack:poteto-mode", "anti-slop:anti-slop", "better-init:better-init", "digivolution:digivolution", "omlx-media:image-gen", "omlx-media:audio", "screen-record:screen-record"]) {
+  assert.equal(installed.length, 56, `Expected 56 installed skills, got ${installed.length}`);
+  for (const name of ["pstack:poteto-mode", "anti-slop:anti-slop", "better-init:better-init", "digivolution:digivolution", "omlx-media:image-gen", "omlx-media:audio", "screen-record:screen-record", "decide:decide"]) {
     assert.ok(installed.some((skill) => skill.name === name), `Missing installed skill: ${name}`);
   }
-  console.log("Codex installed all six plugins and discovered all 55 skills without loading user configuration or running model requests.");
+  console.log("Codex installed all seven plugins and discovered all 56 skills without loading user configuration or running model requests.");
 } finally {
   if (server) {
     server.kill();

@@ -2,9 +2,10 @@
 
 ScaryDex is a Codex marketplace. The published inventory is
 `.agents/plugins/marketplace.json`; keep it and the root README in sync.
-Ship only pstack, anti-slop, better-init, digivolution, omlx-media, and
-screen-record. Plugin roots are `plugins/<name>/`, with native manifests at
-`.codex-plugin/plugin.json` and skills at `plugins/<name>/skills/<skill-name>/SKILL.md`.
+Ship only pstack, anti-slop, better-init, digivolution, omlx-media,
+screen-record, and decide. Plugin roots are `plugins/<name>/`, with native
+manifests at `.codex-plugin/plugin.json` and skills at
+`plugins/<name>/skills/<skill-name>/SKILL.md`.
 
 Prefer skills and deterministic scripts over host-specific extensions. Do not
 register Copilot SDK extensions, Azure integrations, or browser servers. Agent

@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 
-export const EXPECTED_PLUGINS = ["pstack", "anti-slop", "better-init", "digivolution", "omlx-media", "screen-record"];
+export const EXPECTED_PLUGINS = ["pstack", "anti-slop", "better-init", "digivolution", "omlx-media", "screen-record", "decide"];
 const EVENTS = new Set(["PreToolUse", "PostToolUse", "UserPromptSubmit", "Stop", "SessionEnd"]);
 const readJson = async (file) => JSON.parse(await readFile(file, "utf8"));
 const inside = (root, file) => { const relative = path.relative(root, file); return relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative); };
@@ -27,7 +27,7 @@ export async function validateMarketplace(directory) {
   if (marketplace.name !== "scarydex" || !Array.isArray(marketplace.plugins)) throw new Error("Invalid ScaryDex marketplace");
   const names = marketplace.plugins.map((plugin) => plugin.name);
   if (names.length !== EXPECTED_PLUGINS.length || new Set(names).size !== names.length ||
-      EXPECTED_PLUGINS.some((name) => !names.includes(name))) throw new Error("Marketplace must contain exactly the six requested plugins");
+      EXPECTED_PLUGINS.some((name) => !names.includes(name))) throw new Error("Marketplace must contain exactly the seven requested plugins");
   const inventory = (await readdir(path.join(root, "plugins"), { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
   if (inventory.length !== names.length || inventory.some((name) => !names.includes(name))) throw new Error("Plugin directories and marketplace inventory differ");
   const skillNames = new Set();
@@ -79,6 +79,15 @@ export async function validateMarketplace(directory) {
       }
     }
   }
+  const readme = await readFile(path.join(root, "README.md"), "utf8");
+  const rows = [...readme.replace(/```[\s\S]*?```/g, "").matchAll(/^\|\s*`([^`]+)`\s*\|[^\n]+\|\s*$/gm)].map((match) => match[1]);
+  for (const name of names) {
+    if (!rows.includes(name)) throw new Error(`README is missing plugin from inventory: ${name}`);
+  }
+  if (rows.length !== names.length || new Set(rows).size !== rows.length || rows.some((name) => !names.includes(name))) {
+    throw new Error("README plugin inventory contains unexpected or duplicate rows");
+  }
+
   return { plugins: names.length, skills };
 }
 
