@@ -52,6 +52,13 @@
         "source": "local",
         "path": "./plugins/decide"
       }
+    },
+    {
+      "name": "riverkids",
+      "source": {
+        "source": "local",
+        "path": "./plugins/riverkids"
+      }
     }
   ]
 }

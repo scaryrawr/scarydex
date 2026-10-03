@@ -17,14 +17,14 @@ async function fixture() {
 }
 test("published catalog, manifests, YAML, links, hooks, and bundle are consistent", async () => {
   const result = await validateMarketplace(root);
-  assert.deepEqual(result, { plugins: EXPECTED_PLUGINS.length, skills: 56 });
+  assert.deepEqual(result, { plugins: EXPECTED_PLUGINS.length, skills: 57 });
   await validateBundle(root);
 });
 test("excluded plugins or duplicate inventory cannot enter the marketplace", async () => {
   const dir = await fixture(), file = path.join(dir, ".agents/plugins/marketplace.json");
   const catalog = JSON.parse(await readFile(file, "utf8")); catalog.plugins[0].name = "azure-devops";
   await writeFile(file, JSON.stringify(catalog));
-  await assert.rejects(validateMarketplace(dir), /exactly the seven/);
+  await assert.rejects(validateMarketplace(dir), /exactly the eight/);
 });
 test("README inventory rejects missing rows even when prose mentions the plugin", async () => {
   const dir = await fixture(), readme = path.join(dir, "README.md");
@@ -36,7 +36,7 @@ test("README inventory rejects missing rows even when prose mentions the plugin"
     await assert.rejects(validateMarketplace(dir), new RegExp(`README is missing plugin from inventory: ${name}`));
   }
   await writeFile(readme, original);
-  assert.deepEqual(await validateMarketplace(dir), { plugins: EXPECTED_PLUGINS.length, skills: 56 });
+  assert.deepEqual(await validateMarketplace(dir), { plugins: EXPECTED_PLUGINS.length, skills: 57 });
 });
 
 test("README inventory rejects unexpected and duplicate table entries", async () => {

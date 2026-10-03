@@ -1,6 +1,6 @@
 # ScaryDex
 
-A Codex plugin marketplace ported from ScaryPilot. It contains only these seven
+A Codex plugin marketplace ported from ScaryPilot. It contains only these eight
 plugins, primarily as skills with bundled script helpers:
 
 | Plugin | Purpose | Runtime |
@@ -12,6 +12,7 @@ plugins, primarily as skills with bundled script helpers:
 | `omlx-media` | Local images, speech, transcription, and recording-to-document workflows | Skills + self-contained Node helper; optional Python helpers |
 | `screen-record` | Screen capture, demo editing, captions, and narration | Skill + Node helper + FFmpeg |
 | `decide` | Typed choices, probabilities, and scores with Ollama SystemOne decision models | Skill + self-contained Node helper |
+| `riverkids` | RiverKids coverage briefs from Slack requests plus Planning Center schedules and rosters | Skill; uses the Slack and Planning Center MCPs |
 
 `anti-slop` keeps the source plugin’s canonical name (the requested “antislop”).
 No Azure, Azure DevOps, Codespaces, Playwright, Chrome, or other source plugins
@@ -32,6 +33,7 @@ codex plugin add digivolution@scarydex
 codex plugin add omlx-media@scarydex
 codex plugin add screen-record@scarydex
 codex plugin add decide@scarydex
+codex plugin add riverkids@scarydex
 ```
 
 For an unpublished local checkout, run
@@ -55,6 +57,7 @@ Codex client; no plugin grants additional tool access or bypasses permissions.
 - “Generate an image with the local OMLX model.”
 - “Record a short demo and trim the setup time.”
 - “Use decide to route this support ticket to billing, technical, or other.”
+- “Use riverkids to check who’s teaching RiverKids next Sunday and flag any unresolved swap requests in Slack.”
 
 Installed skill identifiers are namespaced, such as `$pstack:poteto-mode`,
 `$better-init:better-init`, and `$omlx-media:image-gen`. Natural-language requests

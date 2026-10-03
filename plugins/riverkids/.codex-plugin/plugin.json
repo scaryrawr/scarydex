@@ -1,0 +1,17 @@
+{
+  "name": "riverkids",
+  "version": "0.1.0",
+  "description": "Coordinate RiverKids teaching coverage by cross-referencing the team's Slack channel with Planning Center Services schedules, rosters, and service plans.",
+  "author": {
+    "name": "Mike Wallio"
+  },
+  "repository": "https://github.com/scaryrawr/scarydex",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "RiverKids",
+    "shortDescription": "Slack-aware RiverKids coverage and schedule briefs.",
+    "developerName": "ScaryDex",
+    "category": "Productivity"
+  },
+  "license": "MIT"
+}

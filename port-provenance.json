@@ -18,5 +18,12 @@
       "api": "POST /v1/systemone with state, typed questions, and structured answers; GET /api/tags for discovery"
     },
     "port_notes": "Original Codex skill and dependency-free Node helper based on the September 29, 2026 Ollama announcement. Preserves choice, noul, and score semantics. No generative-chat fallback or host extensions."
+  },
+  "riverkids": {
+    "upstream": {
+      "name": "None",
+      "description": "Original ScaryDex skill; no upstream plugin was ported."
+    },
+    "port_notes": "Original skill authored in this repository. Coordinates the RiverKids team via the Slack and Planning Center MCPs; read-only against Planning Center and confirmation-gated before posting to Slack."
   }
 }
