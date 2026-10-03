@@ -187,3 +187,55 @@ test("help documents the typed workflow without contacting Ollama", async () => 
   }
   assert.deepEqual(requests, []);
 });
+
+test("choice and score reject criterion counts outside 2–26 before network access", async () => {
+  const { file, invoke, writeInput, requests } = await fixture();
+  for (const type of ["choice", "score"]) {
+    for (const count of [0, 1, 27]) {
+      const labels = Array.from({ length: count }, (_, index) => `option${index}`);
+      const criteria = type === "choice" ? Object.fromEntries(labels.map((label) => [label, null])) : labels;
+      await writeInput({ state: "Ticket", questions: { label: { type, instructions: "Classify this ticket", criteria } } });
+      const result = await invoke(["run", "--model", "nimble", "--input", file]);
+      assert.equal(result.status, 1, `${type} with ${count} criteria`);
+      assert.match(result.stderr, /2–26/);
+    }
+  }
+  assert.deepEqual(requests, []);
+});
+
+test("choice and score accept both supported criterion-count boundaries", async () => {
+  for (const count of [2, 26]) {
+    const labels = Array.from({ length: count }, (_, index) => `option${index}`);
+    const probabilities = Object.fromEntries(labels.map((_, index) => [String(index), index === count - 1 ? 1 : 0]));
+    const response = {
+      answers: {
+        label: { type: "choice", choice: labels[count - 1], probabilities: Object.fromEntries(labels.map((label, index) => [label, index === count - 1 ? 1 : 0])), confidence: 1 },
+        level: { type: "score", score: count - 1, legend: Object.fromEntries(labels.map((label, index) => [String(index), label])), probabilities, confidence: 1 },
+      },
+    };
+    const { file, invoke, writeInput } = await fixture({ response });
+    await writeInput({ state: "Ticket", questions: {
+      label: { type: "choice", instructions: "Classify", criteria: Object.fromEntries(labels.map((label) => [label, null])) },
+      level: { type: "score", instructions: "Score", criteria: labels },
+    } });
+    const result = await invoke(["run", "--model", "nimble", "--input", file]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), response);
+  }
+});
+
+test("scores use the criterion-index scale rather than the probability scale", async () => {
+  for (const [score, probabilities] of [[0, { "0": 1, "1": 0, "2": 0 }], [1.5, { "0": 0, "1": 0.5, "2": 0.5 }], [2, { "0": 0, "1": 0, "2": 1 }], [-0.1, { "0": 1, "1": 0, "2": 0 }], [2.1, { "0": 0, "1": 0, "2": 1 }]]) {
+    const response = { ...answer, answers: { ...answer.answers, urgency: { ...answer.answers.urgency, score, probabilities } } };
+    const { file, invoke } = await fixture({ response });
+    const result = await invoke(["run", "--model", "nimble", "--input", file]);
+    if (score >= 0 && score <= 2) {
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(JSON.parse(result.stdout).answers.urgency.score, score);
+    } else {
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /invalid score or legend/);
+      assert.equal(result.stdout, "");
+    }
+  }
+});

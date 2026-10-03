@@ -2,7 +2,8 @@
 
 Source: [Ollama's Jev-style decision-model announcement](https://ollama.com/blog/ollama-now-supports-jev-style-decision-models),
 published September 29, 2026. Jev is TypeSafe's decision API, not an acronym for a
-three-phase reasoning prompt.
+three-phase reasoning prompt. The criterion bounds and score formula are defined
+in [Ollama's SystemOne implementation](https://github.com/ollama/ollama/blob/main/decision/systemone.go).
 
 ## Endpoint
 
@@ -46,9 +47,9 @@ The helper supports the following input forms:
 
 - `state`: non-empty text or a JSON object containing the context.
 - `questions`: a non-empty object of named questions, each with non-empty `instructions`.
-- `choice`: `criteria` maps option names to descriptions or `null`.
+- `choice`: `criteria` maps 2–26 option names to descriptions or `null`.
 - `noul`: a yes-or-no question, with no criteria required.
-- `score`: `criteria` is a non-empty array of ordered labels.
+- `score`: `criteria` is an array of 2–26 ordered labels.
 
 ## Response
 
@@ -78,8 +79,11 @@ The announcement's example response is:
 ```
 
 `noul` is the model's yes probability, between zero and one. Choices name one
-of the supplied criteria. Scores are normalized between zero and one, with
-probabilities indexed by the labels in `legend`. Confidence is returned for
+of the supplied criteria. Scores are the probability-weighted average of
+zero-based criterion indices, ranging from zero to `criteria.length - 1`.
+For the three urgency labels above, the score is `0 × P(Routine) + 1 × P(Soon) +
+2 × P(Urgent)`, on a zero-to-two scale. Probabilities are indexed by the labels
+in `legend`. Confidence is returned for
 choice and score answers. These values are model estimates, not verified facts.
 
 The helper validates an answer for each requested question and prints the full

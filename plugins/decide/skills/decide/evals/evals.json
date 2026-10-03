@@ -34,7 +34,8 @@
       "expectations": [
         "The questions use choice, noul, and score types.",
         "The score criteria are ordered from low to high.",
-        "Returned probabilities, confidence, and score legends are preserved."
+        "Returned probabilities, confidence, and score legends are preserved.",
+        "Choice and score questions have 2\u201326 criteria; scores are interpreted on the zero-to-last-index scale."
       ]
     },
     {

@@ -1,6 +1,6 @@
 {
   "name": "decide",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Run typed choices, yes-or-no probabilities, and scores with Ollama's Jev-style SystemOne decision models.",
   "author": {
     "name": "Mike Wallio"

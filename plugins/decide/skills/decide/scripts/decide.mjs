@@ -38,14 +38,14 @@ function parseDecisionInput(text) {
     }
     switch (question.type) {
       case "choice":
-        if (!object(question.criteria) || Object.keys(question.criteria).length === 0 ||
+        if (!object(question.criteria) || Object.keys(question.criteria).length < 2 || Object.keys(question.criteria).length > 26 ||
             Object.entries(question.criteria).some(([key, value]) => !nonempty(key) || (value !== null && typeof value !== "string"))) {
-          throw new Error(`Choice question ${name} requires criteria mapping option names to strings or null.`);
+          throw new Error(`Choice question ${name} requires 2–26 criteria mapping option names to strings or null.`);
         }
         break;
       case "score":
-        if (!Array.isArray(question.criteria) || question.criteria.length === 0 || !question.criteria.every(nonempty)) {
-          throw new Error(`Score question ${name} requires a non-empty criteria array of labels.`);
+        if (!Array.isArray(question.criteria) || question.criteria.length < 2 || question.criteria.length > 26 || !question.criteria.every(nonempty)) {
+          throw new Error(`Score question ${name} requires a criteria array of 2–26 labels.`);
         }
         break;
       case "noul":
@@ -71,8 +71,12 @@ function validateAnswers(result, questions) {
       throw new Error(`Unexpected SystemOne response: invalid probabilities or confidence for ${name}.`);
     }
     if (question.type === "choice" && !keys.includes(answer.choice)) throw new Error(`Unexpected SystemOne response: invalid choice for ${name}.`);
-    if (question.type === "score" && (!probability(answer.score) || !object(answer.legend) || keys.some((key) => answer.legend[key] !== question.criteria[Number(key)]))) {
-      throw new Error(`Unexpected SystemOne response: invalid score or legend for ${name}.`);
+    if (question.type === "score") {
+      if (typeof answer.score !== "number" || !Number.isFinite(answer.score) ||
+          answer.score < 0 || answer.score > question.criteria.length - 1 ||
+          !object(answer.legend) || keys.some((key) => answer.legend[key] !== question.criteria[Number(key)])) {
+        throw new Error(`Unexpected SystemOne response: invalid score or legend for ${name}.`);
+      }
     }
   }
 }
