@@ -146,8 +146,16 @@ export async function validateUpstreamSetup(root) {
       output["github-token-for-extra-empty-commit"] !== "none" ||
       output["protected-files"]?.policy !== "blocked" ||
       JSON.stringify(output["protected-files"]?.exclude) !== JSON.stringify(["README.md", "package.json", "package-lock.json", "bun.lock"])) throw new Error("Upstream workflow policy drift");
-  const mutationKeys = Object.keys(source["safe-outputs"]).filter(key => !["create-pull-request", "missing-tool", "missing-data", "report-failed-jobs", "report-incomplete"].includes(key));
+  const mutationKeys = Object.keys(source["safe-outputs"]).filter(key => !["create-pull-request", "missing-tool", "missing-data", "report-failed-jobs", "report-incomplete", "report-failure-as-issue", "threat-detection"].includes(key));
   if (mutationKeys.length) throw new Error("Unexpected upstream safe output");
+  if (source["safe-outputs"]["report-failure-as-issue"] !== false ||
+      source["safe-outputs"]["threat-detection"]?.engine?.id !== "copilot" ||
+      source["safe-outputs"]["threat-detection"]?.["max-ai-credits"] !== 400) throw new Error("Failure reporting or detection policy drift");
+  const detection = JSON.stringify(lock.jobs.detection);
+  if (!detection.includes("secrets.COPILOT_GITHUB_TOKEN") ||
+      detection.includes("secrets.OPENAI_API_KEY") || detection.includes("secrets.CODEX_API_KEY")) throw new Error("Detection inference credentials drift");
+  if (!lock.jobs.conclusion.steps.some(step => step.env?.GH_AW_FAILURE_REPORT_AS_ISSUE === "false") ||
+      lock.jobs.conclusion.permissions?.issues === "write") throw new Error("Failure issue reporting must remain disabled");
   const agent = JSON.stringify(lock.jobs.agent);
   if (/secrets\.UPSTREAM_SYNC_PR_TOKEN/.test(agent)) throw new Error("Publication token exposed to agent job");
   const steps = lock.jobs.safe_outputs.steps;
@@ -163,6 +171,8 @@ export async function validateUpstreamSetup(root) {
   const pinnedPlan = source["pre-agent-steps"].find(step => step.name === "Pin plan independently of agent output");
   const validationRuntime = source["pre-agent-steps"].find(step => step.name === "Make pinned Bun available inside AWF");
   if (!preparation?.run.includes("--output /tmp/gh-aw/upstream-sync/plan.json") ||
+      preparation.env?.GH_AW_SAFE_OUTPUTS !== "${{ steps.set-runtime-paths.outputs.GH_AW_SAFE_OUTPUTS }}" ||
+      !preparation.run.includes("node tools/upstream-sync.mjs skip-empty --plan") ||
       pinnedPlan?.with?.path !== "/tmp/gh-aw/upstream-sync/plan.json" ||
       !validationRuntime?.run.includes('cp "$(command -v bun)" /tmp/gh-aw/bin/bun') ||
       !validationRuntime.run.includes(">> \"$GITHUB_PATH\"") ||

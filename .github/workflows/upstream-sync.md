@@ -92,6 +92,8 @@ pre-agent-steps:
       test "$(/tmp/gh-aw/bin/bun --version)" = "1.4.2"
       printf '/tmp/gh-aw/bin\n' >> "$GITHUB_PATH"
   - name: Prepare full upstream snapshots and immutable plan
+    env:
+      GH_AW_SAFE_OUTPUTS: ${{ steps.set-runtime-paths.outputs.GH_AW_SAFE_OUTPUTS }}
     run: |
       mkdir -p /tmp/gh-aw/upstream-sync
       git clone --no-checkout https://github.com/scaryrawr/scarypilot.git /tmp/gh-aw/upstream-sync/scarypilot
@@ -100,7 +102,7 @@ pre-agent-steps:
         --scarypilot /tmp/gh-aw/upstream-sync/scarypilot \
         --cursor /tmp/gh-aw/upstream-sync/cursor \
         --output /tmp/gh-aw/upstream-sync/plan.json
-      node -e 'const fs = require("node:fs"); const p = JSON.parse(fs.readFileSync("/tmp/gh-aw/upstream-sync/plan.json", "utf8")); if (p.tracks.every(t => t.commits.length === 0)) fs.appendFileSync(process.env.GH_AW_SAFE_OUTPUTS, JSON.stringify({type:"noop",message:"No upstream changes to review"}) + "\n");'
+      node tools/upstream-sync.mjs skip-empty --plan /tmp/gh-aw/upstream-sync/plan.json
   - name: Pin plan independently of agent output
     uses: actions/upload-artifact@v4
     with:
@@ -108,10 +110,16 @@ pre-agent-steps:
       path: /tmp/gh-aw/upstream-sync/plan.json
       if-no-files-found: error
 safe-outputs:
+  report-failure-as-issue: false
   missing-tool: false
   missing-data: false
   report-failed-jobs: false
   report-incomplete: false
+  threat-detection:
+    engine:
+      id: copilot
+      model: gpt-5.3-codex
+    max-ai-credits: 400
   create-pull-request:
     title-prefix: "[upstream-sync] "
     max: 1

@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
 import { TRACKS, SOURCES, LIMITS } from "../tools/upstream-sync.mjs";
+import { parse } from "yaml";
 import { validateRepoSkills, validateUpstreamSetup } from "../tools/check-marketplace.mjs";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname);
@@ -219,11 +220,61 @@ test("ported code must name changed files and bump shipped plugin version", () =
 
 test("untracked invalid names and oversized proposed content are included in the local gate", () => {
   const f = fixture(), p = plan(f), file = savePlan(f, p);
+  review(f, p, "cursor/pstack");
   write(f.local, "tests/invalid\nname", "bad\n");
   assert.match(cli(f, "verify", ["--plan", file], 1), /Invalid path/);
   rmSync(path.join(f.local, "tests/invalid\nname"));
   write(f.local, "tests/large.mjs", "x".repeat(LIMITS.bytes + 1));
   assert.match(cli(f, "verify", ["--plan", file], 1), /patch size/);
+});
+
+test("root-only and cosmetic registry proposals cannot publish without semantic review state", () => {
+  const f = fixture(), p = plan(f), file = savePlan(f, p);
+  write(f.local, "package.json", { scripts: { build: "unreviewed" } });
+  assert.match(cli(f, "verify", ["--plan", file], 1), /semantic review registry/);
+  write(f.local, "upstream-sync.json", JSON.stringify(registry(f)));
+  assert.match(cli(f, "verify", ["--plan", file], 1), /semantic review registry/);
+  const unchanged = registry(f);
+  write(f.local, "upstream-sync.json", { tracks: unchanged.tracks, schemaVersion: unchanged.schemaVersion });
+  assert.match(cli(f, "verify", ["--plan", file], 1), /semantic review registry/);
+  git(f.local, "switch", "-qc", "upstream-sync/root-only");
+  commit(f.local, "Root change without a review");
+  const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
+  write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/root-only", base: "main" }] });
+  git(f.local, "bundle", "create", path.join(artifact, "aw-upstream-sync-root-only.bundle"), `${f.base}..upstream-sync/root-only`);
+  assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /semantic review registry/);
+  rmSync(path.join(artifact, "aw-upstream-sync-root-only.bundle"));
+  write(artifact, "aw-upstream-sync-root-only.patch", git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n");
+  assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /semantic review registry/);
+});
+
+test("compiled empty-plan step creates the output directory and writes noop without inference", () => {
+  const f = fixture(), p = plan(f);
+  const workflow = parse(readFileSync(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
+  const steps = workflow.jobs.agent.steps;
+  const preparation = steps.findIndex(item => item.name === "Prepare full upstream snapshots and immutable plan");
+  assert.ok(steps.findIndex(item => item.id === "set-runtime-paths") < preparation);
+  const step = steps[preparation];
+  assert.equal(step.env.GH_AW_SAFE_OUTPUTS, "${{ steps.set-runtime-paths.outputs.GH_AW_SAFE_OUTPUTS }}");
+  const command = step.run.split("\n").find(line => line.includes(" skip-empty "));
+  assert.ok(command);
+  const output = path.join(f.directory, "not-created", "outputs.jsonl");
+  const file = savePlan(f, p);
+  const execute = () => spawnSync("bash", ["-e", "-c", command.replace("/tmp/gh-aw/upstream-sync/plan.json", JSON.stringify(file))], {
+    cwd: root, encoding: "utf8", env: { ...process.env, GH_AW_SAFE_OUTPUTS: output },
+  });
+  assert.equal(execute().status, 0);
+  assert.equal(spawnSync("test", ["-e", output]).status, 1);
+  for (const track of p.tracks) track.commits = [];
+  savePlan(f, p);
+  const result = execute();
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(output, "utf8")), { type: "noop", message: "No upstream changes to review" });
+  const missing = spawnSync("node", [helper, "skip-empty", "--plan", file], {
+    encoding: "utf8", env: { ...process.env, GH_AW_SAFE_OUTPUTS: "" },
+  });
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /absolute output path/);
 });
 
 test("pstack accepts an increasing Codex port revision and rejects unchanged or older versions", () => {

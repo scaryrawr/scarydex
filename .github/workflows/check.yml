@@ -26,6 +26,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh aw version | grep -F 'v0.88.7'
+          gh aw version 2>&1 | grep -F 'v0.88.7'
           gh aw compile upstream-sync --no-check-update
           git diff --exit-code -- .github/workflows/upstream-sync.lock.yml .gitattributes

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync, readdirSync, lstatSync, mkdtempSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, mkdirSync, readdirSync, lstatSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -233,6 +233,9 @@ export function verifyProposal({ root = ROOT, plan, base = plan.base, head }) {
     }
   });
   const changed = new Set(files.flatMap(change => change.paths));
+  requireThat(changed.has("upstream-sync.json") && proposed.tracks.some((track, index) =>
+    track.reviews.length !== original.tracks[index].reviews.length || track.reviewedThrough !== original.tracks[index].reviewedThrough),
+  "Proposal requires a semantic review registry update");
   requireThat(changed.size <= LIMITS.proposalFiles, "Proposal exceeds 100 unique files");
   for (const file of changed) requireThat(allowedPath(file, selected), `Disallowed proposal path: ${file}`);
   for (const file of changed) if (file.startsWith("plugins/")) requireThat(portedPaths.has(file), `Plugin change lacks ported disposition: ${file}`);
@@ -302,6 +305,17 @@ export function verifyArtifact({ root = ROOT, plan, directory }) {
   return results[0].result;
 }
 
+export function skipEmptyPlan(plan, output) {
+  requireThat(plan.schemaVersion === 1 && plan.repository === "scaryrawr/scarydex" &&
+    Array.isArray(plan.tracks) && plan.tracks.length === TRACKS.length &&
+    plan.tracks.every((track, index) => track.id === TRACKS[index].id && Array.isArray(track.commits)), "Invalid empty-plan input");
+  if (plan.tracks.some(track => track.commits.length)) return { skipped: false };
+  requireThat(typeof output === "string" && path.isAbsolute(output), "GH_AW_SAFE_OUTPUTS must be an absolute output path");
+  mkdirSync(path.dirname(output), { recursive: true });
+  appendFileSync(output, `${JSON.stringify({ type: "noop", message: "No upstream changes to review" })}\n`);
+  return { skipped: true };
+}
+
 function options(args) {
   const values = {};
   while (args.length) {
@@ -319,6 +333,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       plan: ["root", "scarypilot", "cursor", "output"],
       check: ["root"],
       verify: ["root", "plan", "base", "head", "artifact-dir"],
+      "skip-empty": ["plan"],
     };
     requireThat(flags[command] && Object.keys(opts).every(key => flags[command].includes(key)), `Unsupported option for ${command}`);
     requireThat(!(opts.head && opts["artifact-dir"]), "--head and --artifact-dir are mutually exclusive");
@@ -328,13 +343,16 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     else if (command === "check") {
       validateRegistry(json(path.join(root, "upstream-sync.json")), json(path.join(root, "port-provenance.json")));
       result = { tracks: TRACKS.length };
+    } else if (command === "skip-empty") {
+      requireThat(opts.plan, "skip-empty requires --plan FILE");
+      result = skipEmptyPlan(json(opts.plan), process.env.GH_AW_SAFE_OUTPUTS);
     } else if (command === "verify") {
       requireThat(opts.plan, "verify requires --plan FILE");
       const plan = json(opts.plan);
       requireThat(!opts.base || opts.base === plan.base, "Plan/base mismatch");
       result = opts["artifact-dir"] ? verifyArtifact({ root, plan, directory: path.resolve(opts["artifact-dir"]) }) :
         verifyProposal({ root, plan, base: opts.base ?? plan.base, head: opts.head });
-    } else throw new Error("Usage: upstream-sync.mjs plan --scarypilot DIR --cursor DIR [--output FILE] | check | verify --plan FILE [--base SHA] [--head SHA | --artifact-dir DIR]");
+    } else throw new Error("Usage: upstream-sync.mjs plan --scarypilot DIR --cursor DIR [--output FILE] | check | skip-empty --plan FILE | verify --plan FILE [--base SHA] [--head SHA | --artifact-dir DIR]");
     if (opts.output) writeFileSync(opts.output, `${JSON.stringify(result, null, 2)}\n`, { flag: "wx" });
     else console.log(JSON.stringify(result, null, 2));
   } catch (error) { console.error(`upstream-sync: ${error.message}`); process.exitCode = 1; }

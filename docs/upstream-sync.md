@@ -52,8 +52,9 @@ trigger, but never cancels the running sync.
 
 The main agent has 2,000 AI Credits, 200 turns, and a 60-minute execution limit.
 Its job allows 90 minutes for setup and execution. These are documented gh-aw
-controls, not a promise of a token count or context window. Detection retains
-its separate default 400-credit cap and 10-minute job limit. Review real billing
+controls, not a promise of a token count or context window. Detection explicitly
+uses the Copilot engine with the same inference PAT, a separate 400-credit cap,
+and a 10-minute job limit. Review real billing
 before enabling runs; AI Credits are best-effort cost accounting.
 Bun 1.4.2 uses gh-aw's `runtimes.bun` setup. A pre-agent step copies that binary
 into `/tmp/gh-aw/bin`, verifies its version, and prepends the mounted directory
@@ -151,7 +152,9 @@ The gate inspects the bundle's actual commit/tree and applies the fallback
 format-patch in an isolated temporary worktree without executing proposal code.
 Both transports must agree. Disallowed paths, provenance changes, missing
 dispositions, cursor gaps, symlinks, missing version bumps, or excessive changes
-fail the job **before** publication credentials are used. The gh-aw allowlist
+fail the job **before** publication credentials are used. Every proposal also
+requires a semantic review-registry update, including root-only proposals.
+Whitespace-only registry changes do not count. The gh-aw allowlist
 and protected-files policy independently constrain the patch. README and
 package inputs have explicit exceptions so ordinary updates can publish
 without a self-authored blocking review. Other protected files remain blocked.
@@ -160,6 +163,8 @@ pstack `major.minor.patch-codex.N` port convention, including a higher `codex.N`
 
 The only mutation tool is create-pull-request, with max one, draft enforced,
 main base, no stacks, no issue fallback, no merge/approval/comment tools.
+Failure issue reporting is explicitly disabled. Failures remain visible in
+Actions logs and job summaries without creating repository issues.
 Allowed paths cover selected tracked plugins, directly coupled README/notices,
 unchanged inventory, review registry, tests, and narrow build/package inputs.
 Workflow files, `AGENTS.md`, repo skills, provenance, and original plugins are
@@ -168,9 +173,9 @@ not proposal targets.
 CI recompiles with the pinned compiler and compares the generated lock. The
 compiler's action/container pins are preserved in the lock manifest. Compiler
 upgrade, instruction, policy, and skill changes require human maintenance.
-Compiler-emitted compatibility fallbacks mention `CODEX_API_KEY` and
-`OPENAI_API_KEY`; this configuration requires neither. Do not install those
-secrets to bypass Copilot entitlement failures.
+Both the main agent and detection use Copilot authentication. The compiled
+detection job requires neither `CODEX_API_KEY` nor `OPENAI_API_KEY`.
+Do not install those secrets to bypass Copilot entitlement failures.
 
 ## References
 
