@@ -1,7 +1,7 @@
 {
   "name": "decide",
-  "version": "0.1.0",
-  "description": "Discover and leverage Ollama decision models using the JEV (Judgment-Evaluation-Decision) framework.",
+  "version": "0.1.1",
+  "description": "Run typed choices, yes-or-no probabilities, and scores with Ollama's Jev-style SystemOne decision models.",
   "author": {
     "name": "Mike Wallio"
   },
@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "decide",
-    "shortDescription": "Discover and leverage Ollama decision models using the JEV (Judgment-Evaluation-Decision) framework.",
+    "shortDescription": "Typed decisions with Ollama SystemOne models.",
     "developerName": "ScaryDex",
     "category": "Developer Tools"
   },

@@ -1,10 +1,10 @@
 [
   {
-    "query": "Help me decide between these two deployment strategies.",
+    "query": "Use decide to route this ticket to billing, technical, or other.",
     "should_trigger": true
   },
   {
-    "query": "Run a JEV decision analysis on this architectural option.",
+    "query": "Use Ollama decision models to score report urgency.",
     "should_trigger": true
   },
   {
@@ -12,39 +12,39 @@
     "should_trigger": true
   },
   {
-    "query": "I need to choose a database: Postgres or DynamoDB. Help me think it through.",
+    "query": "Use decide to choose Postgres or DynamoDB given these explicit constraints.",
     "should_trigger": true
   },
   {
-    "query": "Use decide to evaluate these vendor options for our data residency needs.",
+    "query": "Classify these moderation examples with the Jev-style SystemOne API.",
     "should_trigger": true
   },
   {
-    "query": "What is the best practice for handling authentication in a microservices architecture?",
-    "should_trigger": false
-  },
-  {
-    "query": "Explain how Ollama's decision model API works.",
-    "should_trigger": false
+    "query": "Show me how Ollama's decision model API works.",
+    "should_trigger": true
   },
   {
     "query": "List all the models I have installed in Ollama.",
     "should_trigger": true
   },
   {
-    "query": "What's the difference between ECS and EKS?",
+    "query": "Help me think through ECS versus EKS.",
     "should_trigger": false
   },
   {
-    "query": "Can you help me make a decision about my tech stack? I'm torn between React and Vue.",
-    "should_trigger": true
+    "query": "What's the capital of France?",
+    "should_trigger": false
   },
   {
     "query": "Write a unit test for this function.",
     "should_trigger": false
   },
   {
-    "query": "I need a second opinion on this design choice before I commit to it.",
-    "should_trigger": true
+    "query": "I need a second opinion on my design, but no local model calls.",
+    "should_trigger": false
+  },
+  {
+    "query": "Explain the Judgment-Evaluation-Decision framework.",
+    "should_trigger": false
   }
 ]

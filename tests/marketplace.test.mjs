@@ -26,13 +26,26 @@ test("excluded plugins or duplicate inventory cannot enter the marketplace", asy
   await writeFile(file, JSON.stringify(catalog));
   await assert.rejects(validateMarketplace(dir), /exactly the seven/);
 });
-test("README must list every plugin from the published inventory", async () => {
+test("README inventory rejects missing rows even when prose mentions the plugin", async () => {
   const dir = await fixture(), readme = path.join(dir, "README.md");
   const original = await readFile(readme, "utf8");
-  await writeFile(readme, original.replace("| `screen-record` | Screen capture, demo editing, captions, and narration | Skill + Node helper + FFmpeg |\n", ""));
-  await assert.rejects(validateMarketplace(dir), /README is missing plugin from inventory: screen-record/);
+  for (const name of EXPECTED_PLUGINS) {
+    const withoutRow = original.split("\n").filter((line) => !line.startsWith(`| \`${name}\` |`)).join("\n");
+    assert.notEqual(withoutRow, original, `No table row found for ${name}`);
+    await writeFile(readme, withoutRow + `\nProse still mentions \`${name}\`.\n`);
+    await assert.rejects(validateMarketplace(dir), new RegExp(`README is missing plugin from inventory: ${name}`));
+  }
   await writeFile(readme, original);
   assert.deepEqual(await validateMarketplace(dir), { plugins: EXPECTED_PLUGINS.length, skills: 56 });
+});
+
+test("README inventory rejects unexpected and duplicate table entries", async () => {
+  const dir = await fixture(), readme = path.join(dir, "README.md");
+  const original = await readFile(readme, "utf8");
+  for (const row of ["| `retired-plugin` | Stale entry | None |", "| `decide` | Duplicate | Node |"] ) {
+    await writeFile(readme, original + "\n" + row + "\n");
+    await assert.rejects(validateMarketplace(dir), /unexpected or duplicate rows/);
+  }
 });
 
 test("broken local resources and unsupported runtime manifests are rejected", async () => {

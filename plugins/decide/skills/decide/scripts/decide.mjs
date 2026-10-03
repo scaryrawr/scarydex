@@ -1,184 +1,172 @@
 #!/usr/bin/env node
 
-import process from "node:process";
-
-const args = process.argv.slice(2);
-const command = args.shift();
+import { readFile } from "node:fs/promises";
+import { parseArgs } from "node:util";
 
 const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 const LIST_TIMEOUT_MS = 10_000;
-const CHAT_TIMEOUT_MS = 300_000;
+const DECISION_TIMEOUT_MS = 300_000;
 
-function fail(message, code = 1) {
-  console.error(`decide: ${message}`);
-  process.exit(code);
+function object(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function baseUrl() {
-  return (process.env.OLLAMA_BASE_URL || DEFAULT_OLLAMA_URL).replace(/\/+$/, "");
+function nonempty(value) {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
-function parseArgs(values) {
-  const parsed = { _: [] };
-  for (let index = 0; index < values.length; index += 1) {
-    const value = values[index];
-    if (!value.startsWith("--")) {
-      parsed._.push(value);
+function probability(value) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+function requireOption(options, name) {
+  if (!nonempty(options[name])) throw new Error(`Provide --${name} with a non-empty value.`);
+  return options[name];
+}
+
+function parseDecisionInput(text) {
+  let input;
+  try { input = JSON.parse(text); }
+  catch { throw new Error("Input must be valid JSON."); }
+  if (!object(input) || (!nonempty(input.state) && !object(input.state)) ||
+      !object(input.questions) || Object.keys(input.questions).length === 0) {
+    throw new Error("Input must contain state (text or an object) and a non-empty questions object.");
+  }
+  for (const [name, question] of Object.entries(input.questions)) {
+    if (!nonempty(name) || !object(question) || !nonempty(question.instructions)) {
+      throw new Error(`Question ${JSON.stringify(name)} requires non-empty instructions.`);
+    }
+    switch (question.type) {
+      case "choice":
+        if (!object(question.criteria) || Object.keys(question.criteria).length === 0 ||
+            Object.entries(question.criteria).some(([key, value]) => !nonempty(key) || (value !== null && typeof value !== "string"))) {
+          throw new Error(`Choice question ${name} requires criteria mapping option names to strings or null.`);
+        }
+        break;
+      case "score":
+        if (!Array.isArray(question.criteria) || question.criteria.length === 0 || !question.criteria.every(nonempty)) {
+          throw new Error(`Score question ${name} requires a non-empty criteria array of labels.`);
+        }
+        break;
+      case "noul":
+        break;
+      default:
+        throw new Error(`Question ${name} has unsupported type. Use choice, noul, or score.`);
+    }
+  }
+  return { state: input.state, questions: input.questions };
+}
+
+function validateAnswers(result, questions) {
+  if (!object(result) || !object(result.answers)) throw new Error("Unexpected SystemOne response: missing answers object.");
+  for (const [name, question] of Object.entries(questions)) {
+    const answer = result.answers[name];
+    if (!object(answer) || answer.type !== question.type) throw new Error(`Unexpected SystemOne response: missing or mismatched answer for ${name}.`);
+    if (question.type === "noul") {
+      if (!probability(answer.noul)) throw new Error(`Unexpected SystemOne response: invalid noul for ${name}.`);
       continue;
     }
-    const key = value.slice(2);
-    const next = values[index + 1];
-    if (next === undefined || next.startsWith("--")) {
-      parsed[key] = true;
-    } else {
-      parsed[key] = next;
-      index += 1;
+    const keys = question.type === "choice" ? Object.keys(question.criteria) : question.criteria.map((_, index) => String(index));
+    if (!object(answer.probabilities) || keys.some((key) => !probability(answer.probabilities[key])) || !probability(answer.confidence)) {
+      throw new Error(`Unexpected SystemOne response: invalid probabilities or confidence for ${name}.`);
+    }
+    if (question.type === "choice" && !keys.includes(answer.choice)) throw new Error(`Unexpected SystemOne response: invalid choice for ${name}.`);
+    if (question.type === "score" && (!probability(answer.score) || !object(answer.legend) || keys.some((key) => answer.legend[key] !== question.criteria[Number(key)]))) {
+      throw new Error(`Unexpected SystemOne response: invalid score or legend for ${name}.`);
     }
   }
-  return parsed;
 }
 
-function requireOptionString(options, flag) {
-  const value = options[flag];
-  if (typeof value !== "string" || value.length === 0) {
-    fail(`Provide --${flag} with a non-empty value.`);
+async function request(base, endpoint, body) {
+  let response;
+  try {
+    response = await fetch(`${base}${endpoint}`, {
+      method: body === undefined ? "GET" : "POST",
+      headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(body === undefined ? LIST_TIMEOUT_MS : DECISION_TIMEOUT_MS),
+    });
+  } catch (error) {
+    throw new Error(`Ollama request failed. Start Ollama or set OLLAMA_BASE_URL. ${error.message}`);
   }
-  return value;
+  if (!response.ok) {
+    const hint = endpoint === "/v1/systemone" && response.status === 404 ? " Upgrade to Ollama 0.35 or newer for SystemOne support." : "";
+    const errorBody = await response.json().catch(() => null);
+    const detail = object(errorBody) && nonempty(errorBody.error) ? ` ${errorBody.error}` : "";
+    throw new Error(`Ollama API error: ${response.status} ${response.statusText}.${detail}${hint}`);
+  }
+  try { return await response.json(); }
+  catch (error) {
+    if (error.name === "TimeoutError" || error.name === "AbortError") throw new Error("Ollama response timed out.");
+    throw new Error("Ollama returned invalid JSON.");
+  }
 }
 
-async function apiGet(path, timeoutMs) {
-  const res = await fetch(`${baseUrl()}${path}`, {
-    headers: { "Accept": "application/json" },
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) throw new Error(`Ollama API error: ${res.status} ${res.statusText}`);
-  return res.json();
-}
-
-async function apiPost(path, body) {
-  const res = await fetch(`${baseUrl()}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
-  });
-  if (!res.ok) throw new Error(`Ollama API error: ${res.status} ${res.statusText}`);
-  return res.json();
-}
-
-const JEV_SYSTEM_PROMPT = `You are a decision analyst. Respond using the JEV framework:
-
-1. JUDGMENT: Assess the situation. What type of decision is this? What are the
-   key factors, constraints, and stakeholders?
-
-2. EVALUATION: For each viable option, weigh the tradeoffs. Consider
-   short-term and long-term consequences, risks, and hidden costs. Use
-   evidence, not assumptions.
-
-3. DECISION: Make a concrete recommendation. State it clearly, then
-   summarize the rationale in one sentence.`;
-
-async function listModels() {
-  const data = await apiGet("/api/tags", LIST_TIMEOUT_MS);
-  const models = data.models || [];
-  if (models.length === 0) {
+async function listModels(base) {
+  const data = await request(base, "/api/tags");
+  if (!object(data) || !Array.isArray(data.models) || data.models.some((model) =>
+    !object(model) || !nonempty(model.name) || (model.size !== undefined && (typeof model.size !== "number" || !Number.isFinite(model.size) || model.size < 0)))) {
+    throw new Error("Unexpected Ollama /api/tags response: invalid models list.");
+  }
+  if (data.models.length === 0) {
     console.log("No models found on Ollama endpoint.");
     return;
   }
-  const decisionKeywords = ["decision", "jev", "reasoner"];
-  console.log(`Found ${models.length} model(s) on Ollama endpoint.\n`);
-  console.log("DECISION-CAPABLE:");
-  for (const model of models) {
-    const name = model.name || model.id;
-    const isDecision = decisionKeywords.some((kw) => name.toLowerCase().includes(kw));
-    if (isDecision) {
-      const sizeMB = ((model.size || 0) / 1e6).toFixed(0);
-      console.log(`  - ${name} (${sizeMB}MB)`);
-    }
-  }
+  const candidates = data.models.filter((model) => /^(nimble|tev1)(?::|$)/i.test(model.name.split("/").at(-1)));
+  console.log("DECISION MODEL CANDIDATES (name heuristic, not capability verification):");
+  for (const model of candidates) console.log(`  - ${model.name}`);
+  if (candidates.length === 0) console.log("  None recognized. Pull nimble or tev1, or explicitly select a compatible custom model.");
   console.log("\nALL MODELS:");
-  for (const model of models) {
-    const sizeMB = ((model.size || 0) / 1e6).toFixed(0);
-    console.log(`  - ${model.name || model.id} (${sizeMB}MB)`);
-  }
-}
-
-async function runDecision(options) {
-  let model = options.model;
-  if (typeof model !== "string" || model.length === 0) {
-    const data = await apiGet("/api/tags", LIST_TIMEOUT_MS);
-    const names = (data.models || []).map((m) => m.name || m.id);
-    if (names.length === 0) fail("No Ollama models available. Start Ollama and pull a decision model first.");
-    console.log(`Available models: ${names.join(", ")}\n`);
-    fail("Provide --model with one of the above model names.");
-  }
-  const question = requireOptionString(options, "question");
-
-  const result = await apiPost("/api/chat", {
-    model,
-    messages: [
-      { role: "system", content: JEV_SYSTEM_PROMPT },
-      { role: "user", content: question },
-    ],
-    stream: false,
-  });
-  if (!result.message || !result.message.content) {
-    fail("Unexpected response from Ollama. No content in message.");
-  }
-  console.log(result.message.content);
+  for (const model of data.models) console.log(`  - ${model.name}${model.size === undefined ? "" : ` (${(model.size / 1e6).toFixed(0)}MB)`}`);
 }
 
 function usage() {
   console.log(`Usage: node scripts/decide.mjs <command> [options]
 
 Commands:
-  models              List decision-capable and all Ollama models
-  run --model <name> --question "<decision>"  Run a JEV decision analysis
+  models                         List installed Ollama models and known decision families
+  run --model <name> --input <file>  Send JSON {state, questions} to /v1/systemone
+  help                           Show this help
 
-Environment:
-  OLLAMA_BASE_URL     Ollama endpoint (default: http://localhost:11434)
-
-The JEV framework structures decision reasoning in three phases:
-  Judgment    - Assess the situation and key factors
-  Evaluation  - Weigh options and tradeoffs
-  Decision    - Make a concrete recommendation`);
+Question types: choice, noul (yes/no probability), score.
+Output: full SystemOne JSON response, including answers, probabilities and usage.
+Requires Ollama 0.35+ and a compatible decision model such as nimble or tev1.
+OLLAMA_BASE_URL defaults to http://localhost:11434.`);
 }
 
-async function dispatch() {
-  switch (command) {
-    case "models":
-      await listModels();
-      break;
-    case "run":
-      await runDecision(parseArgs(args));
-      break;
-    case "help":
-    case "--help":
-    case "-h":
-    case undefined:
-      usage();
-      break;
-    default:
-      fail(`unknown command: ${command}`);
+async function main() {
+  const [command, ...args] = process.argv.slice(2);
+  if (command === undefined || ["help", "--help", "-h"].includes(command)) {
+    if (args.length) throw new Error("Help does not accept arguments.");
+    usage();
+    return;
   }
-}
-
-function describeError(error) {
-  const parts = [];
-  let current = error;
-  while (current) {
-    if (current instanceof AggregateError) {
-      parts.push(current.errors.map((nested) => describeError(nested)).join("; "));
-      break;
-    }
-    parts.push(current.message || String(current));
-    current = current.cause;
+  if (!["models", "run"].includes(command)) throw new Error(`Unknown command: ${command}`);
+  const { values } = parseArgs({
+    args,
+    options: command === "run" ? { model: { type: "string" }, input: { type: "string" } } : {},
+    strict: true,
+    allowPositionals: false,
+  });
+  let model, input;
+  if (command === "run") {
+    model = requireOption(values, "model");
+    const file = requireOption(values, "input");
+    input = parseDecisionInput(await readFile(file, "utf8"));
   }
-  return [...new Set(parts.filter(Boolean))].join(": ");
+  const base = new URL(process.env.OLLAMA_BASE_URL || DEFAULT_OLLAMA_URL);
+  if (!["http:", "https:"].includes(base.protocol) || base.username || base.password || base.search || base.hash) {
+    throw new Error("OLLAMA_BASE_URL must be an HTTP(S) URL without credentials, query, or fragment.");
+  }
+  const url = base.href.replace(/\/+$/, "");
+  if (command === "models") return listModels(url);
+  const result = await request(url, "/v1/systemone", { model, ...input });
+  validateAnswers(result, input.questions);
+  console.log(JSON.stringify(result, null, 2));
 }
 
-try {
-  await dispatch();
-} catch (error) {
-  fail(`Ollama request failed against ${baseUrl()}. Start Ollama or set OLLAMA_BASE_URL. Details: ${describeError(error)}`);
+try { await main(); }
+catch (error) {
+  console.error(`decide: ${error.message}`);
+  process.exitCode = 1;
 }

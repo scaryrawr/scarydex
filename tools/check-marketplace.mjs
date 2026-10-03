@@ -80,8 +80,12 @@ export async function validateMarketplace(directory) {
     }
   }
   const readme = await readFile(path.join(root, "README.md"), "utf8");
+  const rows = [...readme.replace(/```[\s\S]*?```/g, "").matchAll(/^\|\s*`([^`]+)`\s*\|[^\n]+\|\s*$/gm)].map((match) => match[1]);
   for (const name of names) {
-    if (!readme.includes("`" + name + "`")) throw new Error(`README is missing plugin from inventory: ${name}`);
+    if (!rows.includes(name)) throw new Error(`README is missing plugin from inventory: ${name}`);
+  }
+  if (rows.length !== names.length || new Set(rows).size !== rows.length || rows.some((name) => !names.includes(name))) {
+    throw new Error("README plugin inventory contains unexpected or duplicate rows");
   }
 
   return { plugins: names.length, skills };
