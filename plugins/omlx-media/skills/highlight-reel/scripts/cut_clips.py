@@ -1,0 +1,109 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# ///
+"""Cut verified highlight clips from a source video with ffmpeg.
+
+Tries a fast stream-copy first (keyframe-snapped, no re-encode); if the copy
+produces a file whose duration is wrong (missing leading keyframe), re-encodes
+that clip with libx264/aac (or vp9/opus for webm sources).
+
+Usage:
+  uv run scripts/cut_clips.py --input {video} --highlights {highlights.json}
+      --output-dir {dir} [--reencode]
+
+Writes {output-dir}/{index:02d}-{slugified-title}.mp4|webm and prints a JSON
+manifest of {file, start_sec, end_sec, method}.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+SKILL_ROOT = Path(__file__).resolve().parent.parent
+
+
+def run(cmd: list[str]) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, check=False, capture_output=True, text=True)
+
+
+def slugify(text: str) -> str:
+    s = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return s[:60] or "clip"
+
+
+def duration(path: Path) -> float:
+    p = run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", str(path)])
+    try:
+        return float(p.stdout.strip())
+    except ValueError:
+        return -1.0
+
+
+def resolve_output_dir(value: str) -> Path:
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        sys.exit("error: --output-dir must be absolute")
+    resolved = path.resolve()
+    if resolved == SKILL_ROOT or SKILL_ROOT in resolved.parents:
+        sys.exit("error: --output-dir must be outside the skill")
+    resolved.mkdir(parents=True, exist_ok=True)
+    return resolved
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description="Cut highlight clips from a video.")
+    ap.add_argument("--input", required=True)
+    ap.add_argument("--highlights", required=True)
+    ap.add_argument("--output-dir", required=True)
+    ap.add_argument("--reencode", action="store_true", help="always re-encode (exact cuts)")
+    args = ap.parse_args()
+
+    src = Path(args.input).expanduser().resolve()
+    if not src.is_file():
+        sys.exit("error: --input not found")
+    clips = json.loads(Path(args.highlights).expanduser().read_text(encoding="utf-8"))
+    out_dir = resolve_output_dir(args.output_dir)
+    webm = src.suffix.lower() == ".webm"
+    ext = "webm" if webm else "mp4"
+
+    manifest = []
+    for i, clip in enumerate(clips):
+        st, en = float(clip["start_sec"]), float(clip["end_sec"])
+        if en <= st:
+            print(f"skip {i}: end<=start", file=sys.stderr)
+            continue
+        out = out_dir / f"{i:02d}-{slugify(clip.get('title', ''))}.{ext}"
+        method = "copy"
+        dur = f"{en - st:.3f}"
+        codecs = ("-c:v", "libvpx-vp9", "-b:v", "2M", "-deadline", "realtime",
+                  "-cpu-used", "8", "-c:a", "libopus") if webm \
+            else ("-c:v", "libx264", "-preset", "veryfast", "-c:a", "aac")
+        if args.reencode:
+            run(["ffmpeg", "-y", "-v", "error", "-ss", str(st), "-i", str(src),
+                 "-t", dur, *codecs, str(out)])
+            method = "reencode"
+        else:
+            # explicit -t duration after -i: -to/-ss combos mis-copy webm segments
+            run(["ffmpeg", "-y", "-v", "error", "-ss", str(st), "-i", str(src),
+                 "-t", dur, "-c", "copy", str(out)])
+            want, got = en - st, duration(out)
+            if got < 0 or abs(got - want) > 2.5:
+                run(["ffmpeg", "-y", "-v", "error", "-ss", str(st), "-i", str(src),
+                     "-t", dur, *codecs, str(out)])
+                method = "reencode(fallback)"
+        manifest.append({"file": str(out), "start_sec": int(st), "end_sec": int(en),
+                         "title": clip.get("title", ""), "method": method})
+        print(f"cut {out.name} [{method}]")
+
+    (out_dir / "clips-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({"clips": len(manifest), "manifest": str(out_dir / "clips-manifest.json")}))
+
+
+if __name__ == "__main__":
+    main()

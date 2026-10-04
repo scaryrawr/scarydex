@@ -1,7 +1,7 @@
 {
   "name": "omlx-media",
-  "version": "0.1.0",
-  "description": "Generate images and speech, transcribe audio, and turn recordings into grounded documents using local OMLX models.",
+  "version": "0.2.0",
+  "description": "Generate images and speech, transcribe audio, mine highlight reels (clips, key frames, verbatim-verified takeaways), and turn recordings into grounded documents using local OMLX models.",
   "author": {
     "name": "Mike Wallio"
   },
@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "omlx-media",
-    "shortDescription": "Generate images and speech, transcribe audio, and turn recordings into grounded documents using local OMLX models.",
+    "shortDescription": "Generate images and speech, transcribe audio, cut highlights reels, and author documents with local OMLX models.",
     "developerName": "ScaryDex",
     "category": "Developer Tools"
   },
