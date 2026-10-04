@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "omlx-media",
-    "shortDescription": "Generate images and speech, transcribe audio, cut highlights reels, and author documents with local OMLX models.",
+    "shortDescription": "Generate images and speech, transcribe audio, cut highlight reels, and author documents with local OMLX models.",
     "developerName": "ScaryDex",
     "category": "Developer Tools"
   },

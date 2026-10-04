@@ -102,7 +102,10 @@ def main() -> None:
     else:
         targets = []
         for m in catalog:
-            if m.get("engine_type") not in ("vlm", "audio_stt"):
+            if m.get("engine_type") == "audio_stt":
+                if not args.include_stt:
+                    continue
+            elif m.get("engine_type") != "vlm":
                 continue
             size_gb = (m.get("estimated_size") or 0) / 1e9
             if m["id"] not in forced and not args.force and size_gb > args.max_gb \
@@ -118,15 +121,27 @@ def main() -> None:
         row = {"model": mid, "engine": engine, "probes": []}
         if engine == "audio_stt":
             # batch ASR route only; do not flood chat completions with audio
-            import urllib.parse  # noqa: F401
+            boundary = "----omlxprobe70f3"
+            with open(wav, "rb") as fh:
+                audio = fh.read()
+            body = (
+                f"--{boundary}\r\nContent-Disposition: form-data; name=\"model\"\r\n\r\n{mid}\r\n"
+                f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; "
+                f"filename=\"probe.wav\"\r\nContent-Type: audio/wav\r\n\r\n"
+            ).encode() + audio + f"\r\n--{boundary}--\r\n".encode()
+            headers = {"Content-Type": f"multipart/form-data; boundary={boundary}"}
+            if KEY:
+                headers["Authorization"] = f"Bearer {KEY}"
             t0 = time.time()
-            p = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
-                                "--max-time", "300", "-F", f"file=@{wav}",
-                                "-F", f"model={mid}", BASE + "/v1/audio/transcriptions"],
-                               capture_output=True, text=True)
-            row["probes"].append({"modality": "audio/transcriptions",
-                                  "ok": p.stdout.strip() == "200",
-                                  "secs": round(time.time() - t0, 1)})
+            try:
+                r = urllib.request.Request(BASE + "/v1/audio/transcriptions", data=body, headers=headers)
+                with urllib.request.urlopen(r, timeout=300) as resp:
+                    ok = resp.status == 200
+                row["probes"].append({"modality": "audio/transcriptions", "ok": ok,
+                                      "secs": round(time.time() - t0, 1)})
+            except urllib.error.HTTPError as e:
+                row["probes"].append({"modality": "audio/transcriptions", "ok": False,
+                                      "status": e.code})
         else:
             row["probes"].append(chat_probe(mid, {"type": "image_url", "image_url":
                 {"url": "data:image/png;base64," + b64(img)}}, "image"))
@@ -139,9 +154,14 @@ def main() -> None:
                  for p in row["probes"]}
         print(f"{mid:38s} {marks}")
 
-    with open(args.output, "w", encoding="utf-8") as f:
+    from pathlib import Path
+    out = Path(args.output).expanduser().resolve()
+    skill_root = Path(__file__).resolve().parent.parent
+    if out == skill_root or skill_root in out.parents:
+        sys.exit("error: --output must be outside the installed skill directory")
+    with open(out, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
-    print(f"\nwrote {args.output}")
+    print(f"\nwrote {out}")
 
 
 if __name__ == "__main__":

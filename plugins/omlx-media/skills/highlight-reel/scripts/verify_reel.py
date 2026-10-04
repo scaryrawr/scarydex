@@ -26,19 +26,23 @@ import argparse
 import json
 import re
 import sys
+import pathlib
 from pathlib import Path
 
-CHUNK_RE = re.compile(r"\[(\d+):(\d+)(?:[:–-](\d+):(\d+))?\]")
+SKILL_ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+CHUNK_RE = re.compile(r"\[(\d+):(\d+)(?::(\d+))?[–-](\d+):(\d+)(?::(\d+))?\]")
 
 
 def parse_windows(transcript_text: str) -> list[tuple[float, float]]:
+    """Parse [mm:ss–mm:ss] and [h:mm:ss–h:mm:ss] chunk headers (mixed allowed)."""
     windows: list[tuple[float, float]] = []
     for m in CHUNK_RE.finditer(transcript_text):
-        start = int(m.group(1)) * 60 + int(m.group(2))
-        if m.group(3) is not None:
-            end = int(m.group(3)) * 60 + int(m.group(4))
-        else:
-            continue
+        g = m.groups()
+        start = (int(g[0]) * 3600 + int(g[1]) * 60 + int(g[2])
+                 if g[2] is not None else int(g[0]) * 60 + int(g[1]))
+        end = (int(g[3]) * 3600 + int(g[4]) * 60 + int(g[5])
+               if g[5] is not None else int(g[3]) * 60 + int(g[4]))
         windows.append((float(start), float(end)))
     return windows
 
@@ -65,6 +69,9 @@ def main() -> None:
     ap.add_argument("--pad", type=float, default=15.0)
     args = ap.parse_args()
 
+    hpath = Path(args.highlights).expanduser()
+    if hpath.resolve() == SKILL_ROOT or SKILL_ROOT in hpath.resolve().parents:
+        sys.exit("error: --highlights must be outside the skill (it is rewritten with --fix)")
     tpath = Path(args.transcript).expanduser()
     transcript = tpath.read_text(encoding="utf-8")
     windows = parse_windows(transcript)
@@ -81,7 +88,7 @@ def main() -> None:
         sys.exit("error: no [start-end] chunk headers found in transcript")
     tn = norm(transcript)
 
-    clips = json.loads(Path(args.highlights).expanduser().read_text(encoding="utf-8"))
+    clips = json.loads(hpath.read_text(encoding="utf-8"))
     problems = 0
 
     for clip in clips:
@@ -92,20 +99,30 @@ def main() -> None:
         if any(st >= a - args.pad and en <= b + args.pad for a, b in windows):
             clip["verified"] = True
         else:
-            new_st, new_en, snapped = snap(st, en, windows, args.pad)
-            clip["start_sec"], clip["end_sec"] = int(new_st), int(new_en)
-            clip["verified"] = bool(snapped)
-            print(f"SNAP  {clip.get('title','')[:40]} {st:.0f}-{en:.0f} -> {new_st:.0f}-{new_en:.0f}")
-            problems += 1
+            new_st, new_en, _ = snap(st, en, windows, args.pad)
+            if args.fix:
+                clip["start_sec"], clip["end_sec"] = round(new_st, 3), round(new_en, 3)
+                clip["verified"] = True
+                print(f"FIX   {clip.get('title','')[:40]} {st:.0f}-{en:.0f} -> {new_st:.0f}-{new_en:.0f}")
+            else:
+                clip["verified"] = False
+                print(f"OUT   {clip.get('title','')[:40]} {st:.0f}-{en:.0f} outside every chunk window")
+                problems += 1
 
-    if args.fix and problems:
-        Path(args.highlights).expanduser().write_text(json.dumps(clips, indent=2) + "\n", encoding="utf-8")
-        print(f"wrote fixed {args.highlights}")
+    if args.fix:
+        hpath.write_text(json.dumps(clips, indent=2) + "\n", encoding="utf-8")
+        print(f"wrote verified highlights to {args.highlights}")
 
     if args.takeaways:
         md = Path(args.takeaways).expanduser().read_text(encoding="utf-8")
         quotes = [q for q in re.findall(r'[\u201c"]([^\u201c"\n`]{8,})[\u201d"]', md)]
-        bad = [q for q in quotes if norm(q) not in tn]
+        def verbatim(q: str) -> bool:
+            nq = norm(q)
+            if not nq:
+                return False
+            return re.search(rf"(?:^| )({re.escape(nq)})(?: |$)", tn) is not None
+
+        bad = [q for q in quotes if not verbatim(q)]
         for q in bad:
             print(f"QUOTE not verbatim: {q[:80]}")
         print(f"quotes: {len(quotes) - len(bad)}/{len(quotes)} verbatim")

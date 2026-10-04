@@ -38,10 +38,13 @@ def run(cmd: list[str]) -> subprocess.CompletedProcess:
 
 
 def ts_from_name(path: Path) -> float | None:
-    """Best-effort timestamp from filenames like t_0012.jpg (minutes) or 000123.jpg (seconds)."""
+    """Timestamp from sample_frames.py names (t_001m23s_f0001) or plain numbers (seconds)."""
     stem = path.stem
-    m = re.fullmatch(r"[a-zA-Z_]*0*(\d+)", stem)
-    return float(m.group(1)) * 60.0 if m else None
+    m = re.search(r"0*(\d+)m0*(\d+)s", stem)
+    if m:
+        return float(m.group(1)) * 60.0 + float(m.group(2))
+    m = re.search(r"_?0*(\d+)(?:_f\d+)?$", stem)
+    return float(m.group(1)) if m else None
 
 
 def psnr_pair(a: Path, b: Path) -> float | None:
@@ -74,15 +77,22 @@ def main() -> None:
         sys.exit("error: need at least two frames in --frames-dir")
 
     scores: list[dict] = []
+    failed = 0
     for a, b in zip(frames, frames[1:]):
         v = psnr_pair(a, b)
         if v is None:
+            failed += 1
             continue
-        scores.append({"frame": b.name, "psnr": round(v, 2), "est_second": ts_from_name(b)})
+        scores.append({"frame": b.name,
+                   "psnr": "inf" if v == float("inf") else round(v, 2),
+                   "est_second": ts_from_name(b)})
 
-    finite = [s["psnr"] for s in scores if s["psnr"] != float("inf")]
+    if not scores:
+        sys.exit(f"error: ffmpeg compared 0 of {len(frames) - 1} frame pairs "
+                 f"({failed} failed); refusing to report uniform=true on broken input")
+    finite = [s["psnr"] for s in scores if s["psnr"] != "inf"]
     median = statistics.median(finite) if finite else float("inf")
-    candidates = sorted(scores, key=lambda s: s["psnr"])[: args.top]
+    candidates = sorted(scores, key=lambda s: float("inf") if s["psnr"] == "inf" else s["psnr"])[: args.top]
     report = {
         "frames_compared": len(scores),
         "median_psnr": round(median, 2) if median != float("inf") else "inf",

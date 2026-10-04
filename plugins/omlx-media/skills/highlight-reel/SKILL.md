@@ -38,7 +38,7 @@ verified-on-2026-10-04 default routing:
 | Takeaway/highlight text mining | Either; cross-check the other | chunked transcript only |
 
 Known failure modes (observed): Qwen builds reject `input_audio` (HTTP 500);
-Gemma builds reject `video_url` (HTTP 507); Qwen default builds leak
+Gemma builds reject `video_url` (HTTP 400 schema rejection; 507 when RAM is also tight); Qwen default builds leak
 chain-of-thought into answers; both models paraphrase "verbatim" quotes and
 drift clip bounds — which is why every artifact passes `verify_reel.py`.
 

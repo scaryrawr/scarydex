@@ -84,25 +84,39 @@ def main() -> None:
         codecs = ("-c:v", "libvpx-vp9", "-b:v", "2M", "-deadline", "realtime",
                   "-cpu-used", "8", "-c:a", "libopus") if webm \
             else ("-c:v", "libx264", "-preset", "veryfast", "-c:a", "aac")
+        want = en - st
+        ok = False
         if args.reencode:
-            run(["ffmpeg", "-y", "-v", "error", "-ss", str(st), "-i", str(src),
-                 "-t", dur, *codecs, str(out)])
+            proc = run(["ffmpeg", "-y", "-v", "error", "-ss", str(st), "-i", str(src),
+                        "-t", dur, *codecs, str(out)])
             method = "reencode"
+            got = duration(out)
+            ok = proc.returncode == 0 and got >= 0 and abs(got - want) <= 2.5
         else:
             # explicit -t duration after -i: -to/-ss combos mis-copy webm segments
             run(["ffmpeg", "-y", "-v", "error", "-ss", str(st), "-i", str(src),
                  "-t", dur, "-c", "copy", str(out)])
-            want, got = en - st, duration(out)
-            if got < 0 or abs(got - want) > 2.5:
-                run(["ffmpeg", "-y", "-v", "error", "-ss", str(st), "-i", str(src),
-                     "-t", dur, *codecs, str(out)])
+            got = duration(out)
+            if got >= 0 and abs(got - want) <= 2.5:
+                method, ok = "copy", True
+            else:
+                proc = run(["ffmpeg", "-y", "-v", "error", "-ss", str(st), "-i", str(src),
+                            "-t", dur, *codecs, str(out)])
                 method = "reencode(fallback)"
-        manifest.append({"file": str(out), "start_sec": int(st), "end_sec": int(en),
-                         "title": clip.get("title", ""), "method": method})
-        print(f"cut {out.name} [{method}]")
+                got = duration(out)
+                ok = proc.returncode == 0 and got >= 0 and abs(got - want) <= 2.5
+        entry = {"file": str(out), "start_sec": round(st, 3), "end_sec": round(en, 3),
+                 "title": clip.get("title", ""), "method": method, "ok": ok,
+                 "actual_duration": round(got, 3) if got >= 0 else None}
+        manifest.append(entry)
+        print(f"{'cut' if ok else 'FAIL'} {out.name} [{method}]")
 
     (out_dir / "clips-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"clips": len(manifest), "manifest": str(out_dir / "clips-manifest.json")}))
+    failed = [m["file"] for m in manifest if not m["ok"]]
+    print(json.dumps({"clips": len(manifest), "failed": len(failed),
+                      "manifest": str(out_dir / "clips-manifest.json")}))
+    if failed:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
