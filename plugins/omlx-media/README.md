@@ -18,7 +18,7 @@ install script-declared packages and requires normal network/install approval.
 
 ## Usage
 
-Ask for `image-gen`, `audio`, or `blogify`. Or create a JSON argument file and run:
+Ask for `image-gen`, `audio`, `blogify`, or `highlight-reel`. Or create a JSON argument file and run:
 
 ```sh
 node "<plugin-root>/scripts/media.mjs" image --input-json <arguments.json>
