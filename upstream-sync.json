@@ -1,12 +1,642 @@
 {
   "schemaVersion": 1,
   "tracks": [
-    { "id": "scarypilot/anti-slop", "source": "scarypilot", "plugin": "anti-slop", "path": "plugins/anti-slop", "reviewedThrough": null, "reviews": [] },
-    { "id": "scarypilot/better-init", "source": "scarypilot", "plugin": "better-init", "path": "plugins/better-init", "reviewedThrough": null, "reviews": [] },
-    { "id": "scarypilot/digivolution", "source": "scarypilot", "plugin": "digivolution", "path": "plugins/digivolution", "reviewedThrough": null, "reviews": [] },
-    { "id": "scarypilot/omlx-media", "source": "scarypilot", "plugin": "omlx-media", "path": "plugins/omlx-media", "reviewedThrough": null, "reviews": [] },
-    { "id": "scarypilot/screen-record", "source": "scarypilot", "plugin": "screen-record", "path": "plugins/screen-record", "reviewedThrough": null, "reviews": [] },
-    { "id": "scarypilot/pstack", "source": "scarypilot", "plugin": "pstack", "path": "external_plugins/pstack", "reviewedThrough": null, "reviews": [] },
-    { "id": "cursor/pstack", "source": "cursor", "plugin": "pstack", "path": "pstack", "reviewedThrough": null, "reviews": [] }
+    {
+      "id": "scarypilot/anti-slop",
+      "source": "scarypilot",
+      "plugin": "anti-slop",
+      "path": "plugins/anti-slop",
+      "reviewedThrough": null,
+      "reviews": []
+    },
+    {
+      "id": "scarypilot/better-init",
+      "source": "scarypilot",
+      "plugin": "better-init",
+      "path": "plugins/better-init",
+      "reviewedThrough": null,
+      "reviews": []
+    },
+    {
+      "id": "scarypilot/digivolution",
+      "source": "scarypilot",
+      "plugin": "digivolution",
+      "path": "plugins/digivolution",
+      "reviewedThrough": null,
+      "reviews": []
+    },
+    {
+      "id": "scarypilot/omlx-media",
+      "source": "scarypilot",
+      "plugin": "omlx-media",
+      "path": "plugins/omlx-media",
+      "reviewedThrough": null,
+      "reviews": []
+    },
+    {
+      "id": "scarypilot/screen-record",
+      "source": "scarypilot",
+      "plugin": "screen-record",
+      "path": "plugins/screen-record",
+      "reviewedThrough": null,
+      "reviews": []
+    },
+    {
+      "id": "scarypilot/pstack",
+      "source": "scarypilot",
+      "plugin": "pstack",
+      "path": "external_plugins/pstack",
+      "reviewedThrough": "ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+      "reviews": [
+        {
+          "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
+          "disposition": "ported",
+          "reason": "Ported the typed artifact validation as the deterministic CLI only: skills/pstack-schema-validate scripts (validate.mjs refactor plus shared artifact-rules.mjs and types). Copilot extension dist, extension tests, CI workflow, and native pstack_validate_artifact wiring are excluded by the no-host-extensions boundary.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/pstack-extension.yml",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/extensions/pstack/bundle-manifest.json",
+            "external_plugins/pstack/extensions/pstack/dist/extension.mjs",
+            "external_plugins/pstack/extensions/pstack/package-lock.json",
+            "external_plugins/pstack/extensions/pstack/package.json",
+            "external_plugins/pstack/extensions/pstack/src/register.ts",
+            "external_plugins/pstack/extensions/pstack/src/tools/validate-artifact.ts",
+            "external_plugins/pstack/extensions/pstack/tests/artifact-fixtures.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/artifact-validator.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/extension.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/handoff-invalid.json",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/handoff-valid.json",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/plan-basic-valid.md",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/plan-invalid.md",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/plan-verified-stack-valid.md",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/receipt-invalid.json",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/receipt-valid.json",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/snapshot-invalid.json",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/snapshot-valid.json",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/pstack-schema-validate/SKILL.md",
+            "external_plugins/pstack/skills/pstack-schema-validate/scripts/artifact-rules.d.mts",
+            "external_plugins/pstack/skills/pstack-schema-validate/scripts/artifact-rules.mjs",
+            "external_plugins/pstack/skills/pstack-schema-validate/scripts/validate.mjs",
+            "external_plugins/pstack/upstream-sync.json",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/pstack-schema-validate/scripts/validate.mjs",
+            "plugins/pstack/skills/pstack-schema-validate/scripts/artifact-rules.mjs",
+            "plugins/pstack/skills/pstack-schema-validate/scripts/artifact-rules.d.mts",
+            "plugins/pstack/skills/pstack-schema-validate/SKILL.md"
+          ],
+          "evidence": [
+            "Diff of external_plugins/pstack at this commit reviewed against the CLI.",
+            "bun test tests/pstack.test.mjs exercises the receipt CLI contract unchanged."
+          ]
+        },
+        {
+          "commit": "1e3df79c1a1b6e87b9651e7d4baf38130e588f24",
+          "disposition": "excluded",
+          "reason": "Opt-in pinned inputs live in the Copilot-native run_dynamic_workflow pstack-swarm tool, workspace hashing, and Copilot workflow-inspect plumbing, none of which exist in Codex. The host-neutral evidence rules it tightens (SHA/method records, respawn once, gaps) are already in the ported swarm skill.",
+          "paths": [
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/extensions/pstack/bundle-manifest.json",
+            "external_plugins/pstack/extensions/pstack/dist/extension.mjs",
+            "external_plugins/pstack/extensions/pstack/package-lock.json",
+            "external_plugins/pstack/extensions/pstack/package.json",
+            "external_plugins/pstack/extensions/pstack/src/register.ts",
+            "external_plugins/pstack/extensions/pstack/src/tools/validate-artifact.ts",
+            "external_plugins/pstack/extensions/pstack/src/workflows/index.ts",
+            "external_plugins/pstack/extensions/pstack/src/workflows/swarm.ts",
+            "external_plugins/pstack/extensions/pstack/src/workspace-reader.ts",
+            "external_plugins/pstack/extensions/pstack/tests/extension.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/pinned-swarm.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/swarm-workflow.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/workspace-hash.test.ts",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/swarm/SKILL.md",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Full diff of skills/swarm and extension sources reviewed at this commit.",
+            "Ported plugins/pstack/skills/swarm/SKILL.md already names rerun-once, gap recording, and per-brief SHA/method checks."
+          ]
+        },
+        {
+          "commit": "e35a24f1f17fd2642f215aa04e790411c0d81d66",
+          "disposition": "excluded",
+          "reason": "Ollama System One decision tools; no pstack path changed. ScaryDex's original decide plugin already covers this behavior, and Copilot extension registration is outside the boundary.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths enumerated and reviewed; none touch plugins/pstack content beyond shared tooling that the port does not use."
+          ]
+        },
+        {
+          "commit": "46e27171de6ab1be978e81fde743ad8a6f05f42b",
+          "disposition": "excluded",
+          "reason": "Native screen-record lifecycle extension tools; no pstack path changed. ScaryDex's screen-record plugin ships deterministic FFmpeg helpers instead of host extensions.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/screen-record-ci.yml",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths enumerated and reviewed; none touch plugins/pstack content beyond shared tooling that the port does not use."
+          ]
+        },
+        {
+          "commit": "693ddc234b6d86df02e7726722dcf75f1a7c4ea0",
+          "disposition": "excluded",
+          "reason": "better-init default code-review output change; no pstack path changed and the shared files (README, bundle checker) do not alter the pstack port.",
+          "paths": [
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths enumerated and reviewed; none touch plugins/pstack content beyond shared tooling that the port does not use."
+          ]
+        },
+        {
+          "commit": "ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+          "disposition": "ported",
+          "reason": "Integrated the pstack 0.15.13 skill content as the Codex-native port: new skills benchmark-checklist, correct, poteto-help (ScaryDex-adapted), and principle-explain-the-number, plus the upstream skill, playbook, and checklist-script semantics merged into the existing port. Copilot extension, dist bundle, native workflow tools, hosted agent registrations, Cursor docs/guide pages, and marketplace metadata are excluded by the portable capability boundary.",
+          "paths": [
+            "README.md",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/agents/poteto-agent.agent.md",
+            "external_plugins/pstack/docs/guide/01-setup.md",
+            "external_plugins/pstack/docs/guide/02-poteto-mode.md",
+            "external_plugins/pstack/docs/guide/03-understand.md",
+            "external_plugins/pstack/docs/guide/04-design.md",
+            "external_plugins/pstack/docs/guide/05-build-and-clean.md",
+            "external_plugins/pstack/docs/guide/06-verify-and-ship.md",
+            "external_plugins/pstack/docs/guide/07-overnight.md",
+            "external_plugins/pstack/docs/guide/08-principles.md",
+            "external_plugins/pstack/docs/guide/09-make-it-yours.md",
+            "external_plugins/pstack/docs/guide/10-recipes-and-pitfalls.md",
+            "external_plugins/pstack/docs/guide/README.md",
+            "external_plugins/pstack/extensions/pstack/bundle-manifest.json",
+            "external_plugins/pstack/extensions/pstack/dist/extension.mjs",
+            "external_plugins/pstack/extensions/pstack/package-lock.json",
+            "external_plugins/pstack/extensions/pstack/package.json",
+            "external_plugins/pstack/extensions/pstack/tests/plan-validator.test.ts",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/architect/SKILL.md",
+            "external_plugins/pstack/skills/architect/references/design-red-flags.md",
+            "external_plugins/pstack/skills/arena/SKILL.md",
+            "external_plugins/pstack/skills/benchmark-checklist/SKILL.md",
+            "external_plugins/pstack/skills/correct/SKILL.md",
+            "external_plugins/pstack/skills/how/SKILL.md",
+            "external_plugins/pstack/skills/interrogate/SKILL.md",
+            "external_plugins/pstack/skills/poteto-help/SKILL.md",
+            "external_plugins/pstack/skills/poteto-help/references/prompting.md",
+            "external_plugins/pstack/skills/poteto-help/references/recipes.md",
+            "external_plugins/pstack/skills/poteto-mode/SKILL.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/autopilot-stack.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/babysit.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/hillclimb.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/perf-issue.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/shipping.md",
+            "external_plugins/pstack/skills/poteto-mode/scripts/plan-rules.mjs",
+            "external_plugins/pstack/skills/principle-explain-the-number/SKILL.md",
+            "external_plugins/pstack/skills/reflect/SKILL.md",
+            "external_plugins/pstack/skills/setup-pstack/SKILL.md",
+            "external_plugins/pstack/skills/show-me-your-work/SKILL.md",
+            "external_plugins/pstack/skills/swarm/SKILL.md",
+            "external_plugins/pstack/skills/typescript-best-practices/references/patterns.md",
+            "external_plugins/pstack/skills/why/SKILL.md",
+            "external_plugins/pstack/tools/pstack-plan.test.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/README.md",
+            "plugins/pstack/references/codex-runtime.md",
+            "plugins/pstack/skills/architect/SKILL.md",
+            "plugins/pstack/skills/architect/references/design-red-flags.md",
+            "plugins/pstack/skills/arena/SKILL.md",
+            "plugins/pstack/skills/benchmark-checklist/SKILL.md",
+            "plugins/pstack/skills/correct/SKILL.md",
+            "plugins/pstack/skills/interrogate/SKILL.md",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/poteto-help/references/prompting.md",
+            "plugins/pstack/skills/poteto-help/references/recipes.md",
+            "plugins/pstack/skills/poteto-mode/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/autopilot-stack.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/babysit.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/hillclimb.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/perf-issue.md",
+            "plugins/pstack/skills/poteto-mode/scripts/plan-rules.mjs",
+            "plugins/pstack/skills/principle-explain-the-number/SKILL.md",
+            "plugins/pstack/skills/pstack-schema-validate/SKILL.md",
+            "plugins/pstack/skills/pstack-schema-validate/scripts/artifact-rules.d.mts",
+            "plugins/pstack/skills/pstack-schema-validate/scripts/artifact-rules.mjs",
+            "plugins/pstack/skills/pstack-schema-validate/scripts/validate.mjs",
+            "plugins/pstack/skills/reflect/SKILL.md",
+            "plugins/pstack/skills/setup-pstack/SKILL.md",
+            "plugins/pstack/skills/show-me-your-work/SKILL.md",
+            "plugins/pstack/skills/technical-writing/SKILL.md",
+            "plugins/pstack/skills/typescript-best-practices/references/patterns.md"
+          ],
+          "evidence": [
+            "cursor b0b9c7a..HEAD three-way content audit per skill file against the local port.",
+            "bun run check, bun run typecheck, and bun test pass on the merged tree."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cursor/pstack",
+      "source": "cursor",
+      "plugin": "pstack",
+      "path": "pstack",
+      "reviewedThrough": "74e5eba6ccc0b364180aa8ea13773a1237c6d14b",
+      "reviews": [
+        {
+          "commit": "12d587dfb20741cafc376c42c696c5f6e2a64487",
+          "disposition": "ported",
+          "reason": "Model-rule reading unified per role line with no-override fallbacks, architect red-flag sections added, audit-trail run semantics, retired-role cleanup, and technical-writing citation removal, merged into the Codex-adapted port wording. Hardcoded vendor slugs stay excluded; the port resolves to omit-model defaults via pstack-models.md.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/skills/architect/SKILL.md",
+            "pstack/skills/arena/SKILL.md",
+            "pstack/skills/how/SKILL.md",
+            "pstack/skills/interrogate/SKILL.md",
+            "pstack/skills/poteto-mode/SKILL.md",
+            "pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "pstack/skills/poteto-mode/playbooks/babysit.md",
+            "pstack/skills/poteto-mode/playbooks/multi-phase-plan.md",
+            "pstack/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "pstack/skills/poteto-mode/scripts/check-plan.mjs",
+            "pstack/skills/reflect/SKILL.md",
+            "pstack/skills/setup-pstack/SKILL.md",
+            "pstack/skills/show-me-your-work/SKILL.md",
+            "pstack/skills/swarm/SKILL.md",
+            "pstack/skills/why/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/architect/SKILL.md",
+            "plugins/pstack/skills/architect/references/design-red-flags.md",
+            "plugins/pstack/skills/arena/SKILL.md",
+            "plugins/pstack/skills/interrogate/SKILL.md",
+            "plugins/pstack/skills/reflect/SKILL.md",
+            "plugins/pstack/skills/setup-pstack/SKILL.md",
+            "plugins/pstack/skills/show-me-your-work/SKILL.md",
+            "plugins/pstack/skills/technical-writing/SKILL.md",
+            "plugins/pstack/skills/typescript-best-practices/references/patterns.md",
+            "plugins/pstack/references/codex-runtime.md"
+          ],
+          "evidence": [
+            "git diff b0b9c7a..HEAD per pstack skill file reviewed in the three-way merge.",
+            "bun run check and bun test pass after the merge."
+          ]
+        },
+        {
+          "commit": "c56802fa6ebf04268786cae89ed5f7abc3191740",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            "third_party/finance/.cursor-plugin/plugin.json",
+            "third_party/finance/CHANGELOG.md",
+            "third_party/finance/assets/logo.svg"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "727d5a16cdff907f6bdbb2880b466b7ec913eb9e",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            "third_party/finance/CHANGELOG.md",
+            "third_party/finance/assets/logo.svg"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "3df1a1de560f7c0b1f193a95918f89932a57fe23",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            "third_party/finance/CHANGELOG.md",
+            "third_party/finance/assets/logo.svg"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "bed9a6b555e9236231936285db125cd07cc80a3c",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            "third_party/finance/CHANGELOG.md",
+            "third_party/finance/assets/logo.svg"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "57fc467a229cf2853329f19c9e6a9fd83ddc2ea2",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            "third_party/finance/.cursor-plugin/plugin.json",
+            "third_party/finance/CHANGELOG.md",
+            "third_party/finance/assets/logo.svg"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "e7d846f78de991c725cb2f22ee622bb20bf18755",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/shopify-store/.cursor-plugin/plugin.json",
+            "third_party/shopify-store/CHANGELOG.md",
+            "third_party/shopify-store/LICENSE",
+            "third_party/shopify-store/README.md",
+            "third_party/shopify-store/assets/logo.png",
+            "third_party/shopify-store/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "159f81a1c189aee179e111829e9ebba208bfa0d2",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/shopify-store/.cursor-plugin/plugin.json",
+            "third_party/shopify-store/CHANGELOG.md",
+            "third_party/shopify-store/LICENSE",
+            "third_party/shopify-store/README.md",
+            "third_party/shopify-store/assets/logo.png",
+            "third_party/shopify-store/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "c1e5f4acb5f9a9048cc6bf9ea482d90c5525b85d",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            "README.md",
+            "third_party/shopify-store/.cursor-plugin/plugin.json",
+            "third_party/shopify-store/CHANGELOG.md",
+            "third_party/shopify-store/README.md",
+            "third_party/shopify-store/rules/shopify.mdc"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "fadd23794c0075468eb8964b0fd93e06e09486ad",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            "README.md",
+            "third_party/shopify-store/.cursor-plugin/plugin.json",
+            "third_party/shopify-store/CHANGELOG.md",
+            "third_party/shopify-store/README.md",
+            "third_party/shopify-store/rules/shopify.mdc"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "aec5b5cec99cec55b85f7dec4e64d3ed4f59a7ce",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/tinyfish/.cursor-plugin/plugin.json",
+            "third_party/tinyfish/CHANGELOG.md",
+            "third_party/tinyfish/LICENSE",
+            "third_party/tinyfish/README.md",
+            "third_party/tinyfish/assets/logo.png",
+            "third_party/tinyfish/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "78f46dacbafc71fd7d937bfc2c26da914f1bc09b",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/tinyfish/.cursor-plugin/plugin.json",
+            "third_party/tinyfish/CHANGELOG.md",
+            "third_party/tinyfish/LICENSE",
+            "third_party/tinyfish/README.md",
+            "third_party/tinyfish/assets/logo.png",
+            "third_party/tinyfish/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "1bde303626ff4561ceed65027354a4f8c06c16ca",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/plaud/.cursor-plugin/plugin.json",
+            "third_party/plaud/CHANGELOG.md",
+            "third_party/plaud/LICENSE",
+            "third_party/plaud/README.md",
+            "third_party/plaud/assets/logo.png",
+            "third_party/plaud/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "4b6fec2c2383a78ddc34910df520340e259c3e74",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/trello/.cursor-plugin/plugin.json",
+            "third_party/trello/CHANGELOG.md",
+            "third_party/trello/LICENSE",
+            "third_party/trello/README.md",
+            "third_party/trello/assets/logo.png",
+            "third_party/trello/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "23c914b288705e177f0c64bb0f005f5f94828d7f",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            "third_party/trello/CHANGELOG.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "2dac565540e4ed4ee915212f36f7e9e4d2c62b71",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/beehiiv/.cursor-plugin/plugin.json",
+            "third_party/beehiiv/CHANGELOG.md",
+            "third_party/beehiiv/LICENSE",
+            "third_party/beehiiv/README.md",
+            "third_party/beehiiv/assets/logo.png",
+            "third_party/beehiiv/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "1f510b89602c0ba8b12d56b3a14a82a35d9d0292",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/beehiiv/.cursor-plugin/plugin.json",
+            "third_party/beehiiv/CHANGELOG.md",
+            "third_party/beehiiv/LICENSE",
+            "third_party/beehiiv/README.md",
+            "third_party/beehiiv/assets/logo.png",
+            "third_party/beehiiv/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "5bfb145f473525dd2729c33059536f589be15a7e",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/beehiiv/.cursor-plugin/plugin.json",
+            "third_party/beehiiv/CHANGELOG.md",
+            "third_party/beehiiv/LICENSE",
+            "third_party/beehiiv/README.md",
+            "third_party/beehiiv/assets/logo.png",
+            "third_party/beehiiv/mcp.json",
+            "third_party/trello/.cursor-plugin/plugin.json",
+            "third_party/trello/CHANGELOG.md",
+            "third_party/trello/LICENSE",
+            "third_party/trello/README.md",
+            "third_party/trello/assets/logo.png",
+            "third_party/trello/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "5a9134c186b8e640949e4fb3d021361972725b67",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/trello/.cursor-plugin/plugin.json",
+            "third_party/trello/CHANGELOG.md",
+            "third_party/trello/LICENSE",
+            "third_party/trello/README.md",
+            "third_party/trello/assets/logo.png",
+            "third_party/trello/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        },
+        {
+          "commit": "74e5eba6ccc0b364180aa8ea13773a1237c6d14b",
+          "disposition": "excluded",
+          "reason": "Cursor marketplace third-party plugin or marketplace-metadata change outside pstack/; reviewed as conservatively shared and confirmed to touch no pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/beehiiv/.cursor-plugin/plugin.json",
+            "third_party/beehiiv/CHANGELOG.md",
+            "third_party/beehiiv/LICENSE",
+            "third_party/beehiiv/README.md",
+            "third_party/beehiiv/assets/logo.png",
+            "third_party/beehiiv/mcp.json",
+            "third_party/plaud/.cursor-plugin/plugin.json",
+            "third_party/plaud/CHANGELOG.md",
+            "third_party/plaud/LICENSE",
+            "third_party/plaud/README.md",
+            "third_party/plaud/assets/logo.png",
+            "third_party/plaud/mcp.json",
+            "third_party/trello/.cursor-plugin/plugin.json",
+            "third_party/trello/CHANGELOG.md",
+            "third_party/trello/LICENSE",
+            "third_party/trello/README.md",
+            "third_party/trello/assets/logo.png",
+            "third_party/trello/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Candidate paths listed by git name-status; all entries live outside pstack/ (third_party/, marketplace manifests, assets)."
+          ]
+        }
+      ]
+    }
   ]
 }

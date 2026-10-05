@@ -22,6 +22,7 @@ Remaining triggers:
 - Docs, RFCs, readmes, PR descriptions, or commit messages → the **technical-writing** skill (`/technical-writing`).
 - Before commit → the **deslop** skill over code. Apply **unslop** to prose and run the repository's existing formatter or linter.
 - Before review → the **no-comments** skill (`/no-comments`).
+- Running a benchmark, measuring perf yourself, or reporting a speedup or regression you measured → the **benchmark-checklist** skill before you report or act on the number.
 - Shipping UI / IDE / CLI → the project's verification skill or the available browser, computer-use, terminal, or shell tools. For bug fixes, reproduce first on the same surface yourself; hand to the user only under the narrow Bug fix step 1 exception.
 - Host-dependent workflow → inspect the tools exposed in this session and available executables. Read the Codex runtime mapping; do not infer capabilities from another host.
 - Any PR-status request → the **Babysit** playbook (`playbooks/babysit.md`). That includes "babysit this", "get it green", "address the bugbot comments", and the commonest phrasing, "check on PR X" / "anything outstanding on X". Never trigger it merely because a PR was opened. Declare its mode before polling; the playbook's step 1 owns the request-to-mode mapping.
@@ -62,6 +63,7 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
 - **Fix Root Causes** (**principle-fix-root-causes**). Debugging. Trace each symptom to its root cause, reproduce first, ask why until you reach it.
 - **Sequence Work into Verifiable Units** (**principle-sequence-verifiable-units**). Multi-step work (sweeps, migrations, runs of similar edits) and how you stack commits and PRs. Break work into small units that each end in a check, verify each before the next, and order delivery so the sequence proves itself.
 - **Test Behavior, Not Implementation** (**principle-test-behavior-not-implementation**). Writing, changing, reviewing, or keeping a test in any language. Exercise a caller-visible contract, assert an independently specified outcome, and check that a plausible defect makes the test fail.
+- **Explain the Number** (**principle-explain-the-number**). Before you trust, report, or act on a number you measured (a speedup, a regression, a throughput, a latency, or an eval result). Find what limits it, and rule out that it measured something other than the work you think.
 
 **Delegation**
 
@@ -87,6 +89,15 @@ when it helps. Keep critical-path work local, give writers disjoint scope,
 inspect results yourself, and close completed workers. Omit model overrides
 unless the user chose an available model. Independent same-model reviews are
 valid; report the lack of model diversity instead of fabricating it.
+
+**Fresh subagents by default.** Give new work to a fresh subagent with consolidated
+scope: the original brief, every later directive, and the prior worker's report and
+branch. This holds for a fix round, a follow-up, a retry, and the next queue item.
+Resume or message an existing subagent only when the new work strictly needs state
+that lives inside it and is costly to move: its local checkout, its uncommitted
+changes, or a process it still runs, such as a dev server or a babysit watcher. A
+stop or hold order to a running agent is not reuse. A role such as a PR owner
+outlives its agent; once that agent returns, a fresh agent takes the role's next round.
 
 ## Writing the reply
 
