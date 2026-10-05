@@ -23,7 +23,7 @@ No agent or inference ran. The schedule remains enabled; missing credentials
 fail explicitly rather than silently skipping reviews.
 
 From this checkout, run the interactive helper with Node.js 22.18+ and an
-authenticated GitHub CLI account that can manage this repository's Actions
+authenticated active GitHub CLI account that can manage this repository's Actions
 secrets:
 
 ```sh

@@ -60,6 +60,19 @@ test("check succeeds with configured secrets without requiring a terminal", () =
   assert.deepEqual(f.calls.map(call => call.args[1]), ["status", "list"]);
 });
 
+test("valid active account is not blocked by expired inactive credentials", () => {
+  const f = fixture([inference, publication]);
+  setupUpstreamSecrets({
+    ...f.options,
+    check: true,
+    gh: (args, stdio) => {
+      if (args[0] === "auth" && !args.includes("--active")) throw new Error("Inactive account token has expired");
+      return f.gh(args, stdio);
+    },
+  });
+  assert.deepEqual(f.calls[0].args, ["auth", "status", "--active", "--hostname", "github.com"]);
+});
+
 test("setup rejects noninteractive secret input before mutation", () => {
   const f = fixture();
   assert.throws(() => setupUpstreamSecrets({ ...f.options, interactive: false }), /interactive terminal/);
@@ -112,7 +125,7 @@ test("actual CLI checks metadata and rejects piped setup without executing secre
     writeFileSync(path.join(directory, "gh"), `#!/bin/sh
 printf '%s\\n' "$*" >> "$GH_TEST_LOG"
 case "$1 $2" in
-  "auth status") exit 0 ;;
+  "auth status") test "$*" = "auth status --active --hostname github.com" ;;
   "secret list") printf '[]\\n' ;;
   *) exit 99 ;;
 esac
@@ -126,7 +139,7 @@ esac
       assert.match(result.stderr, args.length ? /Missing Actions secrets/ : /interactive terminal/);
       assert.doesNotMatch(result.stdout + result.stderr, /not-a-token/);
       assert.equal(readFileSync(log, "utf8"), [
-        "auth status --hostname github.com",
+        "auth status --active --hostname github.com",
         `secret list --repo ${repository} --app actions --json name`,
         "",
       ].join("\n"));

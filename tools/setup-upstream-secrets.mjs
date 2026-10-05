@@ -38,7 +38,7 @@ export function setupUpstreamSecrets({
   log = console.log,
 } = {}) {
   log(`Repository: ${REPOSITORY}. The weekly schedule remains enabled.`);
-  gh(["auth", "status", "--hostname", "github.com"]);
+  gh(["auth", "status", "--active", "--hostname", "github.com"]);
   const existing = secretNames(gh);
   const missing = SECRETS.filter(secret => !existing.has(secret.name));
   for (const secret of SECRETS) log(`${secret.name}: ${existing.has(secret.name) ? "present (unchanged)" : "missing"}`);
