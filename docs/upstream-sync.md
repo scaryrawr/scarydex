@@ -15,6 +15,61 @@ settings were changed by this setup.
 | `COPILOT_GITHUB_TOKEN` | Fine-grained PAT owned by the user, account permission **Copilot Requests Read**. The owner needs Copilot entitlement and access to `gpt-5.3-codex`. No repository write permissions. |
 | `UPSTREAM_SYNC_PR_TOKEN` | Separate fine-grained PAT scoped only to `scaryrawr/scarydex`, **Contents Read and write** and **Pull requests Read and write**. Metadata read is implicit. No Actions, Issues, administration, or approval permission. |
 
+### Configure the missing secrets
+
+The [first scheduled run](https://github.com/scaryrawr/scarydex/actions/runs/37346173445)
+on **2026-10-05** stopped in pre-activation because both secrets were absent.
+No agent or inference ran. The schedule remains enabled; missing credentials
+fail explicitly rather than silently skipping reviews.
+
+From this checkout, run the interactive helper with Node.js 22.18+ and an
+authenticated GitHub CLI account that can manage this repository's Actions
+secrets:
+
+```sh
+node tools/setup-upstream-secrets.mjs
+```
+
+Create **two separate fine-grained PATs** in
+[GitHub token settings](https://github.com/settings/personal-access-tokens/new).
+Choose an explicit expiration and arrange to replace each token before it
+expires. For the inference PAT, add the **account** permission **Copilot Requests:
+Read**; do not grant repository write access. For the publication PAT, choose
+resource owner `scaryrawr`, **Only select repositories: scarydex**, and the two
+repository permissions listed above. Leave other write permissions disabled.
+Never reuse the publication PAT for inference.
+
+Paste each token only into the helper's hidden `gh secret set` prompt, not
+chat, a shell command, a file, or a command-line argument. GitHub CLI encrypts
+the value before uploading it as a repository **Actions** secret. The helper
+never receives token values, skips existing secret names, and can resume after
+a partial setup. It does not create PATs, change workflow permissions, or
+dispatch a run. `GH_PROMPT_DISABLED` must be unset for interactive setup.
+
+Check configured names without changing GitHub state:
+
+```sh
+node tools/setup-upstream-secrets.mjs --check
+```
+
+This checks presence only, not token validity or inference entitlement.
+For expired or incorrectly scoped tokens, replace them explicitly with
+`gh secret set COPILOT_GITHUB_TOKEN --repo scaryrawr/scarydex --app actions`
+or the corresponding `UPSTREAM_SYNC_PR_TOKEN` command; both use hidden prompts.
+
+After both secrets are configured, wait for the next scheduled run or
+deliberately rerun the failed run yourself:
+
+```sh
+gh run rerun 37346173445 --repo scaryrawr/scarydex
+gh run watch 37346173445 --repo scaryrawr/scarydex --exit-status
+```
+
+A rerun can incur inference charges and create a draft PR. These commands are
+not executed by the setup helper.
+
+### Credential isolation
+
 The Codex runtime uses GitHub-hosted inference through
 `engine.model: copilot/gpt-5.3-codex`. A personal repository cannot rely on the
 organization-only `copilot-requests: write` billing path. Secret presence is
@@ -223,5 +278,6 @@ the corresponding [`v0.88.7` documentation](https://github.com/github/gh-aw/tree
 - [PR safe outputs](https://github.github.com/gh-aw/reference/safe-outputs-pull-requests/) defines draft enforcement, allowed/protected files, transport, and explicit tokens.
 - [Triggering CI](https://github.github.com/gh-aw/reference/triggering-ci/) explains PAT-triggered CI and disabling extra empty commits.
 - [Custom steps/jobs](https://github.github.com/gh-aw/reference/steps-jobs/) defines pre-activation, pre-agent, and safe-output pre-step ordering.
+- [Fine-grained PAT setup](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) and [`gh secret set`](https://cli.github.com/manual/gh_secret_set) describe token creation and encrypted secret uploads; rechecked **2026-10-05**.
 - [Codex plugins](https://developers.openai.com/plugins/build/plugins) recommends portable `plugin.json` while retaining `.codex-plugin/plugin.json` compatibility.
 - [App plugins](https://learn.chatgpt.com/docs/plugins?surface=app) and [Codex skills](https://developers.openai.com/codex/skills) document plugin/client limits and `.agents/skills` discovery.
