@@ -33,7 +33,7 @@ Skip Phase A only when the work is genuinely greenfield with no surrounding syst
 
 Run the **arena** skill with the design-sketch task and the Phase A grounding artifacts. Pass `references/runner-prompt.md` as each runner's prompt. Each candidate produces a design package shaped per `references/rationale-template.md`.
 
-Take the runners from the `architect runners` line in `pstack-models.md` in Codex home, in place of the arena runners line. A missing rule, a missing line, `auto`, and `inherit-parent` all mean: spawn three runners and omit `model`. Alias entries run on the parent model. If the subagent tool rejects a concrete configured id, run that seat with no model override and say so.
+Take the runners from the `architect runners` line in `pstack-models.md` in Codex home, in place of the arena runners line. The line sets the count: one runner per entry, so `auto, auto` is two seats, each omitting `model` on the parent model. Only when the rule or the line is absent does the default apply: spawn three runners and omit `model`. If the subagent tool rejects a concrete configured id, run that seat with no model override and say so.
 
 Design it twice. Require at least two structurally distinct candidates before synthesis, even when the first looks sufficient. This is the **exhaust-the-design-space** principle skill made concrete. Whole-shape alternatives, not point fixes inside one shape.
 

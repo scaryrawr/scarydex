@@ -35,7 +35,7 @@ Check the state that changes the answer, and mention it only when it does:
 
 Installing changes nothing until the user invokes a skill. The [README](../../README.md) has the details. Offer to word their first prompt with them, per [`references/prompting.md`](references/prompting.md).
 
-If cost is the worry, say where the tokens go and how to spend fewer. pstack spends extra tokens on subagents and review panels. A role set to `auto` or `inherit-parent` runs on the chat's model and saves tokens. A shorter panel list runs fewer subagents, one for each entry. Save `/poteto-mode` for work that needs rigor.
+If cost is the worry, say where the tokens go and how to spend fewer. pstack spends extra tokens on subagents and review panels. A shorter panel list runs fewer subagents, one per entry, which is what directly reduces calls. Setting a role to `auto` or `inherit-parent` does not cut calls; it changes which model runs the role, so cost follows the chat's model, cheaper when the chat is on a cheaper model and no cheaper when it is not. Save `/poteto-mode` for work that needs rigor.
 
 pstack ships as Codex-native skills in the Agent Skills format. Delegation, model overrides, history access, and computer use are capability-dependent; see [Codex runtime mapping](../../references/codex-runtime.md).
 
@@ -102,7 +102,9 @@ Not in pstack:
 
 Playbooks are step lists inside `/poteto-mode`, not skills, so they have no slash command. Inside `/poteto-mode`, describing the task picks one, and these phrases name one directly:
 
-- "babysit this pr" or "check on pr 123" runs Babysit. It drives the PR to merge-ready and stops there. It doesn't merge unless the user asks to merge, land, or ship.
+- "babysit this pr" runs Babysit in `drive` mode: the loop runs the PR to merge-ready and stops there. It doesn't merge.
+- "check on pr 123" runs Babysit in `check` mode: one status pass and a report, no loop and no fixes. "address the bugbot comments" runs `threads-only`. Babysit never merges; "land the stack" or "merge it" routes to Shipping.
+The playbook's step 1 owns the request-to-mode mapping.
 - "land the stack" runs Shipping.
 - "take over this branch" runs Session pickup.
 - "pause safely" runs Pause safely.
