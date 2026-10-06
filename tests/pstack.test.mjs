@@ -47,6 +47,15 @@ test("the documented multi-PR skeleton passes its own verified-stack contract", 
   const broken = skeleton[1].replaceAll("Parallel Codex workers at the PR head", "Workers will verify sometime");
   assert.ok(validatePlanText(broken, "verified-stack").findings.some((finding) => finding.rule === "live-lanes"));
 });
+test("program cadence accepts hourly and 30-minute only on the audit tick or status message line", async () => {
+  const guide = await readFile(new URL("../plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md", import.meta.url), "utf8");
+  const skeleton = guide.match(/```markdown\n([\s\S]*?)\n```/)[1];
+  const cadence = (text) => validatePlanText(text, "verified-stack").findings.some((finding) => finding.rule === "audit-cadence");
+  assert.equal(cadence(skeleton.replace("Arm the hourly audit tick", "Arm the 30-minute audit tick")), false);
+  assert.equal(cadence(skeleton.replace("Arm the hourly audit tick", "Arm the hourglass audit tick")), true);
+  const stray = skeleton.replace("Arm the hourly audit tick", "Arm the audit tick").replace("- [ ] Use this tick prompt, verbatim.", "- [ ] Review the hourly metrics dashboard.\n- [ ] Use this tick prompt, verbatim.");
+  assert.equal(cadence(stray), true);
+});
 test("bundled orchestration runs under Node without dependencies or duplicate execution", async () => {
   const cwd = await root(), helper = path.join(cwd, "orch.mjs"), store = path.join(cwd, "store");
   await writeFile(helper, await readFile(new URL("../plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs", import.meta.url)));
