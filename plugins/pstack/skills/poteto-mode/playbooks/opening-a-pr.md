@@ -25,9 +25,11 @@ After these sections, attach videos or screenshots when they prove a claim. Do
 not use `## Summary` or `## Test plan` boilerplate. A commit body does not
 restate its subject.
 
-**Size and stacks.** Prefer five narrow PRs to one large PR. Stack follow-ups with Graphite (`gt`), and keep the ordered stack visible to reviewers. Branch from main only for independent work. Rebase on `main` before substantial stack work.
+**Size and stacks.** Prefer five narrow PRs to one large PR. Keep dependent changes in an ordered base-branch chain. Branch from main only for independent work. Use the repository's Graphite workflow when it tracks stacks; otherwise target each child PR at its parent branch. Rebase on `main` before substantial stack work.
 
-**Readiness.** Open every PR ready, never as a draft. When the run provides a built-in PR creation tool, create, edit, retarget, and mark ready through it; its own instructions say how, and a CLI-made PR misses what the tool tracks. Set `draft: false` on creation calls. If a PR still opens as a draft, run the host's ready command, such as `gh pr ready <number>`. Run `gh pr view <number>` before you refer to PR status.
+**Built-in PR tools.** When the host provides a PR creation or update tool for the requested operation, use it instead of the forge CLI. Follow its scope and failure instructions. Do not use a tool that cannot target the intended repository, branch, base, or PR. Unsupported retarget or readiness operations still use the available forge workflow. Without a matching built-in tool, use GitHub CLI (`gh`) or the repository's configured forge.
+
+**Readiness.** Unless the user or repository workflow requires a draft, open every PR ready. Set `draft: false` on PR creation calls. If it opens as a draft unexpectedly, use a supported ready operation, such as `gh pr ready <number>`. Do not change an existing intentional draft without approval. Read live PR state through the available tool before you refer to its status.
 
 **Babysit.** Opening a PR does not start a babysit. Post the URL and keep building. Finish the phase or stack first. Run a separate babysit pass only when the user asks for one after the whole stack exists. A babysit for each new PR stalls the build and spends checks on commits that later waves restart. Push back when feedback drifts from intent.
 

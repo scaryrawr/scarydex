@@ -168,7 +168,7 @@
         {
           "commit": "ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
           "disposition": "ported",
-          "reason": "Integrated the pstack 0.15.13 skill content as the Codex-native port: new skills benchmark-checklist, correct, poteto-help (ScaryDex-adapted), and principle-explain-the-number, plus the upstream skill, playbook, and checklist-script semantics merged into the existing port. Copilot extension, dist bundle, native workflow tools, hosted agent registrations, Cursor docs/guide pages, and marketplace metadata are excluded by the portable capability boundary.",
+          "reason": "Integrated the pstack 0.15.13 skill content as the Codex-native port: new skills benchmark-checklist, correct, poteto-help (ScaryDex-adapted), and principle-explain-the-number, plus the upstream skill, playbook, and checklist-script semantics merged into the existing port. Copilot extension, dist bundle, native workflow tools, hosted agent registrations, Cursor docs/guide pages, and marketplace metadata are excluded by the portable capability boundary. Post-review follow-up restored the upstream safety semantics verbatim in the local port: base-freshness precedence in playbooks/shipping.md, platform-portable load diagnostics with no-stop-without-approval in benchmark-checklist, its single-run ballpark report exception, commit-authorization and scope guards in correct, and host-tool scope per operation with forge fallback in playbooks/opening-a-pr.md.",
           "paths": [
             "README.md",
             "external_plugins/pstack/NOTICE.md",
