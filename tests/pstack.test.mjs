@@ -56,6 +56,18 @@ test("program cadence accepts hourly and 30-minute only on the audit tick or sta
   const stray = skeleton.replace("Arm the hourly audit tick", "Arm the audit tick").replace("- [ ] Use this tick prompt, verbatim.", "- [ ] Review the hourly metrics dashboard.\n- [ ] Use this tick prompt, verbatim.");
   assert.equal(cadence(stray), true);
 });
+test("fenced example text cannot satisfy the audit cadence check", async () => {
+  const guide = await readFile(new URL("../plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md", import.meta.url), "utf8");
+  const skeleton = guide.match(/```markdown\n([\s\S]*?)\n```/)[1];
+  const cadence = (text) => validatePlanText(text, "verified-stack").findings.some((finding) => finding.rule === "audit-cadence");
+  const withoutCadence = (text) => text.replace("Arm the hourly audit tick", "Arm the audit tick");
+  const tilde = withoutCadence(skeleton).replace("- [ ] Use this tick prompt, verbatim.", "~~~text\nhourly audit tick\n~~~\n- [ ] Use this tick prompt, verbatim.");
+  assert.equal(cadence(tilde), true);
+  const nested = withoutCadence(skeleton).replace("- [ ] Use this tick prompt, verbatim.", "```text\n~~~\nhourly audit tick\n~~~\n```\n- [ ] Use this tick prompt, verbatim.");
+  assert.equal(cadence(nested), true);
+  const outside = skeleton.replace("- [ ] Use this tick prompt, verbatim.", "~~~text\nexample only\n~~~\n- [ ] Use this tick prompt, verbatim.");
+  assert.equal(cadence(outside), false);
+});
 test("bundled orchestration runs under Node without dependencies or duplicate execution", async () => {
   const cwd = await root(), helper = path.join(cwd, "orch.mjs"), store = path.join(cwd, "store");
   await writeFile(helper, await readFile(new URL("../plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs", import.meta.url)));
