@@ -28,7 +28,7 @@ The N candidates will receive the same prompt, so the prompt is the contract.
 
 1. State the artifact each candidate is producing.
 2. Derive the rubric. State what success looks like for *this* task, then turn it into 3-6 concrete gradeable criteria. Concrete: `Adds a --dry-run flag that skips writes`. Vague: `code is correct`. The rubric is the picker's tool in Phase D; candidates only see the task.
-3. Pick the runners. Read `arena runners` from `pstack-models.md` in Codex home (`$CODEX_HOME`, or `$HOME/.codex` when unset) when present. Otherwise spawn three runners and omit `model`. Spawn more when the arena covers multiple design directions. Same model N times when the work is generation-bound rather than judgment-sensitive.
+3. Pick the runners from the `arena runners` line in `pstack-models.md` in Codex home (`$CODEX_HOME`, or `$HOME/.codex` when unset). The line sets the seat count: one seat runs per entry, and `auto` or `inherit-parent` entries keep their seat and omit `model`, running on the parent model. When the rule or the line is absent, the default applies: spawn three seats and omit `model`. If the subagent tool rejects a concrete configured id, run that seat with no model override and say so. Spawn more when the arena covers multiple design directions. Same model N times when the work is generation-bound rather than judgment-sensitive.
 4. Assign output paths. Each candidate writes to its own location, preferably a git worktree or a candidate-specific directory under the session artifact directory. N candidates writing to the same path is shared mutable state and fails the **separate-before-serializing-shared-state** principle skill test.
 
 ## Phase B: Fan out
@@ -41,7 +41,7 @@ If a candidate fails to produce output, proceed with N-1 and note the dropout in
 
 ## Phase C: Cross-judge
 
-After all Phase B candidates complete, choose one model from the `arena cross-judge pool` in the Codex home `pstack-models.md` when present. Otherwise omit `model`. Prefer a different model family from the parent's when one is configured. Spawn one general-purpose judge with an explicitly read-only prompt. It sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with the parent's reading in Phase D, not with the candidates themselves. Spawning while candidates are still writing means the judge sees partial or empty outputs and reports them as dropouts.
+After all Phase B candidates complete, choose one entry from the `arena cross-judge pool` line in the Codex home `pstack-models.md`, resolving aliases to no override. A rejected concrete id resolves to no override, reported. Otherwise omit `model`. Prefer a different model family from the parent's when one is configured. Spawn one general-purpose judge with an explicitly read-only prompt. It sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with the parent's reading in Phase D, not with the candidates themselves. Spawning while candidates are still writing means the judge sees partial or empty outputs and reports them as dropouts.
 
 ## Phase D: Pick a base
 

@@ -5,7 +5,7 @@ description: Validate pstack snapshots, verification receipts, durable handoffs,
 
 # Validate pstack contracts
 
-Run the bundled validator rather than inspecting pstack artifacts by eye.
+Run the bundled validator rather than inspecting pstack artifacts by eye. The CLI enforces the same contract rules as the upstream native tools; Codex has no native validator tool and does not need one.
 
 ## Commands
 
@@ -20,4 +20,4 @@ node scripts/validate.mjs plan <plan.md> [basic|verified-stack]
 
 The command exits `0` on success, `1` for contract violations, and `2` for
 invalid invocation or unreadable input. Report every finding with its path or
-line number. Do not reinterpret a failed contract as a warning.
+line number. Malformed JSON is an input error. Do not reinterpret a failed contract as a warning.

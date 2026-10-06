@@ -43,7 +43,7 @@ For each reviewer:
 - `model`: the configured `interrogate reviewers` entry; omit it when unconfigured or set to `auto`
 - Prompt: read-only; do not edit files
 
-If a model slug is rejected as unresolvable when you try to spawn the subagent, check the valid slugs in the subagent tool's error message, pick the closest equivalent (prefer the highest-reasoning tier of the same family), spawn with the valid slug, and open a separate PR to update the configured value or default table. Do not block the review on the slug issue. If the configured value is `inherit-parent` or `auto`, omit `model` instead. Never treat those aliases as broken slugs or enter this fallback for them.
+If the subagent tool rejects a configured entry, run that reviewer with no model override and say so. Prefer a concrete id the host advertises; do not substitute a slug from another host. Then propose correcting the configured value. Do not block the review on the slug issue. `inherit-parent` and `auto` are valid aliases meaning no override; never treat them as broken slugs.
 
 Read `references/reviewer-prompt.md` and fill in the template with:
 1. The stated intent

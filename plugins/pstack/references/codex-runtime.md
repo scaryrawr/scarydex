@@ -30,7 +30,7 @@ work serially and disclose the reduced independence.
 
 `$CODEX_HOME/pstack-models.md` (default `~/.codex/pstack-models.md`) is an optional
 pstack preference file, not an auto-loaded Codex configuration. Read it before
-using role preferences. A role with `auto` or `inherit-parent` omits the override.
+using role preferences. A missing role line, `auto`, and `inherit-parent` all mean no override; the role runs on the inherited parent model. A concrete model id the current host rejects resolves to no override, and the workflow reports the fallback and proposes correcting the stored preference. Never substitute a slug from another host.
 Do not rewrite user-wide Codex settings or claim this file changes normal Codex
 sessions. Panel counts are workflow choices, not invented model identifiers.
 

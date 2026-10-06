@@ -23,7 +23,7 @@ Use the active conversation already in context. When the app’s scoped chat-rea
 
 ### 2. Spawn three reviewers in parallel
 
-One message, three subagent calls with the default Codex subagent. Use configured models when present and omit `model` for `auto`. Each prompt forbids file writes; the parent applies edits.
+One message, three subagent calls with the default Codex subagent. Each reviewer reads its role line in `pstack-models.md`; a missing line, `auto`, and `inherit-parent` all mean omit `model`. A rejected concrete id resolves to no override, reported. Each prompt forbids file writes; the parent applies edits.
 
 | Lens | `model` | Prompt template |
 |---|---|---|
@@ -35,7 +35,7 @@ Pass each template verbatim, substituting the scoped conversation digest where m
 
 ### 3. Synthesize
 
-One subagent call with the default Codex subagent and the configured reflect-judgment model. Omit `model` when unconfigured or set to `auto`. The prompt forbids file writes but allows available integrations for citation checks. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list.
+One subagent call with the default Codex subagent and the model from the `reflect judgment, divergent, synthesizer` role line. Omit `model` when the line is missing or set to `auto` or `inherit-parent`. The prompt forbids file writes but allows available integrations for citation checks. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list.
 
 ### 4. Structural enforcement check
 

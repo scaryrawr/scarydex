@@ -12,7 +12,7 @@ loaded by Codex. Preserve unrelated user configuration.
 
 1. Inspect the current subagent tool schema or an available first-party model
    listing. Do not invent model IDs. When no listing exists, use `auto`.
-2. Read an existing `pstack-models.md` and preserve its valid role choices.
+2. Read an existing `pstack-models.md` and preserve its valid role choices. A role name outside the example shape below is retired; drop it and list each dropped line when you show the proposal.
 3. Show proposed role preferences. Set explicit model IDs only when the user
    chose them and the current host permits them. `auto` and `inherit-parent`
    mean no override. Panel lists determine worker count, not model availability.

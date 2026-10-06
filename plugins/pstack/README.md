@@ -39,4 +39,9 @@ permission to commit, publish, merge, delete state, or schedule recurring work.
 
 See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE). The integrated baseline is
 pstack 0.15.4 via ScaryPilot; the original 0.15.5 source was inspected for
-comparison, not silently claimed as integrated.
+comparison, not silently claimed as integrated. Content is updated through
+ScaryPilot's pstack 0.15.13 sync (ScaryPilot commit
+`ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1`, covering Cursor commits
+`b0b9c7a..77526ff`). Cursor-only extensions, native workflow tools, hosted
+agents, Grok Bot features, and Cursor guide pages stay outside the port; each
+is dispositioned in `upstream-sync.json`.
