@@ -11,8 +11,8 @@
     "plugins/pstack/skills/poteto-mode/scripts/watch-pr/render.ts": "6993a24343a92fb5c4a69948139b6d631585f56c309509fdb3e158169b7af3d1",
     "plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.ts": "77fabcd4fc07c3291512cb508b595920d17eaa7745716443dee35107b59cc307",
     "plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs": "a62a456bc9fe5b544e0d3e21f9b5ea28c33972868ce3a5547499e9184fd91d0d",
-    "tools/build.mjs": "9b8cab2a0e13bbc274e81d063aa98f72158e9350f57f20064a3a5dfa5e397210",
-    "tools/entries/orch.mjs": "700d66816d854335e32a61788bc843a0cbc4adb5558b0dfc7d4b9adbf8ec0bc8",
-    "tools/entries/watch-pr.mjs": "6a9c97cf53e21f46d6e9d1e2cdc75d0a6f057f9232b641f5e3fefedc211ec4c5"
+    "tools/build.mjs": "4d22b224c63978459a43083731a0b54892c94db65ad5dc4fc3036c7e669aab2f",
+    "tools/entries/orch.mjs": "33f1cb546f1d72fae1d219a352c7cf1ac8724a36961ffb874a842bd08314f3d9",
+    "tools/entries/watch-pr.mjs": "ae048a8e82e1f4bfa6e3ab150e930eb74592e47ce08ead3abca6bf5e2df70471"
   }
 }

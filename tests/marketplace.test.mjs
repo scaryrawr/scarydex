@@ -6,35 +6,44 @@ import { afterEach, test } from "node:test";
 import { EXPECTED_PLUGINS, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
+
 const roots = [];
+
 afterEach(async () => { for (const dir of roots.splice(0)) await rm(dir, { recursive: true, force: true }); });
+
 async function fixture() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-catalog-")); roots.push(dir);
   await cp(path.join(root, "plugins"), path.join(dir, "plugins"), { recursive: true });
   await cp(path.join(root, ".agents"), path.join(dir, ".agents"), { recursive: true });
   await copyFile(path.join(root, "README.md"), path.join(dir, "README.md"));
+
   return dir;
 }
+
 test("published catalog, manifests, YAML, links, hooks, and bundle are consistent", async () => {
   const result = await validateMarketplace(root);
   assert.deepEqual(result, { plugins: EXPECTED_PLUGINS.length, skills: 62 });
   await validateBundle(root);
 });
+
 test("excluded plugins or duplicate inventory cannot enter the marketplace", async () => {
   const dir = await fixture(), file = path.join(dir, ".agents/plugins/marketplace.json");
   const catalog = JSON.parse(await readFile(file, "utf8")); catalog.plugins[0].name = "azure-devops";
   await writeFile(file, JSON.stringify(catalog));
   await assert.rejects(validateMarketplace(dir), /exactly the eight/);
 });
+
 test("README inventory rejects missing rows even when prose mentions the plugin", async () => {
   const dir = await fixture(), readme = path.join(dir, "README.md");
   const original = await readFile(readme, "utf8");
+
   for (const name of EXPECTED_PLUGINS) {
     const withoutRow = original.split("\n").filter((line) => !line.startsWith(`| \`${name}\` |`)).join("\n");
     assert.notEqual(withoutRow, original, `No table row found for ${name}`);
     await writeFile(readme, withoutRow + `\nProse still mentions \`${name}\`.\n`);
     await assert.rejects(validateMarketplace(dir), new RegExp(`README is missing plugin from inventory: ${name}`));
   }
+
   await writeFile(readme, original);
   assert.deepEqual(await validateMarketplace(dir), { plugins: EXPECTED_PLUGINS.length, skills: 62 });
 });
@@ -42,6 +51,7 @@ test("README inventory rejects missing rows even when prose mentions the plugin"
 test("README inventory rejects unexpected and duplicate table entries", async () => {
   const dir = await fixture(), readme = path.join(dir, "README.md");
   const original = await readFile(readme, "utf8");
+
   for (const row of ["| `retired-plugin` | Stale entry | None |", "| `decide` | Duplicate | Node |"] ) {
     await writeFile(readme, original + "\n" + row + "\n");
     await assert.rejects(validateMarketplace(dir), /unexpected or duplicate rows/);

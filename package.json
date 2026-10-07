@@ -6,6 +6,7 @@
   "scripts": {
     "build": "bun tools/build.mjs",
     "check": "bun tools/check-marketplace.mjs",
+    "lint": "node node_modules/oxlint/bin/oxlint --config oxlint.config.mjs tools tests plugins/omlx-media/src plugins/omlx-media/tests",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

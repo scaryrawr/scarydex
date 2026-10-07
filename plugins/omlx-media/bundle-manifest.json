@@ -2,14 +2,14 @@
   "version": 1,
   "files": {
     "package-lock.json": "39d1207c0719659590ce2e09f4159c202edbb246c090552960f6ca3cfd0dd820",
-    "plugins/omlx-media/scripts/media.mjs": "f8bcb74a3a97372f4c4cdb8c5080838acd2377ad2d873a02dd6a5364858a2cc3",
+    "plugins/omlx-media/scripts/media.mjs": "b600dfa3cd5694dbf48d58ee8f0e0bf1fc268abf453b83ae4d2099ee2c6fd7cb",
     "plugins/omlx-media/src/domain.ts": "74383c2fc757e4d129596cd2c450597fd7024635009d576772c37bfc0c74a01c",
     "plugins/omlx-media/src/execute-audio.ts": "6208e84debd0817d35ebaed6b5c438d6b2295670fab8d1c62dd0fa2090899890",
     "plugins/omlx-media/src/execute-image.ts": "aa31fc2eb417f450859c3615e4ad10f5a7484621ac3040f2109fd79a8184f4ed",
-    "plugins/omlx-media/src/media.ts": "1561d489b321c28b769553a8e47fd81be83906b6f902b6463406e2c0f727ffa7",
+    "plugins/omlx-media/src/media.ts": "308b1c78ee6324d18ba012aa60e6100db509470a84c6c3e5baa042d919448585",
     "plugins/omlx-media/src/omlx-client.ts": "e92cfba6a31e70a9245021acd0759ac79412a3158ddead1eee8a82c10c3900ec",
     "plugins/omlx-media/src/tool-schemas.ts": "f06ce5e21f49f1daa7774975f15b8917f92ffdef097cde712da9d8810e05e032",
-    "plugins/omlx-media/src/workspace-artifacts.ts": "46e5a8245087a368be28e50b7f7dac07108e3ee9c3229e40b3e665d4ef9a892e",
-    "tools/build.mjs": "9b8cab2a0e13bbc274e81d063aa98f72158e9350f57f20064a3a5dfa5e397210"
+    "plugins/omlx-media/src/workspace-artifacts.ts": "888218a0879205f2b8c4334e24d4cc1ba640b1cd71f213c2d2be0ac394b31bad",
+    "tools/build.mjs": "4d22b224c63978459a43083731a0b54892c94db65ad5dc4fc3036c7e669aab2f"
   }
 }

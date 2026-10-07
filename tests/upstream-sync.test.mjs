@@ -9,66 +9,98 @@ import { parse } from "yaml";
 import { validateRepoSkills, validateUpstreamSetup } from "../tools/check-marketplace.mjs";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname);
+
 const helper = path.join(root, "tools/upstream-sync.mjs");
+
 const temporary = [];
+
 afterEach(() => { for (const directory of temporary.splice(0)) rmSync(directory, { recursive: true, force: true }); });
+
 function run(command, args, cwd) {
   const result = spawnSync(command, args, { cwd, encoding: "utf8" });
-  assert.equal(result.status, 0, `${command} ${args.join(" ")}\n${result.stderr}`);
+  const detail = result.signal ? `${result.stderr}\n${command} was killed by ${result.signal}: run bun test unsandboxed, because filesystem sandboxes kill git children` : result.stderr;
+  assert.equal(result.status, 0, `${command} ${args.join(" ")}\n${detail}`);
+
   return result.stdout.trim();
 }
+
 const git = (directory, ...args) => run("git", ["-c", "core.hooksPath=/dev/null", "-C", directory, ...args]);
-function write(directory, file, content) {
+
+function write(directory, file, text) {
   mkdirSync(path.dirname(path.join(directory, file)), { recursive: true });
-  writeFileSync(path.join(directory, file), typeof content === "string" ? content : JSON.stringify(content, null, 2));
+  writeFileSync(path.join(directory, file), text);
 }
+
+function writeJson(directory, file, value) {
+  write(directory, file, JSON.stringify(value, null, 2));
+}
+
 function init(directory, remote) {
   mkdirSync(directory, { recursive: true });
   git(directory, "init", "-q", "-b", "main");
   git(directory, "config", "user.name", "Fixture");
   git(directory, "config", "user.email", "fixture@localhost");
+
   if (remote) git(directory, "remote", "add", "origin", remote);
 }
+
 function commit(directory, subject) {
   git(directory, "add", ".");
   git(directory, "commit", "-qm", subject);
+
   return git(directory, "rev-parse", "HEAD");
 }
+
 function fixture() {
   const directory = mkdtempSync(path.join(os.tmpdir(), "scarydex-upstream-test-"));
   temporary.push(directory);
   const local = path.join(directory, "local"), scarypilot = path.join(directory, "scarypilot"), cursor = path.join(directory, "cursor");
   init(local); init(scarypilot, SOURCES.scarypilot); init(cursor, SOURCES.cursor);
+
   for (const track of TRACKS) write(track.source === "cursor" ? cursor : scarypilot, `${track.path}/skill.md`, "baseline\n");
   const scaryBase = commit(scarypilot, "ScaryPilot baseline"), cursorBase = commit(cursor, "Cursor integrated baseline");
   write(cursor, "pstack/comparison.md", "inspected, not integrated\n");
   const comparison = commit(cursor, "Comparison must be replayed");
-  write(local, "port-provenance.json", {
+  writeJson(local, "port-provenance.json", {
     scarypilot: { repository: SOURCES.scarypilot, commit: scaryBase },
     pstack: { repository: SOURCES.cursor, integratedCommit: cursorBase, comparisonCommit: comparison },
   });
-  write(local, "upstream-sync.json", { schemaVersion: 1, tracks: TRACKS.map(track => ({ ...track, reviewedThrough: null, reviews: [] })) });
-  write(local, ".agents/plugins/marketplace.json", { plugins: TRACKS.filter(t => t.source === "scarypilot").map(t => ({ name: t.plugin })) });
-  for (const track of TRACKS) write(local, `plugins/${track.plugin}/.codex-plugin/plugin.json`, { name: track.plugin, version: "1.0.0" });
+  writeJson(local, "upstream-sync.json", { schemaVersion: 1, tracks: TRACKS.map(track => ({ ...track, reviewedThrough: null, reviews: [] })) });
+  writeJson(local, ".agents/plugins/marketplace.json", { plugins: TRACKS.filter(t => t.source === "scarypilot").map(t => ({ name: t.plugin })) });
+
+  for (const track of TRACKS) writeJson(local, `plugins/${track.plugin}/.codex-plugin/plugin.json`, { name: track.plugin, version: "1.0.0" });
   const base = commit(local, "Local port");
+
   return { directory, local, scarypilot, cursor, base, scaryBase, cursorBase, comparison };
 }
+
 function cli(f, command, args = [], expected = 0) {
   const result = spawnSync("node", [helper, command, "--root", f.local, ...args], { encoding: "utf8" });
   assert.equal(result.status, expected, result.stderr);
+
   return expected === 0 ? JSON.parse(result.stdout) : result.stderr;
 }
+
 function plan(f) { return cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor]); }
-function savePlan(f, value) { const file = path.join(f.directory, "plan.json"); write(f.directory, "plan.json", value); return file; }
+
+function savePlan(f, value) {
+  const file = path.join(f.directory, "plan.json");
+  writeJson(f.directory, "plan.json", value);
+
+  return file;
+}
+
 function registry(f) { return JSON.parse(readFileSync(path.join(f.local, "upstream-sync.json"), "utf8")); }
+
 function review(f, p, id, disposition = "excluded", localPaths = []) {
   const data = registry(f), track = data.tracks.find(t => t.id === id), source = p.tracks.find(t => t.id === id);
+
   for (const change of source.commits) track.reviews.push({
     commit: change.commit, disposition, reason: "Reviewed native capability boundary in full.",
     paths: change.paths, localPaths, evidence: ["Inspected all parent diffs and validated the relevant behavior offline."],
   });
   track.reviewedThrough = source.reviewHead;
-  write(f.local, "upstream-sync.json", data);
+  writeJson(f.local, "upstream-sync.json", data);
 }
 
 test("CLI plans deterministically with two pstack sources and integrated, not comparison, baseline", () => {
@@ -95,7 +127,7 @@ test("renames crossing track boundaries, deletes, shared dependencies, and merge
   renameSync(path.join(f.scarypilot, "plugins/anti-slop/skill.md"), path.join(f.scarypilot, "plugins/other/moved.md"));
   const renamed = commit(f.scarypilot, "rename out of track");
   rmSync(path.join(f.scarypilot, "plugins/better-init/skill.md"));
-  write(f.scarypilot, "package.json", { dependencies: { shared: "1" } });
+  writeJson(f.scarypilot, "package.json", { dependencies: { shared: "1" } });
   const deleted = commit(f.scarypilot, "delete and shared build dependency");
   git(f.scarypilot, "-c", "merge.directoryRenames=false", "merge", "--no-ff", "-qm", "merge side", "side");
   const p = plan(f), anti = p.tracks.find(t => t.id === "scarypilot/anti-slop");
@@ -105,6 +137,7 @@ test("renames crossing track boundaries, deletes, shared dependencies, and merge
   assert.ok(anti.commits.some(c => c.commit === deleted && c.shared.includes("package.json")));
   assert.ok(anti.commits.some(c => c.parents.length === 2));
   assert.ok(p.tracks.find(t => t.id === "scarypilot/better-init").commits.some(c => c.changes.some(change => change.status === "D")));
+
   for (const track of p.tracks.filter(track => track.source === "scarypilot")) review(f, p, track.id);
   cli(f, "verify", ["--plan", savePlan(f, p)]);
   commit(f.local, "Merge reviews across renames and merge parents");
@@ -113,9 +146,9 @@ test("renames crossing track boundaries, deletes, shared dependencies, and merge
 
 test("divergence, missing objects, incorrect remotes, and invalid source paths fail explicitly", () => {
   const f = fixture();
-  const data = registry(f); data.tracks[0].reviewedThrough = "a".repeat(40); write(f.local, "upstream-sync.json", data);
+  const data = registry(f); data.tracks[0].reviewedThrough = "a".repeat(40); writeJson(f.local, "upstream-sync.json", data);
   assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /failed/);
-  data.tracks[0].reviewedThrough = null; write(f.local, "upstream-sync.json", data);
+  data.tracks[0].reviewedThrough = null; writeJson(f.local, "upstream-sync.json", data);
   git(f.scarypilot, "checkout", "--orphan", "diverged");
   write(f.scarypilot, "new.md", "new history"); commit(f.scarypilot, "orphan history");
   assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /Diverged history/);
@@ -138,13 +171,15 @@ test("invalid command-specific flags, base mismatches, and malformed registry fa
   const f = fixture(), p = plan(f), file = savePlan(f, p);
   assert.match(cli(f, "check", ["--head", f.base], 1), /Unsupported option/);
   assert.match(cli(f, "verify", ["--plan", file, "--base", "a".repeat(40)], 1), /Plan\/base mismatch/);
-  const data = registry(f); data.tracks.at(-1).path = "../pstack"; write(f.local, "upstream-sync.json", data);
+  const data = registry(f); data.tracks.at(-1).path = "../pstack"; writeJson(f.local, "upstream-sync.json", data);
   assert.match(cli(f, "check", [], 1), /Unexpected track path/);
 });
 
 test("bounded candidate prefix exposes remaining work and resumes only after merged review state", { timeout: 20000 }, () => {
   const f = fixture();
+
   for (let i = 0; i < LIMITS.candidates + 2; i++) { write(f.scarypilot, "plugins/anti-slop/change.md", `${i}\n`); commit(f.scarypilot, `change ${i}`); }
+
   const p = plan(f), track = p.tracks[0];
   assert.equal(track.commits.length, LIMITS.candidates);
   assert.equal(track.remaining, 2);
@@ -160,39 +195,46 @@ test("bounded candidate prefix exposes remaining work and resumes only after mer
 test("historical cursor audit outlives the incremental commit bound without accepting review gaps", { timeout: 30000 }, () => {
   const f = fixture();
   let input = "";
+
   for (let i = 1; i <= LIMITS.commits + 1; i++) {
     const subject = `historical ${i}`, content = `${i}\n`;
     input += `commit refs/heads/main\nmark :${i}\ncommitter Fixture <fixture@localhost> ${1700000000 + i} +0000\ndata ${subject.length}\n${subject}\nfrom ${i === 1 ? f.scaryBase : `:${i - 1}`}\nM 100644 inline plugins/anti-slop/series.md\ndata ${content.length}\n${content}\n`;
   }
+
   const imported = spawnSync("git", ["-C", f.scarypilot, "fast-import", "--quiet"], { input, encoding: "utf8" });
   assert.equal(imported.status, 0, imported.stderr);
   assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /History exceeds review bound/);
   const commits = git(f.scarypilot, "rev-list", "--reverse", `${f.scaryBase}..HEAD`).split("\n");
   const data = registry(f);
+
   for (const track of data.tracks.filter(track => track.source === "scarypilot")) track.reviewedThrough = commits.at(-1);
   data.tracks[0].reviews = commits.map(commit => ({
     commit, disposition: "excluded", reason: "Historical capability review was merged by a maintainer.",
     paths: ["plugins/anti-slop/series.md"], localPaths: [], evidence: ["Historical paths and capability boundary were reviewed."],
   }));
-  write(f.local, "upstream-sync.json", data); commit(f.local, "Previously merged review ledger");
+  writeJson(f.local, "upstream-sync.json", data); commit(f.local, "Previously merged review ledger");
   git(f.scarypilot, "read-tree", "HEAD");
   write(f.scarypilot, "plugins/anti-slop/series.md", "incremental\n");
   const next = commit(f.scarypilot, "One incremental change");
   assert.deepEqual(plan(f).tracks[0].commits.map(change => change.commit), [next]);
-  data.tracks[0].reviews.shift(); write(f.local, "upstream-sync.json", data);
+  data.tracks[0].reviews.shift(); writeJson(f.local, "upstream-sync.json", data);
   assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /review gap/);
 });
 
 test("bounded review resumes across sibling branches without replaying final dispositions", { timeout: 30000 }, () => {
   const f = fixture();
   git(f.scarypilot, "switch", "-qc", "side", f.scaryBase);
+
   for (let i = 0; i < 11; i++) {
     write(f.scarypilot, "plugins/anti-slop/side.md", `${i}\n`); commit(f.scarypilot, `side ${i}`);
   }
+
   git(f.scarypilot, "switch", "-q", "main");
+
   for (let i = 0; i < 11; i++) {
     write(f.scarypilot, "plugins/anti-slop/main.md", `${i}\n`); commit(f.scarypilot, `main ${i}`);
   }
+
   git(f.scarypilot, "merge", "--no-ff", "-qm", "merge siblings", "side");
   const p = plan(f), first = p.tracks[0];
   assert.equal(first.commits.length, LIMITS.candidates);
@@ -219,7 +261,7 @@ test("complete exclusions advance review only, preserving provenance and append-
   assert.equal(readFileSync(path.join(f.local, "port-provenance.json"), "utf8"), before);
   commit(f.local, "Merge exclusions");
   assert.deepEqual(plan(f).tracks.at(-1).commits, []);
-  const data = registry(f); data.tracks.at(-1).reviews[0].reason = "Rewritten historic evidence"; write(f.local, "upstream-sync.json", data);
+  const data = registry(f); data.tracks.at(-1).reviews[0].reason = "Rewritten historic evidence"; writeJson(f.local, "upstream-sync.json", data);
   assert.match(cli(f, "verify", ["--plan", savePlan(f, plan(f))], 1), /append-only/);
 });
 
@@ -227,11 +269,11 @@ test("deferred gaps block advancing, can be resolved by append, and forged exist
   const f = fixture(), p = plan(f), file = savePlan(f, p);
   review(f, p, "cursor/pstack", "deferred");
   assert.match(cli(f, "verify", ["--plan", file], 1), /unresolved gap/);
-  const data = registry(f); data.tracks.at(-1).reviewedThrough = null; write(f.local, "upstream-sync.json", data);
+  const data = registry(f); data.tracks.at(-1).reviewedThrough = null; writeJson(f.local, "upstream-sync.json", data);
   cli(f, "verify", ["--plan", file]);
   review(f, p, "cursor/pstack", "excluded");
   cli(f, "verify", ["--plan", file]);
-  data.tracks.at(-1).reviewedThrough = f.comparison; data.tracks.at(-1).reviews = []; write(f.local, "upstream-sync.json", data);
+  data.tracks.at(-1).reviewedThrough = f.comparison; data.tracks.at(-1).reviews = []; writeJson(f.local, "upstream-sync.json", data);
   assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /review gap/);
 });
 
@@ -241,13 +283,14 @@ test("a stationary cursor cannot hide an unrecorded gap before a later reviewed 
   const p = plan(f), file = savePlan(f, p);
   review(f, p, "cursor/pstack");
   const data = registry(f), track = data.tracks.at(-1);
-  track.reviewedThrough = null; track.reviews.shift(); write(f.local, "upstream-sync.json", data);
+  track.reviewedThrough = null; track.reviews.shift(); writeJson(f.local, "upstream-sync.json", data);
   assert.match(cli(f, "verify", ["--plan", file], 1), /explicit disposition/);
 });
 
 test("proposal scope rejects provenance, workflow/skills, originals, unselected plugins, and symlinks", () => {
   const f = fixture(), p = plan(f), file = savePlan(f, p);
   review(f, p, "cursor/pstack");
+
   for (const forbidden of ["port-provenance.json", ".github/workflows/bad.yml", "AGENTS.md", ".agents/skills/bad/SKILL.md", "plugins/decide/bad.md", "plugins/anti-slop/bad.md", "tools/upstream-sync.mjs"]) {
     if (forbidden === "port-provenance.json") {
       const original = readFileSync(path.join(f.local, forbidden), "utf8");
@@ -260,6 +303,7 @@ test("proposal scope rejects provenance, workflow/skills, originals, unselected 
       rmSync(path.join(f.local, forbidden));
     }
   }
+
   symlinkSync("/tmp", path.join(f.local, "tests"));
   assert.match(cli(f, "verify", ["--plan", file], 1), /Disallowed|Nonregular/);
 });
@@ -270,9 +314,9 @@ test("ported code must name changed files and bump shipped plugin version", () =
   review(f, p, "cursor/pstack", "ported", paths);
   write(f.local, paths[0], "ported behavior\n");
   assert.match(cli(f, "verify", ["--plan", file], 1), /no changed local path/);
-  write(f.local, paths[1], { name: "pstack", version: "1.0.1" });
+  writeJson(f.local, paths[1], { name: "pstack", version: "1.0.1" });
   assert.ok(cli(f, "verify", ["--plan", file]).files.includes(paths[0]));
-  write(f.local, paths[1], { name: "pstack", version: "0.9.0" });
+  writeJson(f.local, paths[1], { name: "pstack", version: "0.9.0" });
   assert.match(cli(f, "verify", ["--plan", file], 1), /Bump shipped/);
 });
 
@@ -288,17 +332,17 @@ test("untracked invalid names and oversized proposed content are included in the
 
 test("root-only and cosmetic registry proposals cannot publish without semantic review state", () => {
   const f = fixture(), p = plan(f), file = savePlan(f, p);
-  write(f.local, "package.json", { scripts: { build: "unreviewed" } });
+  writeJson(f.local, "package.json", { scripts: { build: "unreviewed" } });
   assert.match(cli(f, "verify", ["--plan", file], 1), /semantic review registry/);
   write(f.local, "upstream-sync.json", JSON.stringify(registry(f)));
   assert.match(cli(f, "verify", ["--plan", file], 1), /semantic review registry/);
   const unchanged = registry(f);
-  write(f.local, "upstream-sync.json", { tracks: unchanged.tracks, schemaVersion: unchanged.schemaVersion });
+  writeJson(f.local, "upstream-sync.json", { tracks: unchanged.tracks, schemaVersion: unchanged.schemaVersion });
   assert.match(cli(f, "verify", ["--plan", file], 1), /semantic review registry/);
   git(f.local, "switch", "-qc", "upstream-sync/root-only");
   commit(f.local, "Root change without a review");
   const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
-  write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/root-only", base: "main" }] });
+  writeJson(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/root-only", base: "main" }] });
   git(f.local, "bundle", "create", path.join(artifact, "aw-upstream-sync-root-only.bundle"), `${f.base}..upstream-sync/root-only`);
   assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /semantic review registry/);
   rmSync(path.join(artifact, "aw-upstream-sync-root-only.bundle"));
@@ -318,19 +362,24 @@ test("compiled empty-plan step creates the output directory and writes noop with
   assert.ok(command);
   const output = path.join(f.directory, "not-created", "outputs.jsonl");
   const file = savePlan(f, p);
+
   const execute = () => spawnSync("bash", ["-e", "-c", command.replace("/tmp/gh-aw/upstream-sync/plan.json", JSON.stringify(file))], {
     cwd: root, encoding: "utf8", env: { ...process.env, GH_AW_SAFE_OUTPUTS: output },
   });
+
   assert.equal(execute().status, 0);
   assert.equal(spawnSync("test", ["-e", output]).status, 1);
+
   for (const track of p.tracks) track.commits = [];
   savePlan(f, p);
   const result = execute();
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(readFileSync(output, "utf8")), { type: "noop", message: "No upstream changes to review" });
+
   const missing = spawnSync("node", [helper, "skip-empty", "--plan", file], {
     encoding: "utf8", env: { ...process.env, GH_AW_SAFE_OUTPUTS: "" },
   });
+
   assert.equal(missing.status, 1);
   assert.match(missing.stderr, /absolute output path/);
 });
@@ -338,14 +387,15 @@ test("compiled empty-plan step creates the output directory and writes noop with
 test("pstack accepts an increasing Codex port revision and rejects unchanged or older versions", () => {
   const f = fixture();
   const manifest = "plugins/pstack/.codex-plugin/plugin.json";
-  write(f.local, manifest, { name: "pstack", version: "0.15.4-codex.1" });
+  writeJson(f.local, manifest, { name: "pstack", version: "0.15.4-codex.1" });
   commit(f.local, "Existing Codex port version");
   const p = plan(f), file = savePlan(f, p);
   review(f, p, "cursor/pstack", "ported", [manifest]);
-  write(f.local, manifest, { name: "pstack", version: "0.15.4-codex.2" });
+  writeJson(f.local, manifest, { name: "pstack", version: "0.15.4-codex.2" });
   assert.ok(cli(f, "verify", ["--plan", file]).files.includes(manifest));
+
   for (const version of ["0.15.4-codex.1", "0.15.4-codex.0", "0.15.3", "0.15.4-codex.02"]) {
-    write(f.local, manifest, { name: "pstack", version });
+    writeJson(f.local, manifest, { name: "pstack", version });
     assert.match(cli(f, "verify", ["--plan", file], 1), /Bump shipped|no changed local path|Unsupported plugin version/);
   }
 });
@@ -356,7 +406,7 @@ test("actual publication bundle and patch are verified and malicious transport i
   git(f.local, "switch", "-qc", "upstream-sync/review");
   const proposal = commit(f.local, "Review Cursor capability boundary");
   const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
-  write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/review", title: "review", body: "evidence", base: "main" }] });
+  writeJson(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/review", title: "review", body: "evidence", base: "main" }] });
   git(f.local, "bundle", "create", path.join(artifact, "aw-upstream-sync-review.bundle"), `${f.base}..upstream-sync/review`);
   write(artifact, "aw-upstream-sync-review.patch", git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n");
   assert.deepEqual(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact]).files, ["upstream-sync.json"]);
@@ -376,13 +426,15 @@ test("reverted intermediate paths cannot escape final proposal scope in either t
   review(f, p, "cursor/pstack");
   git(f.local, "switch", "-qc", "upstream-sync/reverted");
   const paths = ["plugins/anti-slop/transient.md", "plugins/better-init/transient.md", "plugins/screen-record/transient.md", "plugins/pstack/transient.md"];
+
   for (const file of paths) write(f.local, file, "unreviewed intermediate content\n");
   commit(f.local, "Temporary unreviewed changes");
+
   for (const file of paths) rmSync(path.join(f.local, file));
   commit(f.local, "Revert plugin changes, retaining only review state");
   assert.match(cli(f, "verify", ["--plan", file], 1), /Intermediate path absent/);
   const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
-  write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/reverted", base: "main" }] });
+  writeJson(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/reverted", base: "main" }] });
   const bundle = path.join(artifact, "aw-upstream-sync-reverted.bundle");
   git(f.local, "bundle", "create", bundle, `${f.base}..upstream-sync/reverted`);
   assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /Intermediate path absent/);
@@ -395,7 +447,7 @@ test("multiple commits on verified final paths remain valid", () => {
   const f = fixture(), p = plan(f), file = savePlan(f, p);
   review(f, p, "cursor/pstack", "ported", ["plugins/pstack/skill.md", "plugins/pstack/.codex-plugin/plugin.json"]);
   write(f.local, "plugins/pstack/skill.md", "first reviewed revision\n");
-  write(f.local, "plugins/pstack/.codex-plugin/plugin.json", { name: "pstack", version: "1.0.1" });
+  writeJson(f.local, "plugins/pstack/.codex-plugin/plugin.json", { name: "pstack", version: "1.0.1" });
   commit(f.local, "First reviewed revision");
   write(f.local, "plugins/pstack/skill.md", "final reviewed revision\n");
   commit(f.local, "Final reviewed revision");
@@ -407,7 +459,9 @@ test("duplicate detection ignores marker PRs unless publisher and source reposit
     state: "open", title: "[upstream-sync] Reviewed port", user: { login: "publisher" },
     head: { ref: "upstream-sync/review", repo: { full_name: "scaryrawr/scarydex" } },
   };
+
   assert.equal(hasOpenProposal([trusted], "scaryrawr/scarydex", "publisher"), true);
+
   for (const pr of [
     { ...trusted, user: { login: "outsider" } },
     { ...trusted, head: { ...trusted.head, repo: { full_name: "outsider/scarydex" } } },
@@ -425,13 +479,16 @@ test("compiled pre-activation duplicate check uses paginated API results and fai
   const step = workflow.jobs.pre_activation.steps.find(step => step.id === "existing_proposal");
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
   const execute = new AsyncFunction("github", "context", "core", "process", step.with.script);
+
   const trusted = {
     state: "open", title: "[upstream-sync] Reviewed port", user: { login: "publisher" },
     head: { ref: "upstream-sync/review", repo: { full_name: "scaryrawr/scarydex" } },
   };
+
   const context = { repo: { owner: "scaryrawr", repo: "scarydex" } };
   const environment = { env: { GITHUB_WORKSPACE: root, PUBLISHER_LOGIN: "publisher" } };
   const list = () => {};
+
   for (const [pulls, expected] of [
     [[], "true"],
     [[{ ...trusted, user: { login: "outsider" } }], "true"],
@@ -444,11 +501,13 @@ test("compiled pre-activation duplicate check uses paginated API results and fai
       paginate: async (method, params) => {
         assert.equal(method, list);
         assert.deepEqual(params, { owner: "scaryrawr", repo: "scarydex", state: "open", per_page: 100 });
+
         return pulls;
       },
     }, context, { setOutput: (key, value) => { output[key] = value; } }, environment);
     assert.equal(output.run_sync, expected);
   }
+
   await assert.rejects(execute({
     rest: { pulls: { list } },
     paginate: async () => { throw new Error("API unavailable"); },
@@ -476,7 +535,7 @@ test("compressed bundles and binary patches cannot exceed expanded content budge
   git(f.local, "switch", "-qc", "upstream-sync/large");
   commit(f.local, "Highly compressible oversized blob");
   const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
-  write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/large", base: "main" }] });
+  writeJson(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/large", base: "main" }] });
   const bundle = path.join(artifact, "aw-upstream-sync-large.bundle");
   git(f.local, "bundle", "create", bundle, `${f.base}..upstream-sync/large`);
   assert.ok(readFileSync(bundle).length < LIMITS.bytes);
@@ -485,8 +544,10 @@ test("compressed bundles and binary patches cannot exceed expanded content budge
   rmSync(bundle);
   const patch = git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n";
   const split = patch.indexOf("\n\n");
+
   const mime = patch.slice(0, split) + "\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: base64\n\n" +
     Buffer.from(patch.slice(split + 2)).toString("base64").replace(/.{76}/g, "$&\n") + "\n";
+
   for (const content of [patch, patch.replaceAll("\n", "\r\n"), mime]) {
     write(artifact, "aw-upstream-sync-large.patch", content);
     assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /expanded|uncompressed/);
@@ -498,15 +559,19 @@ test("transport expansion caps aggregate objects and oversized binary delta resu
   for (const scenario of ["aggregate", "deduplicated", "delta"]) {
     const f = fixture();
     mkdirSync(path.join(f.local, "tests"));
+
     if (scenario === "delta") {
       writeFileSync(path.join(f.local, "tests/blob.bin"), Buffer.alloc(LIMITS.bytes + 1));
       f.base = commit(f.local, "Trusted existing large binary");
     }
+
     const p = plan(f), file = savePlan(f, p);
     review(f, p, "cursor/pstack");
+
     if (scenario !== "delta") {
       for (const name of ["one", "two"]) {
         const bytes = Buffer.alloc(LIMITS.bytes / 2 + 1);
+
         if (scenario === "aggregate" && name === "two") bytes[1234] = 1;
         writeFileSync(path.join(f.local, `tests/${name}.bin`), bytes);
       }
@@ -514,16 +579,18 @@ test("transport expansion caps aggregate objects and oversized binary delta resu
       const bytes = Buffer.alloc(LIMITS.bytes + 1); bytes[1234] = 1;
       writeFileSync(path.join(f.local, "tests/blob.bin"), bytes);
     }
+
     git(f.local, "switch", "-qc", "upstream-sync/binary");
     commit(f.local, "Compressed binary proposal");
     const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
-    write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/binary", base: "main" }] });
+    writeJson(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/binary", base: "main" }] });
     const bundle = path.join(artifact, "aw-upstream-sync-binary.bundle");
     git(f.local, "bundle", "create", bundle, `${f.base}..upstream-sync/binary`);
     assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /expanded|uncompressed/);
     assert.notEqual(spawnSync("git", ["-C", f.local, "rev-parse", "--verify", "FETCH_HEAD"]).status, 0);
     rmSync(bundle);
     const patch = git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n";
+
     if (scenario === "delta") assert.match(patch, /^delta /m);
     write(artifact, "aw-upstream-sync-binary.patch", patch);
     assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /expanded|uncompressed/);
@@ -547,7 +614,7 @@ test("valid UTF-8 replacement characters and bounded binary literals/deltas stil
   git(f.local, "switch", "-qc", "upstream-sync/valid-binary");
   commit(f.local, "Bounded binary literals and deltas");
   const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
-  write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/valid-binary", base: "main" }] });
+  writeJson(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/valid-binary", base: "main" }] });
   git(f.local, "bundle", "create", path.join(artifact, "aw-upstream-sync-valid-binary.bundle"), `${f.base}..upstream-sync/valid-binary`);
   const patch = git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n";
   assert.match(patch, /^delta /m);
@@ -567,7 +634,7 @@ test("patch preflight caps existing textual blobs before materializing changes",
   write(f.local, "tests/large.txt", "existing line\n".repeat(700000) + "small addition\n");
   commit(f.local, "Small diff against oversized text");
   const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
-  write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/text", base: "main" }] });
+  writeJson(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch: "upstream-sync/text", base: "main" }] });
   const patch = git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n";
   assert.ok(Buffer.byteLength(patch) < LIMITS.bytes);
   write(artifact, "aw-upstream-sync-text.patch", patch);
@@ -581,10 +648,11 @@ test("publication rejects Git-invalid branch names even for patch-only proposals
   commit(f.local, "Review capability boundary");
   const artifact = path.join(f.directory, "artifact"); mkdirSync(artifact);
   const patch = git(f.local, "format-patch", "--stdout", `${f.base}..HEAD`) + "\n";
+
   for (const suffix of ["a..b", "a/", "a.lock", "a//b", "a/.b"]) {
     const branch = `upstream-sync/${suffix}`;
     const stem = `aw-${branch.replaceAll("/", "-").replace(/-{2,}/g, "-").replace(/^-|-$/g, "")}`;
-    write(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch, base: "main" }] });
+    writeJson(artifact, "agent_output.json", { items: [{ type: "create_pull_request", branch, base: "main" }] });
     write(artifact, `${stem}.patch`, patch);
     assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /Invalid Git branch/);
     rmSync(path.join(artifact, `${stem}.patch`));

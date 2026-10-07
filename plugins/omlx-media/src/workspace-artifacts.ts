@@ -1,14 +1,16 @@
 import * as path from "node:path";
 import { access, mkdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
+import { Type } from "@sinclair/typebox";
+import { Value } from "@sinclair/typebox/value";
 import { OmlxToolError } from "./domain.ts";
 
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
 
+const NodeCodeError = Type.Object({ code: Type.Optional(Type.String()) });
+
 function errorCode(error: Error): string | undefined {
-  return error instanceof Error && "code" in error && typeof error.code === "string"
-    ? error.code
-    : undefined;
+  return error instanceof Error && Value.Check(NodeCodeError, error) ? error.code : undefined;
 }
 
 function requireAbsolutePath(value: string): string {

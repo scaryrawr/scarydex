@@ -6,7 +6,9 @@ import path from "node:path";
 import { afterEach, test } from "node:test";
 
 const roots = [];
+
 afterEach(async () => { for (const dir of roots.splice(0)) await rm(dir, { recursive: true, force: true }); });
+
 async function fixture() {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "scarydex-media-cli-")); roots.push(cwd);
   const helper = path.join(cwd, "media.mjs");
@@ -33,18 +35,22 @@ async function fixture() {
       throw new Error('Unexpected request');
     };
   `);
+
   return { cwd, helper, invoke: (operation, args) => spawnSync(process.execPath,
     ["--import", shim, helper, operation, "--json", JSON.stringify(args)],
     { cwd, encoding: "utf8", env: { ...process.env, OMLX_BASE_URL: "http://fixture.invalid", OMLX_API_KEY: "fixture-key" } }) };
 }
+
 test("self-contained helper generates variants without workspace dependencies", async () => {
   const { cwd, invoke } = await fixture();
   const result = invoke("image", { prompt: "A fixture", output: path.join(cwd, "picture.png"), variants: 2 });
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), { operation: "generate", model: "fixture-image", files: [path.join(cwd, "picture_0.png"), path.join(cwd, "picture_1.png")] });
+
   for (const file of JSON.parse(result.stdout).files) assert.equal(await readFile(file, "utf8"), "fixture-png");
   assert.doesNotMatch(result.stdout + result.stderr, /fixture-key/);
 });
+
 test("helper edits without modifying sources and refuses overwrite", async () => {
   const { cwd, invoke } = await fixture(); const input = path.join(cwd, "source.png"), output = path.join(cwd, "edit.png");
   await writeFile(input, "original");
@@ -55,6 +61,7 @@ test("helper edits without modifying sources and refuses overwrite", async () =>
   const second = invoke("image", args); assert.equal(second.status, 1); assert.match(second.stderr, /already exists/);
   assert.equal(await readFile(output, "utf8"), "fixture-png");
 });
+
 test("helper generates speech and transcribes local files", async () => {
   const { cwd, invoke } = await fixture(); const speech = path.join(cwd, "narration.wav"), transcript = path.join(cwd, "transcript.txt");
   const tts = invoke("speech", { input: "Hello", output: speech }); assert.equal(tts.status, 0, tts.stderr);
@@ -64,8 +71,10 @@ test("helper generates speech and transcribes local files", async () => {
   assert.equal(JSON.parse(stt.stdout).text, "A grounded fixture transcript.");
   assert.match(await readFile(transcript, "utf8"), /grounded fixture/);
 });
+
 test("malformed CLI arguments fail before network or file writes", async () => {
   const { cwd, invoke } = await fixture();
+
   for (const [operation, args, expected] of [
     ["speech", { input: 123, output: path.join(cwd, "bad.wav") }, /Invalid speech arguments/],
     ["speech", { input: "hello", output: "relative.wav" }, /Path must be absolute/],
