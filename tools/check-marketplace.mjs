@@ -189,16 +189,20 @@ const INSTALLS_DEPENDENCIES = /\b(?:bun|npm)\s+(?:install|ci)\b/;
 
 const MAX_DEPENDENCY_FREE_MODULES = 200;
 
-// Every specifier that makes the loader resolve a module, in every form the grammar
-// allows: static `import`, re-export `export ... from`, side-effect `import "pkg"`,
-// `import(...)` with trailing arguments or import attributes, `import.meta.resolve()`,
-// and `require(...)`. This walks real module syntax with the TypeScript parser instead
-// of matching regexes, because trivia such as `import /* c */ "pkg"` is valid between
-// the tokens while regexes skip it, and because `import "pkg"` inside a comment or
-// string must not be counted. Two cases fail closed rather than passing silently:
-// interpolated specifiers (`import(`./plugin-${name}.mjs`)`), returned as `computed`,
-// because the resolved target cannot be traversed; and sources the parser rejects,
-// because an unparsed module proves nothing about its dependencies.
+// Every module target a loader can be pointed at, bucketed by how much the guard can
+// prove about it. `literals` are specifiers written as literals in `import`, re-export
+// `export ... from`, side-effect `import "pkg"`, `import(...)` with trailing arguments
+// or import attributes, `import.meta.resolve()`, and `require(...)`. `computed` is
+// every *other* loader argument — an identifier, concatenation, conditional, member
+// access, call result, or interpolated template — because the resolved target is unknown
+// at scan time, and `const name = "pkg"; await import(name)` is valid Node.
+// `requires` names any `require`/`createRequire` reference, which closes aliasing
+// (`const r = require; r("pkg")`) by refusing the pattern rather than chasing it; ESM
+// install-free helpers have no `require` to reach for in the first place.
+//
+// This walks parsed module syntax rather than matching regexes, so trivia such as
+// `import /* c */ "pkg"` counts while a package name inside a comment or string does
+// not. Everything the guard cannot prove is a finding, never a pass.
 export function scanImports(source, file = "module.mjs") {
   const syntaxErrors = (ts.transpileModule(source, {
     reportDiagnostics: true,
@@ -210,12 +214,15 @@ export function scanImports(source, file = "module.mjs") {
   const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, false, ts.ScriptKind.JS);
   const literals = new Set();
   const computed = new Set();
+  const requires = new Set();
+
+  const text = node => node.getText(sourceFile).replace(/\s+/g, " ");
 
   const record = node => {
     if (!node) return;
 
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) literals.add(node.text);
-    else if (ts.isTemplateExpression(node)) computed.add(node.getText(sourceFile).replace(/\s+/g, " "));
+    else computed.add(text(node));
   };
 
   const visit = node => {
@@ -230,12 +237,20 @@ export function scanImports(source, file = "module.mjs") {
       if (isDynamicImport || isRequire || isResolve) record(node.arguments[0]);
     }
 
+    if (ts.isPropertyAccessExpression(node) && /^(?:require|createRequire)$/.test(node.name.text)) {
+      requires.add(text(node));
+
+      return;
+    }
+
+    if (ts.isIdentifier(node) && /^(?:require|createRequire)$/.test(node.text)) requires.add(node.text);
+
     ts.forEachChild(node, visit);
   };
 
   visit(sourceFile);
 
-  return { literals: [...literals], computed: [...computed] };
+  return { literals: [...literals], computed: [...computed], requires: [...requires] };
 }
 
 export function findImports(source, file = "module.mjs") {
@@ -279,12 +294,14 @@ export async function dependencyFreeClosure(root, entrypoints) {
     seen.add(file);
 
     const { source } = await readModule(root, file, specifier);
-    const { literals, computed } = scanImports(source, file);
+    const { literals, computed, requires } = scanImports(source, file);
     const bare = literals.filter(specifier => !specifier.startsWith("node:") && !specifier.startsWith("."));
 
     if (bare.length) throw new Error(`${file} is reachable from workflow jobs that never install dependencies; remove these bare imports: ${bare.join(", ")}`);
 
     if (computed.length) throw new Error(`${file} builds import targets at runtime; install-free workflow jobs need literal paths so the dependency-free guard can traverse them: ${computed.join(", ")}`);
+
+    if (requires.length) throw new Error(`${file} reaches for CommonJS loading; install-free workflow jobs must use literal static imports so the dependency-free guard can traverse them: ${requires.join(", ")}`);
 
     for (const relative of literals.filter(specifier => specifier.startsWith("."))) {
       queue.push({ file: path.posix.normalize(path.posix.join(path.posix.dirname(file), relative)), specifier: relative });

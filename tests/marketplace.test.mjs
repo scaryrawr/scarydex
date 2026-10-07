@@ -6,7 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, test } from "node:test";
 import { parse } from "yaml";
-import { dependencyFreeClosure, EXPECTED_PLUGINS, findBareImports, findComputedImports, standAloneHelpers, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
+import { dependencyFreeClosure, EXPECTED_PLUGINS, findBareImports, findComputedImports, scanImports, standAloneHelpers, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
 
@@ -115,6 +115,27 @@ test("workflow helpers executed without dependency install stay dependency-free"
 
   assert.deepEqual(findComputedImports('const load = async ({ name }) => await import(`./plugin-${name}.mjs`);'), ['`./plugin-${name}.mjs`']);
 
+  const computed = [
+    ['identifier', 'const name = "@sinclair/typebox";\nconst load = async () => await import(name);'],
+    ['concatenation', 'const load = async ({ name }) => await import("@sinclair/" + name);'],
+    ['conditional', 'const load = async ({ flag }) => await import(flag ? "@sinclair/typebox" : "./local.mjs");'],
+    ['call result', 'const load = async () => await import(target());'],
+    ['member access', 'const load = async ({ cfg }) => await import(cfg.module);'],
+    ['arrow forwarding', 'const load = async url => import(url);'],
+  ];
+
+  for (const [label, source] of computed) {
+    assert.equal(scanImports(source).literals.length, 0, `guard treated the ${label} form as provable`);
+    assert.equal(scanImports(source).computed.length, 1, `guard missed the ${label} computed target`);
+  }
+
+  assert.deepEqual(scanImports('const { createRequire } = await import("node:module");\nconst require = createRequire(import.meta.url);\nconst r = require("@sinclair/typebox");').requires.sort(), ["createRequire", "require"]);
+  assert.deepEqual(scanImports('const load = async alias => await import(alias);').computed, ["alias"]);
+  assert.deepEqual(scanImports('const load = async ({ cfg }) => await import(cfg.module);').computed, ["cfg.module"]);
+  assert.deepEqual(scanImports('module.createRequire(import.meta.url)("./local.cjs");').requires, ["module.createRequire"]);
+  assert.deepEqual(scanImports('const { createRequire } = await import("node:module");').requires, ["createRequire"]);
+  assert.deepEqual(scanImports('const required = 1;\nexport const requiresLike = required + 1;').requires, []);
+
   assert.throws(() => findBareImports('import source txt from "@sinclair/typebox";\nexport default txt;'), /cannot be parsed by the dependency-free guard; fix the syntax so its imports can be verified/);
 
   const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-bare-checkout-")); roots.push(dir);
@@ -175,6 +196,14 @@ test("the dependency-free guard follows relative imports transitively", async ()
 
   await write("entry.mjs", 'import source txt from "./clean.mjs";\nexport default txt;\n');
   await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /entry\.mjs cannot be parsed by the dependency-free guard/);
+
+  await write("entry.mjs", 'import { clean } from "./clean.mjs";\nexport default clean;\n');
+  await write("dep.mjs", 'const name = "@sinclair/typebox";\nexport const load = async () => await import(name);\n');
+  await write("clean.mjs", 'import { load } from "./dep.mjs";\nexport const clean = load;\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs builds import targets at runtime/);
+
+  await write("dep.mjs", 'const { createRequire } = await import("node:module");\nconst require = createRequire(import.meta.url);\nexport const alias = require;\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs reaches for CommonJS loading; install-free workflow jobs must use literal static imports so the dependency-free guard can traverse them/);
 
   await write("dep.mjs", 'export const dep = "clean";\n');
   await write("cyclic-a.mjs", 'import { b } from "./cyclic-b.mjs";\nexport const a = b;\n');

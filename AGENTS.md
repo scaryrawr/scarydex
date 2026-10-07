@@ -50,16 +50,16 @@ optional `uv`.
 checkouts that never install dependencies, so it imports only `node:` builtins and
 relative paths. `bun run check` derives those install-free jobs from
 `upstream-sync.lock.yml`, walks the transitive relative-import closure of every
-`.mjs` entrypoint they execute, and fails on any bare package import in every loader
-form: static, re-export (`export * from "pkg"`), side-effect (`import "pkg"`),
-dynamic (`import("pkg")`, including trailing arguments and import attributes),
-`import.meta.resolve("pkg")`, and `require("pkg")`. It parses the module with the
-TypeScript compiler rather than matching regexes, so trivia between tokens
-(`import /* c */ "pkg"`) counts and a package name inside a comment or string does
-not. Two cases fail closed: computed targets (`import(`./plugin-${name}.mjs`)`),
-because the guard cannot traverse them, and sources the parser rejects, because an
-unparsed module proves nothing about its dependencies. Install-free jobs therefore
-use literal specifiers only.
+`.mjs` entrypoint they execute. It parses each module with the TypeScript compiler
+rather than matching regexes, so trivia between tokens (`import /* c */ "pkg"`) counts
+and a package name inside a comment or string does not. Every target lands in one of
+three buckets: provable literal specifiers, `computed` targets (identifiers,
+concatenation, conditionals, member access, call results, interpolated templates), and
+`requires` (any `require`/`createRequire` reference, which also refuses the aliasing
+shape `const r = require; r("pkg")`). Only `node:` builtins and relative literals
+pass; anything the guard cannot prove is a finding, including sources the parser
+rejects, because an unparsed module proves nothing. Install-free helpers therefore use
+static `import` with literal specifiers only.
 TypeBox belongs to code that runs after `bun install`
 (`tools/check-marketplace.mjs`, tests) and to sources that esbuild inlines into the
 shipped bundles.
