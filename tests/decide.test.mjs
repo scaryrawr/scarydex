@@ -38,7 +38,7 @@ const answer = {
   usage: { input_tokens: 841, output_tokens: 4 },
 };
 
-async function fixture({ tags = { models: [{ name: "nimble:latest" }, { name: "tev1" }, { name: "tev1:0.8b" }, { name: "org/nimble:9b-int4" }, { name: "reasoner-pro" }, { name: "not-nimble" }] }, response = answer, status = 200, raw } = {}) {
+async function fixture({ tags = { models: [{ name: "nimble:latest" }, { name: "tev1" }, { name: "tev1:0.8b" }, { name: "org/nimble:9b-int4" }, { name: "clef-flash" }, { name: "reasoner-pro" }, { name: "not-nimble" }] }, response = answer, status = 200, raw } = {}) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-decide-"));
   cleanups.push(() => rm(dir, { recursive: true, force: true }));
   const file = path.join(dir, "input.json");
@@ -69,7 +69,7 @@ async function fixture({ tags = { models: [{ name: "nimble:latest" }, { name: "t
   const writeInput = (text) => writeFile(file, text);
   const writeInputJson = (value) => writeFile(file, JSON.stringify(value));
 
-  return { file, requests, invoke, writeInput, writeInputJson };
+  return { dir, file, requests, invoke, writeInput, writeInputJson };
 }
 
 test("models identifies documented families without labeling generic reasoners as compatible", async () => {
@@ -78,7 +78,7 @@ test("models identifies documented families without labeling generic reasoners a
   assert.equal(result.status, 0, result.stderr);
   const [candidates, all] = result.stdout.split("ALL MODELS:");
 
-  for (const name of ["nimble:latest", "tev1", "tev1:0.8b", "org/nimble:9b-int4"]) assert.ok(candidates.includes(`- ${name}`));
+  for (const name of ["nimble:latest", "tev1", "tev1:0.8b", "org/nimble:9b-int4", "clef-flash"]) assert.ok(candidates.includes(`- ${name}`));
   assert.match(candidates, /heuristic, not capability verification/);
   assert.ok(!candidates.includes("reasoner-pro"));
   assert.ok(!candidates.includes("not-nimble"));
@@ -102,6 +102,53 @@ test("text state and null choice descriptions are supported", async () => {
   const result = await invoke(["run", "--model", "custom-decision", "--input", file]);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(requests[0].body, { model: "custom-decision", ...value });
+});
+
+test("images are read from disk and base64-encoded into the SystemOne request", async () => {
+  const response = { answers: { food: { type: "choice", choice: "hotdog", probabilities: { hotdog: 0.94, taco: 0.06 }, confidence: 0.91 } } };
+  const { dir, file, invoke, requests, writeInputJson } = await fixture({ response });
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await writeFile(path.join(dir, "photo.png"), png);
+  const value = { state: "A photo is attached.", questions: { food: { type: "choice", instructions: "Is this a hotdog or taco?", criteria: { hotdog: "sausage in a bun", taco: null } } }, images: ["photo.png"] };
+  await writeInputJson(value);
+  const result = await invoke(["run", "--model", "clef-flash", "--input", file]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), response);
+  assert.deepEqual(requests[0].body, { model: "clef-flash", ...value, images: [png.toString("base64")] });
+});
+
+test("state may be omitted when images are present", async () => {
+  const response = { answers: { safe: { type: "noul", noul: 0.97 } } };
+  const { dir, file, invoke, requests, writeInputJson } = await fixture({ response });
+  await writeFile(path.join(dir, "photo.png"), Buffer.from("fake-png-bytes"));
+
+  await writeInputJson({ questions: { safe: { type: "noul", instructions: "Does the image show food?" } }, images: [path.join(dir, "photo.png")] });
+  const result = await invoke(["run", "--model", "clef-flash", "--input", file]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(requests[0].body, { model: "clef-flash", state: "", questions: { safe: { type: "noul", instructions: "Does the image show food?" } }, images: [Buffer.from("fake-png-bytes").toString("base64")] });
+});
+
+test("invalid image inputs fail before making network requests", async () => {
+  const { dir, file, invoke, requests, writeInputJson } = await fixture();
+  await writeFile(path.join(dir, "empty.png"), Buffer.alloc(0));
+  await writeFile(path.join(dir, "huge.png"), Buffer.alloc(20 * 1024 * 1024 + 1));
+  const questions = { food: { type: "choice", instructions: "Choose", criteria: { a: null, b: null } } };
+
+  for (const images of ["photo.png", [], [""], ["missing.png"], ["empty.png"], ["huge.png"], Array(11).fill("photo.png"), [null]]) {
+    await writeInputJson({ state: "text", questions, images });
+    const result = await invoke(["run", "--model", "clef-flash", "--input", file]);
+    assert.equal(result.status, 1, JSON.stringify(images));
+    assert.match(result.stderr, /decide:/);
+  }
+
+  await writeInputJson({ questions });
+  assert.equal((await invoke(["run", "--model", "clef-flash", "--input", file])).status, 1);
+
+  await writeInputJson({ state: "text", questions, images: ["huge.png"] });
+  const oversized = await invoke(["run", "--model", "clef-flash", "--input", file]);
+  assert.equal(oversized.status, 1);
+  assert.match(oversized.stderr, /exceeds 20971520 bytes/);
+  assert.deepEqual(requests, []);
 });
 
 test("invalid CLI arguments fail before making network requests", async () => {

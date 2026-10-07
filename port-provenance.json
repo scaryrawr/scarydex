@@ -17,7 +17,7 @@
       "source": "https://ollama.com/blog/ollama-now-supports-jev-style-decision-models",
       "api": "POST /v1/systemone with state, typed questions, and structured answers; GET /api/tags for discovery"
     },
-    "port_notes": "Original Codex skill and dependency-free Node helper based on the September 29, 2026 Ollama announcement. Preserves choice, noul, and score semantics. No generative-chat fallback or host extensions."
+    "port_notes": "Original Codex skill and dependency-free Node helper based on the September 29, 2026 Ollama announcement. Preserves choice, noul, and score semantics. Version 0.2.0 adds vision image input (top-level `images`, base64) for the `clef` family such as `clef-flash`, matching Ollama's decision/types.go and decision/clef.go; videos remain unsupported. No generative-chat fallback or host extensions."
   },
   "riverkids": {
     "upstream": {

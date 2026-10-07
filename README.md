@@ -11,7 +11,7 @@ plugins, primarily as skills with bundled script helpers:
 | `digivolution` | Evidence-triggered post-task repository-guidance reflection | Skill + Codex command hooks; Node.js |
 | `omlx-media` | Local images, speech, transcription, and recording-to-document workflows | Skills + self-contained Node helper; optional Python helpers |
 | `screen-record` | Screen capture, demo editing, captions, and narration | Skill + Node helper + FFmpeg |
-| `decide` | Typed choices, probabilities, and scores with Ollama SystemOne decision models | Skill + self-contained Node helper |
+| `decide` | Typed choices over text or images, probabilities, and scores with Ollama SystemOne decision models | Skill + self-contained Node helper |
 | `riverkids` | RiverKids coverage briefs from Slack requests plus Planning Center schedules and rosters | Skill; uses the Slack and Planning Center MCPs |
 
 `anti-slop` keeps the source plugin’s canonical name (the requested “antislop”).
