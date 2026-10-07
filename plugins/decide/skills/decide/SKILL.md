@@ -1,6 +1,6 @@
 ---
 name: decide
-description: Use Ollama's Jev-style SystemOne decision models to classify supplied context, choose among explicit options, estimate yes-or-no probabilities, or score ordered criteria. Use for decision-model discovery, ticket triage, model routing, moderation, or explicit requests to use decide. Not for general chat reasoning, factual questions, or open-ended advice without a typed decision task.
+description: Use Ollama's Jev-style SystemOne decision models to classify supplied text or images, choose among explicit options, estimate yes-or-no probabilities, or score ordered criteria. Use for decision-model discovery, ticket triage, model routing, image classification, moderation, or explicit requests to use decide. Not for general chat reasoning, factual questions, or open-ended advice without a typed decision task.
 ---
 
 # Decide with Ollama
@@ -29,19 +29,35 @@ not diagnose a blocked request as Ollama being down, and do not fall back to
 node scripts/decide.mjs models
 ```
 
-The helper lists installed models and highlights the documented `nimble` and
-`tev1` families, including `tev1:0.8b`. Name matching is only a heuristic.
+The helper lists installed models and highlights the documented `nimble`,
+`tev1`, and `clef` families, including `tev1:0.8b` and the vision-capable
+`clef-flash`. Name matching is only a heuristic.
 Do not assume a general chat or reasoning model supports SystemOne. Ask the user
 to choose among available compatible models if the choice is unclear.
 
-If no compatible model is installed, explain how to pull `nimble` or `tev1`.
+If no compatible model is installed, explain how to pull `nimble`, `tev1`, or
+`clef-flash`.
 Do not download models or install dependencies without authorization.
 `OLLAMA_BASE_URL` selects a different endpoint. Confirm that sending the supplied
 context there is appropriate, especially for private data.
 
+## Decide with images
+
+Only vision decision models accept images. `clef-flash` is the current
+vision-capable decision model; Ollama reports `decision` and `vision` in its
+capabilities, and the server rejects `images` for every other decision model.
+Videos are not supported anywhere.
+
+Add an optional `images` array of 1-10 local image file paths, each 20 MiB or
+smaller, alongside `state` and `questions`. The helper reads the files and sends
+them as base64 strings in the request's top-level `images` field. Omit `state`
+or leave it empty only when images carry the context, such as a photo
+classification question. Run with `--model clef-flash`.
+
 ## Run a typed decision
 
-1. Gather the supplied context and define the questions. For a `choice`, name
+1. Gather the supplied context and define the questions. With an image decision,
+   reference the local image paths in `images`. For a `choice`, name
    the alternatives and describe what each means. For `noul`, ask a yes-or-no
    question. For `score`, provide ordered labels from low to high.
    Both `choice` and `score` require 2–26 criteria.
