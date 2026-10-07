@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFile } from "node:fs/promises";
+import { open, readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 
 const DEFAULT_OLLAMA_URL = "http://localhost:11434";
@@ -59,12 +59,17 @@ async function parseDecisionInput(text) {
   }
   const images = [];
   for (const file of input.images ?? []) {
-    let bytes;
-    try { bytes = await readFile(file); }
+    let handle;
+    try { handle = await open(file); }
     catch { throw new Error(`Image file is unreadable: ${file}`); }
-    if (bytes.length === 0) throw new Error(`Image file is empty: ${file}`);
-    if (bytes.length > MAX_IMAGE_BYTES) throw new Error(`Image file exceeds ${MAX_IMAGE_BYTES} bytes: ${file}`);
-    images.push(bytes.toString("base64"));
+    try {
+      const { size } = await handle.stat();
+      if (size === 0) throw new Error(`Image file is empty: ${file}`);
+      if (size > MAX_IMAGE_BYTES) throw new Error(`Image file exceeds ${MAX_IMAGE_BYTES} bytes: ${file}`);
+      images.push((await handle.readFile()).toString("base64"));
+    } finally {
+      await handle.close();
+    }
   }
   if (!hasState && images.length === 0) throw new Error("Input must contain state (text or an object) or images.");
   for (const [name, question] of Object.entries(input.questions)) {

@@ -42,9 +42,10 @@ name, including tags and hyphen-suffixed names such as `clef-flash`. This is a
 heuristic, not a capability check. Custom compatible models can
 be selected explicitly with `--model`.
 
-The `run` command reads a JSON file containing `state`, optional `images`
-(local image file paths for vision models such as `clef-flash`), and named
-`questions`, then prints the full SystemOne response as JSON. It preserves probabilities,
+The `run` command reads a JSON file containing named `questions` plus `state`
+and/or `images` — `state` may be omitted or empty only when `images` (local
+image file paths for vision models such as `clef-flash`) carry the context —
+then prints the full SystemOne response as JSON. It preserves probabilities,
 confidence, score legends, and usage. Invalid inputs, HTTP failures, and malformed
 answers produce a nonzero exit status.
 

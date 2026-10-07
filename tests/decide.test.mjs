@@ -115,8 +115,9 @@ test("state may be omitted when images are present", async () => {
 test("invalid image inputs fail before making network requests", async () => {
   const { dir, file, invoke, requests, writeInput } = await fixture();
   await writeFile(path.join(dir, "empty.png"), Buffer.alloc(0));
+  await writeFile(path.join(dir, "huge.png"), Buffer.alloc(20 * 1024 * 1024 + 1));
   const questions = { food: { type: "choice", instructions: "Choose", criteria: { a: null, b: null } } };
-  for (const images of ["photo.png", [], [""], ["missing.png"], ["empty.png"], Array(11).fill("photo.png"), [null]]) {
+  for (const images of ["photo.png", [], [""], ["missing.png"], ["empty.png"], ["huge.png"], Array(11).fill("photo.png"), [null]]) {
     await writeInput({ state: "text", questions, images });
     const result = await invoke(["run", "--model", "clef-flash", "--input", file]);
     assert.equal(result.status, 1, JSON.stringify(images));
@@ -124,6 +125,10 @@ test("invalid image inputs fail before making network requests", async () => {
   }
   await writeInput({ questions });
   assert.equal((await invoke(["run", "--model", "clef-flash", "--input", file])).status, 1);
+  await writeInput({ state: "text", questions, images: ["huge.png"] });
+  const oversized = await invoke(["run", "--model", "clef-flash", "--input", file]);
+  assert.equal(oversized.status, 1);
+  assert.match(oversized.stderr, /exceeds 20971520 bytes/);
   assert.deepEqual(requests, []);
 });
 
