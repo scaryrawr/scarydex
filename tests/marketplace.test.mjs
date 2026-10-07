@@ -110,6 +110,14 @@ test("dependency availability is tracked per step, not per job", () => {
   assert.deepEqual([...job([{ run: `bun install && echo ok || ${helper}` }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: `bun install & ${helper}` }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: `bun install | tee install.log\n${helper}` }])], ["tools/upstream-sync.mjs"]);
+  // `|&` is a pipeline too: it splits commands the same way `|` does, so an install
+  // written on the left of it still cannot be credited to the step that follows.
+  assert.deepEqual([...job([{ run: `bun install |& tee install.log\n${helper}` }])], ["tools/upstream-sync.mjs"]);
+  // A short-circuit can skip the install entirely. `true` exits 0, so the shell never
+  // runs the right-hand operand and the helper that follows runs with no dependencies;
+  // the skipped operand's success has to survive the `||` for this to be modelled.
+  assert.deepEqual([...job([{ run: `true || bun install\n${helper}` }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: `false && bun install\n${helper}` }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: `(bun install)\n${helper}` }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: "bun install", "continue-on-error": true }, { run: helper }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: install }, { run: helper, if: "always()" }])], ["tools/upstream-sync.mjs"]);
@@ -125,9 +133,28 @@ test("dependency availability is tracked per step, not per job", () => {
   assert.deepEqual([...job([{ run: "bun install > /dev/null 2>&1\n" + helper }])], []);
   assert.deepEqual([...job([{ run: `bun install\necho '&& ; | &'\n${helper}` }])], []);
   assert.deepEqual([...job([{ run: install }, { run: helper, if: "success()" }])], []);
-  // A quoted `||` is text, not control: reading it as control would reopen the install's
-  // failing world and wrongly flag the helper.
-  assert.deepEqual([...job([{ run: "bun install && echo " + "'" + "ok || fallback" + "'" + "\n" + helper }])], []);
+  // What `&&` does not prove: bash forgives the failure of a list that short-circuited,
+  // so when the install is followed by `&&` and the helper waits on a later line, the
+  // helper really does run with nothing installed. Quoted operators stay text.
+  assert.deepEqual([...job([{ run: "bun install && echo " + "'" + "ok || fallback" + "'" + "\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  // An install that gates the helper is proof: the helper runs only in the worlds where
+  // the install exited 0.
+  assert.deepEqual([...job([{ run: install + " && " + helper }])], []);
+
+  // Certain exit statuses make a skip provable: a gated helper behind `false` or `exit 1`
+  // never runs, so it needs no exemption; a helper after `exit 0` runs with nothing
+  // installed and is scanned.
+  assert.deepEqual([...job([{ run: "false && " + helper }])], []);
+  assert.deepEqual([...job([{ run: "exit 1 && " + helper }])], []);
+  assert.deepEqual([...job([{ run: "exit 0" + "\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  // A step that ends with no world still able to succeed proves no install, so the next
+  // step is scanned rather than vacuously credited.
+  assert.deepEqual([...job([{ run: "false" }, { run: helper }])], ["tools/upstream-sync.mjs"]);
+
+  // Operators inside quotes are arguments, not control: splitting on them would invent a
+  // short-circuit that the shell never sees.
+  assert.deepEqual([...job([{ run: install + " '&& exit 1'" + "\n" + helper }])], []);
+  assert.deepEqual([...job([{ run: install + " \"|| exit 1\"" + "\n" + helper }])], []);
 });
 
 const SINGLE = String.fromCharCode(10);

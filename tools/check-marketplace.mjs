@@ -194,6 +194,10 @@ const INSTALLS_DEPENDENCIES = /^[ \t]*(?:bun|npm)[ \t]+(?:install|ci)\b/;
 // so it never supplies a helper's dependencies however early it appears in the script.
 const INSTALLS_ELSEWHERE = /(?:^|[ \t])(?:-g|-G|--global|--global-style|--link|--location|--prefix|--no-install)(?:[ \t=]|$)/;
 
+// Operators that run their right-hand side beside or after the left without waiting for it
+// to land, so an install written there cannot be credited to the command that follows.
+const PIPELINE = new Set(["|", "&", "|&"]);
+
 // Split one script into commands, each paired with the operator that *follows* it, so the
 // guard can ask how an install hands over to the command after it. Quotes, command
 // substitutions, redirections such as `2>&1` and `&>`, and comments are respected, which keeps
@@ -597,14 +601,15 @@ export async function dependencyFreeClosure(root, entrypoints) {
 }
 
 // Whether a helper can run without the repository's dependencies is decided by the worlds each
-// command executes in, not by textual order. Each world is a two-character key: whether the
-// dependencies are installed, and whether the commands so far exited 0. `live` worlds keep
-// running, `pending` worlds were short-circuited by a failing `&&` and get work again at the
-// next `||` — which is how `bun install && echo ok || node tools/x.mjs` reaches the helper
-// with nothing installed — and `dead` worlds were ended by a `;` or newline under the `bash -e`
-// shell GitHub Actions gives `run:` steps, so they only reach a later step when this step is
-// `continue-on-error`. A step gated on `always()`, `failure()`, or `cancelled()` runs in the
-// worlds where earlier steps failed, so it starts with nothing installed.
+// command executes in, not by textual order. A world is a two-character key: whether the
+// dependencies are installed, and whether the commands so far exited 0. `group` is the AND-OR
+// list's value so far and `nextOn` says which of those worlds run the next command — `&&` runs
+// the successes, `||` the failures — while the worlds that skip an operand carry their status
+// across it, so `true || bun install` skips the install and the helper that follows still runs
+// with nothing installed. `dead` worlds were ended by a sequential boundary under the `bash -e`
+// shell GitHub Actions gives `run:` steps, and they reach a later step only when this step is
+// `continue-on-error`. A step gated on `always()`, `failure()`, or `cancelled()` also runs in
+// the worlds where earlier steps failed, so it starts with nothing installed.
 const HELPERS_IN_COMMAND = /node\s+(\S*tools\/[^\s`']+\.mjs)|GITHUB_WORKSPACE}\/(tools\/[^\s`']+\.mjs)/g;
 
 const world = (deps, ok) => `${deps ? "1" : "0"}${ok ? "1" : "0"}`;
@@ -613,26 +618,40 @@ const installedIn = key => key[0] === "1";
 
 const exitedOk = key => key[1] === "1";
 
+// The status a command is certain to report, or `null` when any exit code is possible.
+// `true`, `false`, and `exit N` are fixed; a bare `exit` forwards the previous status,
+// and every real command could fail or succeed, so only the fixed ones are provable.
+function constantStatus(text) {
+  if (text === "true") return true;
+
+  if (text === "false") return false;
+
+  const exit = /^exit[ \t]+([0-9]+)$/.exec(text);
+
+  return exit ? Number(exit[1]) === 0 : null;
+}
+
 export function standAloneHelpers(lock) {
   const files = new Set();
 
   for (const job of Object.values(lock.jobs ?? {})) {
     const steps = job.steps ?? [];
 
-    // Dependencies the next step may rely on: an install hands them over only in the worlds
-    // where it exited 0, so global and relocated installs, `||`/`|`/`&` branches, a
-    // `continue-on-error` install, and any helper written before the install keep that helper
+    // Dependencies the next step may rely on: an install reaches a helper only through the
+    // worlds where it ran and exited 0, so global and relocated installs, `||`/`|`/`&`/`|&`
+    // branches, a `continue-on-error` install, and any helper written before the install stay
     // in the dependency-free set.
     let installed = false;
 
     for (const step of steps) {
       const script = `${step.run ?? ""}\n${step.with?.script ?? ""}`;
       const runsAfterEarlierFailure = /(?:always|failure|cancelled)\(\)/.test(String(step.if ?? ""));
-      let live = installed ? [world(true, true), ...(runsAfterEarlierFailure ? [world(false, true)] : [])] : [world(false, true)];
-      let pending = [];
+      let group = [world(installed, true), ...(runsAfterEarlierFailure ? [world(false, true)] : [])];
+      let nextOn = "always";
       let dead = [];
       let errexit = true;
       let relocated = false;
+      let shortCircuited = false;
 
       for (const { command, operator } of splitCommands(script)) {
         const text = command.trim();
@@ -641,38 +660,62 @@ export function standAloneHelpers(lock) {
 
         if (/^set[ \t]+(?:[+-]e|[+-]o[ \t]+errexit)$/.test(text)) errexit = !text.startsWith("set +");
 
-        if (live.some(key => !installedIn(key))) {
+        const executing = group.filter(key => nextOn === "always" || (nextOn === "ok") === exitedOk(key));
+
+        if (executing.some(key => !installedIn(key))) {
           for (const match of text.matchAll(HELPERS_IN_COMMAND)) files.add((match[1] ?? match[2]).replace(/^upstream-sync-policy\//, ""));
         }
 
-        // A `cd` moves the working directory, so from there on no install can be credited
-        // with populating the checkout's `node_modules` — the runtime may load a different
-        // directory's tree, or none. `relocated` keeps every later install unprovable.
+        // A `cd` moves the working directory, so no later install can be credited with
+        // populating the checkout's `node_modules`: the runtime may load a different tree.
         if (/^[ \t]*cd(?:[ \t]|$)/.test(text)) relocated = true;
 
-        // Any command can fail, and an install installs only in the worlds where it exits 0.
-        const installs = INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !relocated;
-        const succeeded = live.map(key => world(installs || installedIn(key), true));
-        const failed = live.map(key => world(installedIn(key), false));
+        // Any command can fail, and an install installs only in the worlds where it exits 0 —
+        // except in a pipeline or background job, where what follows sees the tree as it was.
+        const installs = INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !relocated && !PIPELINE.has(operator);
+        // A command with a certain exit status opens only the worlds it can reach.
+        const constantOk = constantStatus(text);
+
+        const outcomes = executing.flatMap(key => {
+          // An install lands only where the command exits 0, so the failing world keeps the
+          // dependency tree exactly as it found it.
+          const succeeded = world(installedIn(key) || installs, true);
+          const failed = world(installedIn(key), false);
+
+          return constantOk === null ? [succeeded, failed] : [constantOk ? succeeded : failed];
+        });
+
+        const carried = group.filter(key => !executing.includes(key));
+
+        group = outcomes.concat(carried);
+
+        // An operand the short-circuit skipped exempts the list's failure from errexit, so
+        // the script really does reach the next line with whatever never got installed.
+        if (carried.length) shortCircuited = true;
 
         if (operator === "&&") {
-          pending = failed.concat(pending);
-          live = succeeded;
+          nextOn = "ok";
         } else if (operator === "||") {
-          live = failed.concat(pending);
-          pending = [];
-        } else if (operator === "|" || operator === "&") {
-          live = live.flatMap(key => [world(installedIn(key), true), world(installedIn(key), false)]);
+          nextOn = "fail";
+        } else if (PIPELINE.has(operator)) {
+          nextOn = "always";
         } else {
-          dead = errexit ? failed.concat(pending, dead) : dead;
-          live = errexit ? succeeded : succeeded.concat(failed, pending);
-          pending = [];
+          // A list boundary ends the line: errexit ends the worlds that failed here, unless
+          // the list short-circuited and bash forgives its status.
+          if (errexit && !shortCircuited) {
+            dead = group.filter(key => !exitedOk(key)).concat(dead);
+            group = group.filter(exitedOk);
+          }
+
+          shortCircuited = false;
+          nextOn = "always";
         }
       }
 
-      const endings = live.concat(pending, dead);
+      // With no world left alive, `every` would vacuously credit an install, so require one.
+      const survivors = group.concat(dead).filter(key => exitedOk(key) || step["continue-on-error"] === true);
 
-      installed = endings.filter(key => exitedOk(key) || step["continue-on-error"] === true).every(key => installedIn(key));
+      installed = survivors.length > 0 && survivors.every(installedIn);
     }
   }
 
