@@ -83,6 +83,20 @@ test("workflow helpers executed without dependency install stay dependency-free"
 
   assert.deepEqual(findBareImports('import "@sinclair/typebox";\nimport "./local.mjs";\nimport "node:fs";'), ["@sinclair/typebox"]);
 
+  const forms = [
+    ['re-export', 'export * from "@sinclair/typebox";'],
+    ['named re-export', 'export { Value } from "@sinclair/typebox";'],
+    ['dynamic with import attributes', 'const t = await import("@sinclair/typebox", { with: { type: "json" } });'],
+    ['dynamic without await', 'const load = () => import(\'@sinclair/typebox\', { assert: { type: "json" } });'],
+    ['dynamic template literal', 'const load = async () => await import(`@sinclair/typebox`);'],
+    ['require', 'const { createRequire } = await import("node:module");\nconst require = createRequire(import.meta.url);\nrequire("@sinclair/typebox");'],
+  ];
+
+  for (const [label, source] of forms) assert.deepEqual(findBareImports(source), ["@sinclair/typebox"], `guard missed the ${label} form`);
+
+  assert.deepEqual(findBareImports('import { Value } from "@sinclair/typebox/value";\nexport { Value } from "@sinclair/typebox/value";'), ["@sinclair/typebox/value"]);
+  assert.deepEqual(findBareImports('import("./relative.mjs");\nawait import(`./template.mjs`);\nconst r = createRequire(import.meta.url)("./local.cjs");'), []);
+
   const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-bare-checkout-")); roots.push(dir);
   await mkdir(path.join(dir, "tools"), { recursive: true });
   await cp(path.join(root, "tools/upstream-sync.mjs"), path.join(dir, "tools/upstream-sync.mjs"));
@@ -114,6 +128,12 @@ test("the dependency-free guard follows relative imports transitively", async ()
 
   await write("dep.mjs", 'import { side } from "@sinclair/typebox";\nexport const side2 = side;\n');
   await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /@sinclair\/typebox/);
+
+  await write("dep.mjs", 'export const load = async () => await import("@sinclair/typebox", { with: { type: "json" } });\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /remove these bare imports: @sinclair\/typebox/);
+
+  await write("dep.mjs", 'export * from "@sinclair/typebox";\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /remove these bare imports: @sinclair\/typebox/);
 
   await write("dep.mjs", 'export const dep = "clean";\n');
   await write("cyclic-a.mjs", 'import { b } from "./cyclic-b.mjs";\nexport const a = b;\n');

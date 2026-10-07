@@ -188,14 +188,22 @@ const INSTALLS_DEPENDENCIES = /\b(?:bun|npm)\s+(?:install|ci)\b/;
 
 const MAX_DEPENDENCY_FREE_MODULES = 200;
 
+// Every form that makes the loader resolve a bare specifier: `from` (static import
+// and re-export), side-effect `import "pkg"`, and `import(...)` with or without
+// trailing arguments such as `import("pkg", { with: { type: "json" } })`. Match the
+// opening literal instead of the closing parenthesis so extra arguments cannot slip
+// past, and stay fail-closed: an interpolated template specifier is reported unless it
+// is clearly relative, because the guard cannot prove the resolved target is local.
 export function findImports(source) {
   const patterns = [
     /\bfrom\s*["']([^"']+)["']/g,
-    /^\s*import\s*["']([^"']+)["']/gm,
-    /\bimport\(\s*[`"']([^`"']+)[`"']\s*\)/g,
+    /\bimport\s+["']([^"']+)["']/g,
+    /\bimport\(\s*["']([^"']+)["']/g,
+    /\bimport\(\s*`([^`]*)`/g,
+    /\brequire\(\s*["']([^"']+)["']/g,
   ];
 
-  return patterns.flatMap(pattern => [...source.matchAll(pattern)].map(match => match[1]));
+  return [...new Set(patterns.flatMap(pattern => [...source.matchAll(pattern)].map(match => match[1])))];
 }
 
 export function findBareImports(source) {

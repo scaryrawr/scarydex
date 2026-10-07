@@ -50,10 +50,12 @@ optional `uv`.
 checkouts that never install dependencies, so it imports only `node:` builtins and
 relative paths. `bun run check` derives those install-free jobs from
 `upstream-sync.lock.yml`, walks the transitive relative-import closure of every
-`.mjs` entrypoint they execute, and fails on any bare package import, including
-side-effect (`import "pkg"`) and dynamic forms. TypeBox belongs
-to code that runs after `bun install` (`tools/check-marketplace.mjs`, tests) and to
-sources that esbuild inlines into the shipped bundles.
+`.mjs` entrypoint they execute, and fails on any bare package import in every loader
+form: static, re-export (`export * from "pkg"`), side-effect (`import "pkg"`),
+dynamic (`import("pkg")`, including trailing import attributes), and `require(...)`.
+TypeBox belongs to code that runs after `bun install`
+(`tools/check-marketplace.mjs`, tests) and to sources that esbuild inlines into the
+shipped bundles.
 
 Codex hooks use PascalCase lifecycle names, snake_case event payload fields,
 and event-specific JSON output. `apply_patch` input is `tool_input.command`.
