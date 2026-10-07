@@ -91,6 +91,14 @@ test("dependency availability is tracked per step, not per job", () => {
   // runs before the install is still scanned.
   assert.deepEqual([...job([{ run: helper }, { run: install }, { run: "node tools/other.mjs" }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: `set -e; ${install} && ${helper}` }])], []);
+  // Ordering also matters *within* a single script: a helper that runs before the install
+  // in the same step had no dependencies available.
+  assert.deepEqual([...job([{ run: "node tools/upstream-sync.mjs\nbun install --frozen-lockfile" }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "bun install --frozen-lockfile\nnode tools/upstream-sync.mjs" }])], []);
+  assert.deepEqual([...job([{ run: "node tools/upstream-sync.mjs && bun install" }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "bun install && node tools/upstream-sync.mjs" }])], []);
+  assert.deepEqual([...job([{ run: "set -e; bun install; node tools/upstream-sync.mjs" }])], []);
+  assert.deepEqual([...job([{ run: "bun install", }, { run: "node tools/upstream-sync.mjs\nnode tools/other.mjs" }])], []);
 });
 
 test("workflow helpers executed without dependency install stay dependency-free", async () => {
@@ -334,6 +342,15 @@ test("the dependency-free guard follows relative imports transitively", async ()
   assert.deepEqual(await dependencyFreeClosure(dir, ["cyclic-a.mjs"]), ["cyclic-a.mjs", "cyclic-b.mjs"]);
 
   await assert.rejects(dependencyFreeClosure(dir, ["missing.mjs"]), /Unresolved import "missing\.mjs"/);
+
+  // Node's ESM loader does not append extensions, so an extensionless relative import must
+  // not resolve to a sibling file the runtime could never load.
+  await write("dep.mjs", 'export const dep = "clean";\n');
+  await write("entry.mjs", 'import { dep } from "./dep";\nexport const go = dep;\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep has no file extension; Node's ESM loader does not append one/);
+
+  await write("entry.mjs", 'import { dep } from "./dep.mjs";\nexport const go = dep;\n');
+  assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["dep.mjs", "entry.mjs"]);
 });
 
 test("the shipped workflow entrypoint closure is dependency-free", async () => {

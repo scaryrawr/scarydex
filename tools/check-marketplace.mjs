@@ -186,9 +186,9 @@ export async function validateRepoSkills(root) {
   return skills;
 }
 
-// Anchored to the start of a command, so an `echo bun install` or a comment mentioning
-// an install does not read as one.
-const INSTALLS_DEPENDENCIES = /(?:^|[;&|]\s*)(?:bun|npm)(?:-g|-global)?\s+(?:install|ci)\b/m;
+// Matched against a single command anchored at its start, so `echo bun install` and
+// comments mentioning an install do not read as one.
+const INSTALLS_DEPENDENCIES = /^[ \t]*(?:bun|npm)(?:-g|-global)?[ \t]+(?:install|ci)\b/;
 
 const MAX_DEPENDENCY_FREE_MODULES = 200;
 
@@ -377,17 +377,18 @@ export function findComputedImports(source, file = "module.mjs") {
 }
 
 async function readModule(root, file, specifier) {
-  const candidates = path.extname(file) ? [file] : [`${file}.mjs`, `${file}.js`];
+  // Node's ESM loader does not append extensions, so neither does this resolver. Guessing
+  // `${file}.mjs` here approved `import "./dep"` even though the bare-checkout runtime
+  // fails it with ERR_MODULE_NOT_FOUND while `dep.mjs` sits right there on disk.
+  if (!path.extname(file)) throw new Error(`${file} has no file extension; Node's ESM loader does not append one, so install-free workflow helpers must be imported by their exact path with an explicit .mjs`);
 
-  for (const candidate of candidates) {
-    try {
-      return { file: candidate, source: await readFile(path.join(root, candidate), "utf8") };
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
+  try {
+    return { file, source: await readFile(path.join(root, file), "utf8") };
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+
+    throw new Error(`Unresolved import "${specifier}" from ${file}; install-free workflow jobs cannot load it`);
   }
-
-  throw new Error(`Unresolved import "${specifier}" from ${file}; install-free workflow jobs cannot load it`);
 }
 
 export async function dependencyFreeClosure(root, entrypoints) {
@@ -438,20 +439,26 @@ export function standAloneHelpers(lock) {
   for (const job of Object.values(lock.jobs ?? {})) {
     const steps = job.steps ?? [];
 
-    // Dependency availability is a property of the *step*, not the job: a later install
-    // does not retroactively supply dependencies to a helper that already ran, and an
-    // install only excuses the steps that follow it.
+    // Dependency availability is a property of the *command*, not the job or even the
+    // step: `node tools/x.mjs` followed by `bun install` in one script ran with no
+    // dependencies, so installs and invocations are consumed in source order.
     let installed = false;
 
     for (const step of steps) {
       const script = `${step.run ?? ""}\n${step.with?.script ?? ""}`;
 
-      if (!installed && INSTALLS_DEPENDENCIES.test(script)) installed = true;
+      for (const command of script.split(/[;&|\n]+/)) {
+        if (INSTALLS_DEPENDENCIES.test(command.trim())) {
+          installed = true;
 
-      if (installed) continue;
+          continue;
+        }
 
-      for (const match of script.matchAll(/node\s+(\S*tools\/[^\s`']+\.mjs)|GITHUB_WORKSPACE}\/(tools\/[^\s`']+\.mjs)/g)) {
-        files.add((match[1] ?? match[2]).replace(/^upstream-sync-policy\//, ""));
+        if (installed) continue;
+
+        for (const match of command.matchAll(/node\s+(\S*tools\/[^\s`']+\.mjs)|GITHUB_WORKSPACE}\/(tools\/[^\s`']+\.mjs)/g)) {
+          files.add((match[1] ?? match[2]).replace(/^upstream-sync-policy\//, ""));
+        }
       }
     }
   }
