@@ -184,6 +184,48 @@ test("dependency availability is tracked per step, not per job", () => {
   // that follows it and re-credit an install written inside that block.
   assert.deepEqual([...job([{ run: "}" + "\n" + "if true; then\nbun install\nfi\n" + helper }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: install + " \"|| exit 1\"" + "\n" + helper }])], []);
+  // A heredoc body goes to the command's standard input as data, so an install written there
+  // never ran. `bash -c 'cat > /tmp/hd_out <<"EOF"\ntouch /tmp/hd_marker\nEOF'` leaves the
+  // marker absent while writing the text to the file, so the helper after it is still flagged.
+  assert.deepEqual([...job([{ run: "cat <<'EOF'\nbun install\nEOF\n" + helper }])], ["tools/upstream-sync.mjs"]);
+
+  // The delimiter may be unquoted and named after whitespace, which is what the shipped
+  // workflow does with `cat > "$FILE" << GH_AW_MCP_CONFIG_..._EOF`; it is still a heredoc.
+  assert.deepEqual([...job([{ run: "cat > /tmp/cfg.toml << GH_AW_EOF\nbun install\nGH_AW_EOF\n" + helper }])], ["tools/upstream-sync.mjs"]);
+
+  // `<<-` strips leading tabs before matching its terminator, so an indented body is data.
+  assert.deepEqual([...job([{ run: "cat <<-EOF\n\tbun install\n\tEOF\n" + helper }])], ["tools/upstream-sync.mjs"]);
+
+  // An unterminated heredoc is a shell syntax error that proves nothing, so it is refused
+  // rather than leaving its body to be read as commands.
+  assert.throws(() => job([{ run: "cat <<EOF\nbun install\n" + helper }]), /never terminated/);
+
+  // `<<<` is a herestring with no terminating line, so it must not be mistaken for a heredoc
+  // nor swallow the rest of the script; the helper on that line is still flagged.
+  assert.deepEqual([...job([{ run: helper + " <<< data" }])], ["tools/upstream-sync.mjs"]);
+
+  // An unquoted delimiter lets bash expand `$(...)` within the body, and it really does: the
+  // unquoted form runs the substitution while the quoted form prints it literally.
+  assert.deepEqual([...job([{ run: "cat <<EOF\n$(" + helper + ")\nEOF" }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "cat <<'EOF'\n$(" + helper + ")\nEOF" }])], []);
+
+  // Runtime flags sit between the interpreter and its entrypoint, so word boundaries decide
+  // what a `node` invocation names rather than one pattern that cannot cross the space.
+  assert.deepEqual([...job([{ run: "node --no-warnings tools/upstream-sync.mjs" }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "node --import tsx tools/upstream-sync.mjs" }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: 'node "${GITHUB_WORKSPACE}/tools/upstream-sync.mjs"' }])], ["tools/upstream-sync.mjs"]);
+
+  // Two entrypoints are two helpers, and neither may collapse into the last one the way a
+  // greedy pattern would; a quoted path names a helper just as plainly as a bare one.
+  assert.deepEqual([...job([{ run: "node tools/upstream-sync.mjs tools/other.mjs" }])].sort(), ["tools/other.mjs", "tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: 'node "tools/upstream-sync.mjs" --verify' }])], ["tools/upstream-sync.mjs"]);
+
+  // Naming a helper is not running it: outside a `node` invocation the path is only text.
+  assert.deepEqual([...job([{ run: 'cat tools/upstream-sync.mjs' }])], []);
+  assert.deepEqual([...job([{ run: 'echo "node tools/upstream-sync.mjs"' }])], []);
+
+  // A flag in front of the entrypoint does not revive a helper the install already supplied.
+  assert.deepEqual([...job([{ run: install + "\nnode --no-warnings tools/upstream-sync.mjs" }])], []);
 });
 
 const SINGLE = String.fromCharCode(10);

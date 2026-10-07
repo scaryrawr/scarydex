@@ -234,11 +234,13 @@ function splitCommands(script) {
   let command = "";
   let quote = null;
   let substitutions = 0;
+  let heredocs = [];
 
   const flush = operator => {
-    commands.push({ command, operator });
+    commands.push({ command, operator, heredocs: heredocs.slice(0) });
 
     command = "";
+    heredocs = [];
   };
 
   for (let index = 0; index < script.length; index++) {
@@ -283,6 +285,62 @@ function splitCommands(script) {
 
       if (character === "(") substitutions++;
       else if (character === ")") substitutions--;
+
+      continue;
+    }
+
+    // A heredoc feeds its body to the command's standard input as data, so the body is read
+    // through its terminating line instead of being split into commands: a `bun install`
+    // written there never ran, and crediting it would hide a helper that follows. A third `<`
+    // makes this a `<<<` herestring, which has no terminating line and is not a heredoc. An
+    // unquoted delimiter lets bash expand `$(...)` within the body, so that body is kept and
+    // scanned for helper references even though its own lines are never commands; a quoted one
+    // runs nothing and is dropped. An unterminated heredoc is a shell syntax error that proves
+    // nothing, so it fails loudly instead of leaving its body to be read as commands.
+    if (character === "<" && script[index + 1] === "<" && script[index + 2] !== "<" && script[index - 1] !== "<") {
+      const dash = script[index + 2] === "-";
+      let cursor = index + 2 + (dash ? 1 : 0);
+
+      // `<< WORD` names the delimiter after whitespace, so skip it before reading the word.
+      while (/[ \t]/.test(script[cursor] ?? "")) cursor++;
+
+      const literal = /^(["']?)([A-Za-z_][A-Za-z0-9_]*)\1/.exec(script.slice(cursor));
+
+      if (!literal) throw new Error(`heredoc at offset ${cursor} has no readable delimiter`);
+
+      const delimiter = literal[2];
+      const bodyStart = cursor + literal[0].length;
+      const expandable = literal[1] === "";
+
+      command += script.slice(index, bodyStart);
+
+      let end = script.length;
+      let search = bodyStart;
+      let terminated = false;
+
+      while (search <= script.length) {
+        const lineEnd = script.indexOf('\n', search);
+        const stop = lineEnd === -1 ? script.length : lineEnd;
+        const line = dash ? script.slice(search, stop).replace(/^[ \t]+/, "") : script.slice(search, stop);
+
+        if (line === delimiter) {
+          terminated = true;
+          end = stop;
+
+          break;
+        }
+
+        if (lineEnd === -1) break;
+
+        search = lineEnd + 1;
+      }
+
+      if (!terminated) throw new Error(`heredoc ${delimiter} is never terminated`);
+
+      if (expandable) heredocs.push(script.slice(bodyStart, end));
+
+      // Land on the terminator's newline so the operator after the heredoc is still seen.
+      index = end - 1;
 
       continue;
     }
@@ -636,7 +694,113 @@ export async function dependencyFreeClosure(root, entrypoints) {
 // shell GitHub Actions gives `run:` steps, and they reach a later step only when this step is
 // `continue-on-error`. A step gated on `always()`, `failure()`, or `cancelled()` also runs in
 // the worlds where earlier steps failed, so it starts with nothing installed.
-const HELPERS_IN_COMMAND = /node\s+(\S*tools\/[^\s`']+\.mjs)|GITHUB_WORKSPACE}\/(tools\/[^\s`']+\.mjs)/g;
+// Split a command into words the way the shell groups them, so a flag's own value and a
+// quoted path stay one word and a space inside quotes does not look like a word boundary.
+function words(text) {
+  const list = [];
+
+  let word = "";
+  let quote = null;
+
+  for (let index = 0; index < text.length; index++) {
+    const character = text[index];
+
+    if (quote) {
+      if (character === "\\" && quote !== "'") word += text[++index] ?? "";
+      else if (character === quote) quote = null;
+      else word += character;
+
+      continue;
+    }
+
+    if (character === "'" || character === '"') {
+      quote = character;
+    } else if (character === "\\") {
+      word += text[++index] ?? "";
+    } else if (/[ \t\n]/.test(character)) {
+      if (word) list.push(word);
+
+      word = "";
+    } else {
+      word += character;
+    }
+  }
+
+  if (word) list.push(word);
+
+  return list;
+}
+
+// The helpers a `node` invocation names. Word boundaries, not a single regex, decide this:
+// `node --no-warnings tools/x.mjs` and `node --import tsx tools/x.mjs` put the entrypoint
+// after a space, which one greedy pattern either misses or captures only the last of several
+// paths, so every word after the interpreter is asked instead. A leading `${GITHUB_WORKSPACE}`
+// or a relocated checkout directory names the same helper, and `node -e`/`--eval` inline code
+// cannot name an entrypoint word, so it stays a known boundary.
+// The command bodies a string hands to the shell to run: balanced `$(...)` groups and the
+// text between backticks. Bash expands these before the outer command runs, so whatever a
+// `node` names inside one really executes.
+function commandSubstitutions(text) {
+  const found = [];
+
+  for (let index = 0; index < text.length - 1; index++) {
+    if (text[index] !== "$" || text[index + 1] !== "(") continue;
+
+    let cursor = index + 2;
+    let depth = 1;
+    let quote = null;
+
+    while (cursor < text.length) {
+      const character = text[cursor];
+
+      if (quote) {
+        if (character === "\\" && quote !== "'") cursor++;
+        else if (character === quote) quote = null;
+      } else if (character === "'" || character === '"') {
+        quote = character;
+      } else if (character === "(") {
+        depth++;
+      } else if (character === ")") {
+        depth--;
+
+        if (depth === 0) break;
+      }
+
+      cursor++;
+    }
+
+    if (depth === 0) found.push(text.slice(index + 2, cursor));
+
+    index = cursor;
+  }
+
+  for (let cursor = 0; cursor < text.length; cursor++) {
+    if (text[cursor] !== "`") continue;
+
+    const close = text.indexOf("`", cursor + 1);
+
+    if (close === -1) break;
+
+    found.push(text.slice(cursor + 1, close));
+
+    cursor = close;
+  }
+
+  return found;
+}
+
+function helperReferences(text) {
+  const list = words(text);
+  const start = list.indexOf("node");
+
+  const references = start === -1 ? [] : [list.slice(start + 1)
+    .filter(word => /^\S*tools\/[^ "']+\.mjs$/.test(word))
+    .map(word => word.replace(/^\$\{GITHUB_WORKSPACE\}\//, ""))];
+
+  for (const inner of commandSubstitutions(text)) references.push(helperReferences(inner));
+
+  return references.flat();
+}
 
 const world = (deps, ok) => `${deps ? "1" : "0"}${ok ? "1" : "0"}`;
 
@@ -680,7 +844,7 @@ export function standAloneHelpers(lock) {
       let shortCircuited = false;
       let blockDepth = 0;
 
-      for (const { command, operator } of splitCommands(script)) {
+      for (const { command, operator, heredocs } of splitCommands(script)) {
         const text = command.trim();
 
         if (!text) continue;
@@ -699,8 +863,12 @@ export function standAloneHelpers(lock) {
 
         const executing = group.filter(key => nextOn === "always" || (nextOn === "ok") === exitedOk(key));
 
+        // An unquoted heredoc body is not a command, but bash does expand `$(...)` written
+        // there, so a helper named inside one still runs and must be flagged.
         if (executing.some(key => !installedIn(key))) {
-          for (const match of text.matchAll(HELPERS_IN_COMMAND)) files.add((match[1] ?? match[2]).replace(/^upstream-sync-policy\//, ""));
+          for (const scan of [text].concat(heredocs)) {
+            for (const reference of helperReferences(scan)) files.add(reference.replace(/^upstream-sync-policy\//, ""));
+          }
         }
 
         // A `cd` moves the working directory, so no later install can be credited with
