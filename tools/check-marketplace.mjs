@@ -289,6 +289,22 @@ function splitCommands(script) {
       continue;
     }
 
+    // An unquoted backslash escapes the character after it, so `echo \; bun install` hands
+    // `;` to echo as an argument and separates nothing, and `\|` and `\&` name neither a
+    // pipeline nor a background job. A backslash-newline continues the line, and bash joins it
+    // without inserting a space, so `bun \` at end of line followed by `install` really is
+    // one install command. Operator detection runs on what survives, never on the escape.
+    if (character === "\\") {
+      const escaped = script[index + 1];
+
+      if (escaped === undefined) command += character;
+      else if (escaped !== "\n") command += escaped;
+
+      index++;
+
+      continue;
+    }
+
     // A heredoc feeds its body to the command's standard input as data, so the body is read
     // through its terminating line instead of being split into commands: a `bun install`
     // written there never ran, and crediting it would hide a helper that follows. A third `<`

@@ -226,6 +226,25 @@ test("dependency availability is tracked per step, not per job", () => {
 
   // A flag in front of the entrypoint does not revive a helper the install already supplied.
   assert.deepEqual([...job([{ run: install + "\nnode --no-warnings tools/upstream-sync.mjs" }])], []);
+
+  // A backslash escapes the separator after it, so the separator separates nothing: bash
+  // prints `; bun install` as an argument rather than running it, proven by
+  // `bash -c 'echo \; touch /tmp/m'` leaving `m` absent. Splitting there would credit an
+  // install that never ran and drop the helper that follows from the dependency-free closure.
+  assert.deepEqual([...job([{ run: "echo \\; bun install\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "echo \\| bun install\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "echo \\& bun install\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "echo \\&& bun install\n" + helper }])], ["tools/upstream-sync.mjs"]);
+
+  // A backslash-newline continues the line, and bash joins it without a space, so an install
+  // written across the break really is one install command and does exempt the helper —
+  // `bash -c 'touch \<newline>/tmp/m'` creates the file while `echo touch \<newline>/tmp/m`
+  // does not.
+  assert.deepEqual([...job([{ run: "bun \\\ninstall\n" + helper }])], []);
+  assert.deepEqual([...job([{ run: "bun install \\\n--frozen-lockfile\n" + helper }])], []);
+
+  // The escape belongs to the helper's own arguments and does not hide the helper it runs.
+  assert.deepEqual([...job([{ run: helper + " \\; echo done" }])], ["tools/upstream-sync.mjs"]);
 });
 
 const SINGLE = String.fromCharCode(10);
