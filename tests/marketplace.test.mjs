@@ -72,6 +72,27 @@ test("broken local resources and unsupported runtime manifests are rejected", as
   await assert.rejects(validateMarketplace(dir), /Unexpected runtime/);
 });
 
+test("dependency availability is tracked per step, not per job", () => {
+  const helper = "node tools/upstream-sync.mjs";
+  const install = "bun install --frozen-lockfile";
+  const job = steps => standAloneHelpers({ jobs: { build: { steps } } });
+
+  // An install that runs after the helper cannot have supplied its dependencies.
+  assert.deepEqual([...job([{ run: helper }, { run: install }])], ["tools/upstream-sync.mjs"]);
+
+  // An install that runs before the helper does, so only that helper is exempt.
+  assert.deepEqual([...job([{ run: install }, { run: helper }])], []);
+
+  // Mentioning an install is not running one: neither a comment nor echoed text counts.
+  assert.deepEqual([...job([{ run: `# bun install\n${helper}` }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: `echo bun install\n${helper}` }])], ["tools/upstream-sync.mjs"]);
+
+  // The exemption applies to later steps within the same job, and a second helper that
+  // runs before the install is still scanned.
+  assert.deepEqual([...job([{ run: helper }, { run: install }, { run: "node tools/other.mjs" }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: `set -e; ${install} && ${helper}` }])], []);
+});
+
 test("workflow helpers executed without dependency install stay dependency-free", async () => {
   const lock = parse(await readFile(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
 
@@ -178,6 +199,21 @@ test("workflow helpers executed without dependency install stay dependency-free"
   for (const [label, source] of dynamicCode) assert.equal(scanImports(source).dynamic.length, 1, `guard missed the ${label} dynamic-code escape`);
 
   for (const [label, source] of [['arrow callback', 'setTimeout(() => console.log("tick"), 10);'], ['reduce', 'export const total = [1, 2].reduce((a, b) => a + b, 0);'], ['import.meta.url', 'export const here = import.meta.url;']]) assert.deepEqual(scanImports(source).dynamic, [], `guard reported the innocuous ${label} form as dynamic code`);
+
+  // Reflective indirection has to fail closed too: a computed name is not provably safe,
+  // and `(0, eval)` reaches the global eval through parentheses.
+  const reflective = [
+    ['computed eval name', `globalThis["ev" + "al"]('import("@scope/pkg")');`],
+    ['variable index call', `const k = "eval";\nglobalThis[k]('import("@scope/pkg")');`],
+    ['parenthesised eval', `(0, eval)('import("@scope/pkg")');`],
+    ['computed constructor', `const c = "Function";\nnew globalThis[c]("return import('@scope/pkg')");`],
+  ];
+
+  for (const [label, source] of reflective) assert.equal(scanImports(source).dynamic.length, 1, `guard missed the ${label} escape`);
+
+  // The computed-target rule must stay scoped to call and construction targets, or every
+  // ordinary indexed read in a helper would be reported as dynamic code.
+  for (const [label, source] of [['indexed reads', 'export const a = track[key];\nexport const b = match[1];\nexport const c = heads[index];'], ['callback call', 'export const go = () => obj.run(1);'], ['literal member call', 'export const go = () => obj["run"](1);']]) assert.deepEqual(scanImports(source).dynamic, [], `guard reported the ordinary ${label} form as dynamic code`);
   assert.deepEqual(scanImports('new.target.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], resolvers: [], dynamic: [] });
   assert.deepEqual(scanImports('const meta = { resolve: s => s };\nmeta.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], resolvers: [], dynamic: [] });
 

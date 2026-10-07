@@ -186,7 +186,9 @@ export async function validateRepoSkills(root) {
   return skills;
 }
 
-const INSTALLS_DEPENDENCIES = /\b(?:bun|npm)\s+(?:install|ci)\b/;
+// Anchored to the start of a command, so an `echo bun install` or a comment mentioning
+// an install does not read as one.
+const INSTALLS_DEPENDENCIES = /(?:^|[;&|]\s*)(?:bun|npm)(?:-g|-global)?\s+(?:install|ci)\b/m;
 
 const MAX_DEPENDENCY_FREE_MODULES = 200;
 
@@ -206,10 +208,13 @@ function isImportMetaResolve(expression) {
   return !ts.isStringLiteral(expression.argumentExpression) || expression.argumentExpression.text === "resolve";
 }
 
-// The name a property is reached by: `x.y`, `x["y"]`, or a bare `y`. Used to catch a
-// dynamic-code constructor however it is spelled, including through a literal element
-// access, which is the same name as the dot form.
+// The name a property is reached by: `x.y`, `x["y"]`, or a bare `y`. Parentheses are
+// unwrapped because `(0, eval)("...")` is the classic way to reach the global eval
+// indirectly. Returns "" when the name cannot be proven, which callers must treat as
+// unprovable rather than as safe.
 function accessedName(node) {
+  while (ts.isParenthesizedExpression(node)) node = node.expression;
+
   if (ts.isIdentifier(node)) return node.text;
 
   if (ts.isPropertyAccessExpression(node)) return node.name.text;
@@ -307,15 +312,33 @@ export function scanImports(source, file = "module.mjs") {
     // see the package. Aliasing is closed the same way as `require` above — by refusing
     // every reference to the name, not just direct calls. A string handed to a timer is
     // evaluated by the host the same way, so a literal there counts too.
-    const calleeName = accessedName(node);
+    const isConstruction = ts.isCallExpression(node) || ts.isNewExpression(node);
+    const callee = isConstruction ? node.expression : node;
+    const calleeName = accessedName(callee);
 
+    // Refused wherever the name appears, aliased or not, so a reference cannot be stored
+    // and called later past a target-only check.
     if (/^(?:eval|Function)$/.test(calleeName)) {
       dynamic.add(text(node));
 
       return;
     }
 
-    if ((ts.isCallExpression(node) || ts.isNewExpression(node)) && /^(?:setTimeout|setInterval)$/.test(accessedName(node.expression)) && node.arguments[0] && (ts.isStringLiteral(node.arguments[0]) || ts.isNoSubstitutionTemplateLiteral(node.arguments[0]) || ts.isTemplateExpression(node.arguments[0]))) {
+    // A computed *call* target whose name is not a literal cannot be proven safe, so it
+    // is refused: `globalThis["ev" + "al"]('import("@scope/pkg")')` passes `node --check`
+    // and then attempts the load. Scoping this to call and construction targets matters —
+    // an ordinary `track[key]` or `match[1]` read names nothing at all and must stay clean.
+    let target = callee;
+
+    while (ts.isParenthesizedExpression(target)) target = target.expression;
+
+    if (isConstruction && ts.isElementAccessExpression(target) && !ts.isStringLiteral(target.argumentExpression)) {
+      dynamic.add(text(node));
+
+      return;
+    }
+
+    if ((ts.isCallExpression(node) || ts.isNewExpression(node)) && /^(?:setTimeout|setInterval)$/.test(calleeName) && node.arguments[0] && (ts.isStringLiteral(node.arguments[0]) || ts.isNoSubstitutionTemplateLiteral(node.arguments[0]) || ts.isTemplateExpression(node.arguments[0]))) {
       dynamic.add(`${text(node.expression)}(string)`);
 
       return;
@@ -415,10 +438,17 @@ export function standAloneHelpers(lock) {
   for (const job of Object.values(lock.jobs ?? {})) {
     const steps = job.steps ?? [];
 
-    if (steps.some(step => INSTALLS_DEPENDENCIES.test(step.run ?? ""))) continue;
+    // Dependency availability is a property of the *step*, not the job: a later install
+    // does not retroactively supply dependencies to a helper that already ran, and an
+    // install only excuses the steps that follow it.
+    let installed = false;
 
     for (const step of steps) {
       const script = `${step.run ?? ""}\n${step.with?.script ?? ""}`;
+
+      if (!installed && INSTALLS_DEPENDENCIES.test(script)) installed = true;
+
+      if (installed) continue;
 
       for (const match of script.matchAll(/node\s+(\S*tools\/[^\s`']+\.mjs)|GITHUB_WORKSPACE}\/(tools\/[^\s`']+\.mjs)/g)) {
         files.add((match[1] ?? match[2]).replace(/^upstream-sync-policy\//, ""));
