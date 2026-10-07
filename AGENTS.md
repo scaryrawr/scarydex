@@ -52,7 +52,14 @@ relative paths. `bun run check` derives those install-free jobs from
 `upstream-sync.lock.yml`, walks the transitive relative-import closure of every
 `.mjs` entrypoint they execute, and fails on any bare package import in every loader
 form: static, re-export (`export * from "pkg"`), side-effect (`import "pkg"`),
-dynamic (`import("pkg")`, including trailing import attributes), and `require(...)`.
+dynamic (`import("pkg")`, including trailing arguments and import attributes),
+`import.meta.resolve("pkg")`, and `require("pkg")`. It parses the module with the
+TypeScript compiler rather than matching regexes, so trivia between tokens
+(`import /* c */ "pkg"`) counts and a package name inside a comment or string does
+not. Two cases fail closed: computed targets (`import(`./plugin-${name}.mjs`)`),
+because the guard cannot traverse them, and sources the parser rejects, because an
+unparsed module proves nothing about its dependencies. Install-free jobs therefore
+use literal specifiers only.
 TypeBox belongs to code that runs after `bun install`
 (`tools/check-marketplace.mjs`, tests) and to sources that esbuild inlines into the
 shipped bundles.

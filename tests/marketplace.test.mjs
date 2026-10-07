@@ -6,7 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, test } from "node:test";
 import { parse } from "yaml";
-import { dependencyFreeClosure, EXPECTED_PLUGINS, findBareImports, standAloneHelpers, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
+import { dependencyFreeClosure, EXPECTED_PLUGINS, findBareImports, findComputedImports, standAloneHelpers, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
 
@@ -89,13 +89,33 @@ test("workflow helpers executed without dependency install stay dependency-free"
     ['dynamic with import attributes', 'const t = await import("@sinclair/typebox", { with: { type: "json" } });'],
     ['dynamic without await', 'const load = () => import(\'@sinclair/typebox\', { assert: { type: "json" } });'],
     ['dynamic template literal', 'const load = async () => await import(`@sinclair/typebox`);'],
+    ['import.meta.resolve', 'import.meta.resolve("@sinclair/typebox");'],
     ['require', 'const { createRequire } = await import("node:module");\nconst require = createRequire(import.meta.url);\nrequire("@sinclair/typebox");'],
+    ['block comment between tokens', 'import /* keep me */ "@sinclair/typebox";'],
+    ['comment inside from', 'export * /* trivia */ from /* more */ "@sinclair/typebox";'],
+    ['comment before dynamic paren', 'const load = async () => import /* c */ ("@sinclair/typebox");'],
+    ['line comment inside parens', 'const load = async () => import( // why\n  "@sinclair/typebox", // noqa\n);'],
   ];
 
   for (const [label, source] of forms) assert.deepEqual(findBareImports(source), ["@sinclair/typebox"], `guard missed the ${label} form`);
 
   assert.deepEqual(findBareImports('import { Value } from "@sinclair/typebox/value";\nexport { Value } from "@sinclair/typebox/value";'), ["@sinclair/typebox/value"]);
   assert.deepEqual(findBareImports('import("./relative.mjs");\nawait import(`./template.mjs`);\nconst r = createRequire(import.meta.url)("./local.cjs");'), []);
+
+  const mentions = [
+    ['line comment', '// import "@sinclair/typebox";\nexport const ok = 1;'],
+    ['block comment', '/* await import("@sinclair/typebox") */\nexport const ok = 1;'],
+    ['template prose', 'const note = `use import("@sinclair/typebox") in new code`;\nexport { note };'],
+  ];
+
+  for (const [label, source] of mentions) {
+    assert.deepEqual(findBareImports(source), [], `guard reported a ${label} mention as a dependency`);
+    assert.deepEqual(findComputedImports(source), [], `guard reported a ${label} mention as computed`);
+  }
+
+  assert.deepEqual(findComputedImports('const load = async ({ name }) => await import(`./plugin-${name}.mjs`);'), ['`./plugin-${name}.mjs`']);
+
+  assert.throws(() => findBareImports('import source txt from "@sinclair/typebox";\nexport default txt;'), /cannot be parsed by the dependency-free guard; fix the syntax so its imports can be verified/);
 
   const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-bare-checkout-")); roots.push(dir);
   await mkdir(path.join(dir, "tools"), { recursive: true });
@@ -134,6 +154,27 @@ test("the dependency-free guard follows relative imports transitively", async ()
 
   await write("dep.mjs", 'export * from "@sinclair/typebox";\n');
   await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /remove these bare imports: @sinclair\/typebox/);
+
+  await write("dep.mjs", 'export const load = async ({ name }) => await import(`./plugin-${name}.mjs`);\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /builds import targets at runtime; install-free workflow jobs need literal paths so the dependency-free guard can traverse them: `\.\/plugin-\$\{name\}\.mjs`/);
+
+  await write("dep.mjs", 'export const load = async ({ name }) => await import(/* c */ `@scope/${name}`);\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /builds import targets at runtime/);
+
+  await write("dep.mjs", 'export * /* trivia */ from /* trivia */ "./clean.mjs";\n');
+  await write("clean.mjs", 'export const clean = true;\n');
+
+  assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["clean.mjs", "dep.mjs", "entry.mjs"]);
+
+  await write("clean.mjs", 'import /* trivia */ "@sinclair/typebox";\nexport const clean = true;\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /remove these bare imports: @sinclair\/typebox/);
+
+  await write("clean.mjs", 'const clean = 1;\n');
+  await write("entry.mjs", 'import { clean } from "./clean.mjs";\nexport const go = async ({ name }) => await import(/* c */ `./other-${name}.mjs`);\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /entry\.mjs builds import targets at runtime/);
+
+  await write("entry.mjs", 'import source txt from "./clean.mjs";\nexport default txt;\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /entry\.mjs cannot be parsed by the dependency-free guard/);
 
   await write("dep.mjs", 'export const dep = "clean";\n');
   await write("cyclic-a.mjs", 'import { b } from "./cyclic-b.mjs";\nexport const a = b;\n');
