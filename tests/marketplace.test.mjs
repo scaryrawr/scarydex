@@ -245,6 +245,33 @@ test("dependency availability is tracked per step, not per job", () => {
 
   // The escape belongs to the helper's own arguments and does not hide the helper it runs.
   assert.deepEqual([...job([{ run: helper + " \\; echo done" }])], ["tools/upstream-sync.mjs"]);
+
+  // An install that only reports or only restages a lockfile never populates node_modules, so
+  // it proves no more than an install that never ran: `--dry-run` writes nothing and
+  // `--package-lock-only` touches only the lockfile, so the helper after either is still
+  // scanned, and `bun install` accepts `--dry-run` too.
+  assert.deepEqual([...job([{ run: "npm install --dry-run\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "npm install --dry-run=true\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "npm install --package-lock-only --no-audit\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "bun install --dry-run\n" + helper }])], ["tools/upstream-sync.mjs"]);
+
+  // Refusing these must not smear into the flags that only skip bookkeeping: `--no-save`,
+  // `--no-package-lock` and `--ignore-scripts` all still write node_modules, and a negated
+  // `--dry-run=false` asks for the real install, so each stays proof.
+  assert.deepEqual([...job([{ run: "npm install --dry-run=false\n" + helper }])], []);
+  assert.deepEqual([...job([{ run: "npm install --package-lock-only=false\n" + helper }])], []);
+  assert.deepEqual([...job([{ run: "npm install --no-save\n" + helper }])], []);
+  assert.deepEqual([...job([{ run: "npm install --no-package-lock\n" + helper }])], []);
+  assert.deepEqual([...job([{ run: "npm install --ignore-scripts\n" + helper }])], []);
+  assert.deepEqual([...job([{ run: install + "\n" + helper }])], []);
+
+  // A dry-run followed by a real install is proof, because the second command populated the tree.
+  assert.deepEqual([...job([{ run: "npm install --dry-run\n" + install + "\n" + helper }])], []);
+
+  // The flag has to be its own word, so a value that merely contains the text does not refuse
+  // a full install, while a relocated install is still refused for its own separate reason.
+  assert.deepEqual([...job([{ run: "npm install --cache=/tmp/--dry-run\n" + helper }])], []);
+  assert.deepEqual([...job([{ run: "npm install --prefix=/tmp/dry-running\n" + helper }])], ["tools/upstream-sync.mjs"]);
 });
 
 const SINGLE = String.fromCharCode(10);

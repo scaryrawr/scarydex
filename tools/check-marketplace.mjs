@@ -210,6 +210,17 @@ function omitsDevDependencies(text) {
     /(?:^|[ \t])--only[ \t]*[=]?[ \t]*(?:prod|production)(?:[ \t=]|$)/.test(text);
 }
 
+// An install that only reports, or only restages a lockfile, never populates `node_modules`,
+// so it is no more proof that a helper can load its imports than an install that did not run.
+// `--dry-run` writes nothing and `--package-lock-only` touches only the lockfile, so either
+// disqualifies the install. A negated `--dry-run=false` or `--package-lock-only=false` asks
+// for the real install and stays proof, and the flags that merely skip bookkeeping —
+// `--no-save`, `--no-package-lock`, `--no-audit`, `--ignore-scripts`, `--frozen-lockfile` —
+// all still write `node_modules` and are deliberately not refused here.
+function installsNothing(text) {
+  return /(?:^|[ \t])(?:--dry-run|--package-lock-only)(?![ \t]*=[ \t]*false)(?:[ \t=]|$)/.test(text);
+}
+
 // Operators that run their right-hand side beside or after the left without waiting for it
 // to land, so an install written there cannot be credited to the command that follows.
 const PIPELINE = new Set(["|", "&", "|&"]);
@@ -894,7 +905,7 @@ export function standAloneHelpers(lock) {
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
         const installs = INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !omitsDevDependencies(text) &&
-          !relocated && !insideBlock && !PIPELINE.has(operator);
+          !installsNothing(text) && !relocated && !insideBlock && !PIPELINE.has(operator);
 
         // A command with a certain exit status opens only the worlds it can reach.
         const constantOk = constantStatus(text);
