@@ -150,8 +150,18 @@ test("workflow helpers executed without dependency install stay dependency-free"
   // loader as the dot form, and unrelated receivers must not be reported as one.
   assert.deepEqual(scanImports('const pkg = await import.meta["resolve"]("@sinclair/typebox");').literals, ["@sinclair/typebox"]);
   assert.deepEqual(scanImports('const pkg = await import.meta["re" + "solve"]("@sinclair/typebox");').literals, ["@sinclair/typebox"]);
-  assert.deepEqual(scanImports('new.target.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [] });
-  assert.deepEqual(scanImports('const meta = { resolve: s => s };\nmeta.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [] });
+
+  // The resolve loader is refused as a reference, so aliasing it past a target-only
+  // check cannot make the module look dependency-free.
+  const aliasing = [
+    ['aliased dot resolve', 'const resolver = import.meta.resolve;\nawait resolver("@sinclair/typebox");'],
+    ['aliased element resolve', 'const resolver = import.meta["resolve"];\nawait resolver("@sinclair/typebox");'],
+    ['direct dot resolve', 'await import.meta.resolve("./local.mjs");'],
+  ];
+
+  for (const [label, source] of aliasing) assert.equal(scanImports(source).resolvers.length, 1, `guard missed the ${label} reference`);
+  assert.deepEqual(scanImports('new.target.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], resolvers: [] });
+  assert.deepEqual(scanImports('const meta = { resolve: s => s };\nmeta.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], resolvers: [] });
 
   assert.throws(() => findBareImports('import source txt from "@sinclair/typebox";\nexport default txt;'), /cannot be parsed by the dependency-free guard; fix the syntax so its imports can be verified/);
 
@@ -187,12 +197,18 @@ test("Node is the validity oracle for install-free helpers", async () => {
   await write("entry.mjs", typescript);
   await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /entry\.mjs is not valid JavaScript for the workflow's Node runtime/);
 
-  // The parser gate stays for syntax Node accepts but the traversal cannot model, so
-  // removing it would silently drop the specifier instead of reporting a finding.
+  // The parser gate stays for syntax the traversal cannot model, and it runs before the
+  // host's runtime check so the finding does not depend on which Node the runner
+  // provides: this runner's Node rejects `import source` outright, and the bundled parser
+  // reports it too. Removing the parser gate would let the traversal silently drop the
+  // specifier on a host whose Node accepts it.
   await write("entry.mjs", 'import source txt from "./clean.mjs";\nexport default txt;\n');
   await write("clean.mjs", 'export const clean = true;\n');
   checkModuleSyntax(path.join(dir, "clean.mjs"));
   await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /entry\.mjs cannot be parsed by the dependency-free guard/);
+
+  await write("entry.mjs", 'const resolver = import.meta.resolve;\nexport default async () => await resolver("@sinclair/typebox");\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /entry\.mjs reaches for the dynamic resolve loader.*import\.meta\.resolve/);
 
   await write("entry.mjs", 'import { clean } from "./clean.mjs";\nexport default clean;\n');
   assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["clean.mjs", "entry.mjs"]);
@@ -250,6 +266,9 @@ test("the dependency-free guard follows relative imports transitively", async ()
 
   await write("dep.mjs", 'module["createRequire"](import.meta.url)("@sinclair/typebox");\n');
   await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs reaches for CommonJS loading.*module\["createRequire"\]/);
+
+  await write("dep.mjs", 'const resolve = import.meta.resolve;\nexport default async () => await resolve("@sinclair/typebox");\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs reaches for the dynamic resolve loader/);
 
   await write("dep.mjs", 'export const dep = "clean";\n');
   await write("cyclic-a.mjs", 'import { b } from "./cyclic-b.mjs";\nexport const a = b;\n');

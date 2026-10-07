@@ -231,8 +231,8 @@ export function checkModuleSyntax(absoluteFile) {
 // at scan time, and `const name = "pkg"; await import(name)` is valid Node.
 // `requires` names any `require`/`createRequire` reference, reached by dot or by literal
 // element access, which closes aliasing (`const r = require; r("pkg")`) by refusing the
-// pattern rather than chasing it; ESM
-// install-free helpers have no `require` to reach for in the first place.
+// pattern rather than chasing it; ESM install-free helpers have no `require` to reach for
+// in the first place. `resolvers` does the same for `import.meta.resolve`, aliased or not.
 //
 // This walks parsed module syntax rather than matching regexes, so trivia such as
 // `import /* c */ "pkg"` counts while a package name inside a comment or string does
@@ -252,6 +252,7 @@ export function scanImports(source, file = "module.mjs") {
   const literals = new Set();
   const computed = new Set();
   const requires = new Set();
+  const resolvers = new Set();
 
   const text = node => node.getText(sourceFile).replace(/\s+/g, " ");
 
@@ -284,6 +285,16 @@ export function scanImports(source, file = "module.mjs") {
       return;
     }
 
+    // The resolve loader is refused wherever it appears, not only where it is the direct
+    // call target, because `const resolver = import.meta.resolve; resolver("@scope/pkg")`
+    // aliases it past a target-only check. Its argument is still recorded so a literal
+    // package is reported even where the reference is provably inert.
+    if (isImportMetaResolve(node)) {
+      resolvers.add(text(node));
+
+      return;
+    }
+
     if (ts.isIdentifier(node) && /^(?:require|createRequire)$/.test(node.text)) requires.add(node.text);
 
     ts.forEachChild(node, visit);
@@ -291,7 +302,7 @@ export function scanImports(source, file = "module.mjs") {
 
   visit(sourceFile);
 
-  return { literals: [...literals], computed: [...computed], requires: [...requires] };
+  return { literals: [...literals], computed: [...computed], requires: [...requires], resolvers: [...resolvers] };
 }
 
 export function findImports(source, file = "module.mjs") {
@@ -335,9 +346,13 @@ export async function dependencyFreeClosure(root, entrypoints) {
     seen.add(file);
 
     const { source } = await readModule(root, file, specifier);
-    checkModuleSyntax(path.join(root, file));
 
-    const { literals, computed, requires } = scanImports(source, file);
+    // The parser runs first so the finding does not depend on which Node the host
+    // happens to provide: the bundled parser reports the same diagnostics anywhere,
+    // while `checkModuleSyntax` answers for this host's runtime. Both must pass.
+    const { literals, computed, requires, resolvers } = scanImports(source, file);
+
+    checkModuleSyntax(path.join(root, file));
     const bare = literals.filter(specifier => !specifier.startsWith("node:") && !specifier.startsWith("."));
 
     if (bare.length) throw new Error(`${file} is reachable from workflow jobs that never install dependencies; remove these bare imports: ${bare.join(", ")}`);
@@ -345,6 +360,8 @@ export async function dependencyFreeClosure(root, entrypoints) {
     if (computed.length) throw new Error(`${file} builds import targets at runtime; install-free workflow jobs need literal paths so the dependency-free guard can traverse them: ${computed.join(", ")}`);
 
     if (requires.length) throw new Error(`${file} reaches for CommonJS loading; install-free workflow jobs must use literal static imports so the dependency-free guard can traverse them: ${requires.join(", ")}`);
+
+    if (resolvers.length) throw new Error(`${file} reaches for the dynamic resolve loader; install-free workflow jobs must use literal static imports so the dependency-free guard can traverse them: ${resolvers.join(", ")}`);
 
     for (const relative of literals.filter(specifier => specifier.startsWith("."))) {
       queue.push({ file: path.posix.normalize(path.posix.join(path.posix.dirname(file), relative)), specifier: relative });
