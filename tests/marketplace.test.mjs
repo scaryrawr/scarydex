@@ -160,8 +160,26 @@ test("workflow helpers executed without dependency install stay dependency-free"
   ];
 
   for (const [label, source] of aliasing) assert.equal(scanImports(source).resolvers.length, 1, `guard missed the ${label} reference`);
-  assert.deepEqual(scanImports('new.target.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], resolvers: [] });
-  assert.deepEqual(scanImports('const meta = { resolve: s => s };\nmeta.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], resolvers: [] });
+
+  // Dynamic code construction is syntax a syntax check accepts and the host then loads,
+  // so no oracle downstream can see the package inside it. Refused by name, aliased or
+  // reached through a literal element access, while ordinary callbacks stay clean.
+  const dynamicCode = [
+    ['eval', `export const go = async () => await eval('import("@scope/pkg")');`],
+    ['new Function', `export const go = new Function('return import("@scope/pkg")');`],
+    ['Function constructor', `export const go = Function('return import("@scope/pkg")');`],
+    ['hosted eval', `export const go = () => globalThis.eval('import("@scope/pkg")');`],
+    ['element eval', `export const go = () => self["eval"]('import("@scope/pkg")');`],
+    ['aliased eval', `const e = eval;\nexport const go = () => e('import("@scope/pkg")');`],
+    ['timer string', `setTimeout('import("@scope/pkg")', 10);`],
+    ['timer template', 'setTimeout(`import("${name}")`, 10);'],
+  ];
+
+  for (const [label, source] of dynamicCode) assert.equal(scanImports(source).dynamic.length, 1, `guard missed the ${label} dynamic-code escape`);
+
+  for (const [label, source] of [['arrow callback', 'setTimeout(() => console.log("tick"), 10);'], ['reduce', 'export const total = [1, 2].reduce((a, b) => a + b, 0);'], ['import.meta.url', 'export const here = import.meta.url;']]) assert.deepEqual(scanImports(source).dynamic, [], `guard reported the innocuous ${label} form as dynamic code`);
+  assert.deepEqual(scanImports('new.target.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], resolvers: [], dynamic: [] });
+  assert.deepEqual(scanImports('const meta = { resolve: s => s };\nmeta.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], resolvers: [], dynamic: [] });
 
   assert.throws(() => findBareImports('import source txt from "@sinclair/typebox";\nexport default txt;'), /cannot be parsed by the dependency-free guard; fix the syntax so its imports can be verified/);
 
@@ -209,6 +227,9 @@ test("Node is the validity oracle for install-free helpers", async () => {
 
   await write("entry.mjs", 'const resolver = import.meta.resolve;\nexport default async () => await resolver("@sinclair/typebox");\n');
   await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /entry\.mjs reaches for the dynamic resolve loader.*import\.meta\.resolve/);
+
+  await write("entry.mjs", `export default async () => await eval('import("@sinclair/typebox")');\n`);
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /entry\.mjs builds or evaluates code at runtime.*eval/);
 
   await write("entry.mjs", 'import { clean } from "./clean.mjs";\nexport default clean;\n');
   assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["clean.mjs", "entry.mjs"]);

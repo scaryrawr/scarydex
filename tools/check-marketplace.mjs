@@ -206,6 +206,19 @@ function isImportMetaResolve(expression) {
   return !ts.isStringLiteral(expression.argumentExpression) || expression.argumentExpression.text === "resolve";
 }
 
+// The name a property is reached by: `x.y`, `x["y"]`, or a bare `y`. Used to catch a
+// dynamic-code constructor however it is spelled, including through a literal element
+// access, which is the same name as the dot form.
+function accessedName(node) {
+  if (ts.isIdentifier(node)) return node.text;
+
+  if (ts.isPropertyAccessExpression(node)) return node.name.text;
+
+  if (ts.isElementAccessExpression(node) && ts.isStringLiteral(node.argumentExpression)) return node.argumentExpression.text;
+
+  return "";
+}
+
 // The workflow runs these helpers with bare `node`, so ask that exact runtime whether the
 // module parses. `--check` compiles without executing and honours the `.mjs` module goal.
 // This is the *validity* oracle and it closes the hole the TypeScript parser leaves open:
@@ -232,7 +245,9 @@ export function checkModuleSyntax(absoluteFile) {
 // `requires` names any `require`/`createRequire` reference, reached by dot or by literal
 // element access, which closes aliasing (`const r = require; r("pkg")`) by refusing the
 // pattern rather than chasing it; ESM install-free helpers have no `require` to reach for
-// in the first place. `resolvers` does the same for `import.meta.resolve`, aliased or not.
+// in the first place. `resolvers` does the same for `import.meta.resolve`, aliased or not,
+// and `dynamic` refuses dynamic code construction (`eval`, the `Function` constructor, and
+// strings handed to timers), which no scanner or syntax check can see through.
 //
 // This walks parsed module syntax rather than matching regexes, so trivia such as
 // `import /* c */ "pkg"` counts while a package name inside a comment or string does
@@ -253,6 +268,7 @@ export function scanImports(source, file = "module.mjs") {
   const computed = new Set();
   const requires = new Set();
   const resolvers = new Set();
+  const dynamic = new Set();
 
   const text = node => node.getText(sourceFile).replace(/\s+/g, " ");
 
@@ -285,6 +301,26 @@ export function scanImports(source, file = "module.mjs") {
       return;
     }
 
+    // Dynamic code construction is refused outright, because it defeats static scanning
+    // entirely: `eval('import("@scope/pkg")')` and `new Function('return import("pkg")')`
+    // are syntax `node --check` accepts and then *loads* at runtime, so neither oracle can
+    // see the package. Aliasing is closed the same way as `require` above — by refusing
+    // every reference to the name, not just direct calls. A string handed to a timer is
+    // evaluated by the host the same way, so a literal there counts too.
+    const calleeName = accessedName(node);
+
+    if (/^(?:eval|Function)$/.test(calleeName)) {
+      dynamic.add(text(node));
+
+      return;
+    }
+
+    if ((ts.isCallExpression(node) || ts.isNewExpression(node)) && /^(?:setTimeout|setInterval)$/.test(accessedName(node.expression)) && node.arguments[0] && (ts.isStringLiteral(node.arguments[0]) || ts.isNoSubstitutionTemplateLiteral(node.arguments[0]) || ts.isTemplateExpression(node.arguments[0]))) {
+      dynamic.add(`${text(node.expression)}(string)`);
+
+      return;
+    }
+
     // The resolve loader is refused wherever it appears, not only where it is the direct
     // call target, because `const resolver = import.meta.resolve; resolver("@scope/pkg")`
     // aliases it past a target-only check. Its argument is still recorded so a literal
@@ -302,7 +338,7 @@ export function scanImports(source, file = "module.mjs") {
 
   visit(sourceFile);
 
-  return { literals: [...literals], computed: [...computed], requires: [...requires], resolvers: [...resolvers] };
+  return { literals: [...literals], computed: [...computed], requires: [...requires], resolvers: [...resolvers], dynamic: [...dynamic] };
 }
 
 export function findImports(source, file = "module.mjs") {
@@ -350,7 +386,7 @@ export async function dependencyFreeClosure(root, entrypoints) {
     // The parser runs first so the finding does not depend on which Node the host
     // happens to provide: the bundled parser reports the same diagnostics anywhere,
     // while `checkModuleSyntax` answers for this host's runtime. Both must pass.
-    const { literals, computed, requires, resolvers } = scanImports(source, file);
+    const { literals, computed, requires, resolvers, dynamic } = scanImports(source, file);
 
     checkModuleSyntax(path.join(root, file));
     const bare = literals.filter(specifier => !specifier.startsWith("node:") && !specifier.startsWith("."));
@@ -362,6 +398,8 @@ export async function dependencyFreeClosure(root, entrypoints) {
     if (requires.length) throw new Error(`${file} reaches for CommonJS loading; install-free workflow jobs must use literal static imports so the dependency-free guard can traverse them: ${requires.join(", ")}`);
 
     if (resolvers.length) throw new Error(`${file} reaches for the dynamic resolve loader; install-free workflow jobs must use literal static imports so the dependency-free guard can traverse them: ${resolvers.join(", ")}`);
+
+    if (dynamic.length) throw new Error(`${file} builds or evaluates code at runtime, which no scanner can see through and a syntax check cannot catch; install-free workflow jobs must use literal static imports: ${dynamic.join(", ")}`);
 
     for (const relative of literals.filter(specifier => specifier.startsWith("."))) {
       queue.push({ file: path.posix.normalize(path.posix.join(path.posix.dirname(file), relative)), specifier: relative });
