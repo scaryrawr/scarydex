@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
-import { copyFile, cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterEach, test } from "node:test";
-import { EXPECTED_PLUGINS, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
+import { parse } from "yaml";
+import { EXPECTED_PLUGINS, findBareImports, standAloneHelpers, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
 
@@ -67,4 +70,30 @@ test("broken local resources and unsupported runtime manifests are rejected", as
   const manifest = JSON.parse(await readFile(file, "utf8")); manifest.extensions = ["extensions"];
   await writeFile(file, JSON.stringify(manifest));
   await assert.rejects(validateMarketplace(dir), /Unexpected runtime/);
+});
+
+test("workflow helpers executed without dependency install stay dependency-free", async () => {
+  const lock = parse(await readFile(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
+
+  assert.deepEqual([...standAloneHelpers(lock)].sort(), ["tools/upstream-sync.mjs"]);
+
+  assert.deepEqual(findBareImports(await readFile(path.join(root, "tools/upstream-sync.mjs"), "utf8")), []);
+
+  assert.deepEqual(findBareImports('import path from "node:path";\nimport { x } from "./rel.mjs";\nimport { Value } from "@sinclair/typebox/value";\nconst loaded = await import("@acme/pkg");'), ["@sinclair/typebox/value", "@acme/pkg"]);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-bare-checkout-")); roots.push(dir);
+  await mkdir(path.join(dir, "tools"), { recursive: true });
+  await cp(path.join(root, "tools/upstream-sync.mjs"), path.join(dir, "tools/upstream-sync.mjs"));
+
+  assert.equal(existsSync(path.join(dir, "node_modules")), false);
+
+  const helper = await import(pathToFileURL(path.join(dir, "tools", "upstream-sync.mjs")).href);
+
+  assert.equal(helper.hasOpenProposal([], "scaryrawr/scarydex", "scaryrawr"), false);
+
+  const emptyPlan = { schemaVersion: 1, repository: "scaryrawr/scarydex", tracks: helper.TRACKS.map(track => ({ id: track.id, commits: [] })) };
+
+  assert.deepEqual(helper.skipEmptyPlan(emptyPlan, path.join(dir, "noop.json")), { skipped: true });
+
+  assert.match(await readFile(path.join(dir, "noop.json"), "utf8"), /No upstream changes to review/);
 });

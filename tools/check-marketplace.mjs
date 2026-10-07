@@ -184,6 +184,40 @@ export async function validateRepoSkills(root) {
   return skills;
 }
 
+const INSTALLS_DEPENDENCIES = /\b(?:bun|npm)\s+(?:install|ci)\b/;
+
+export function findBareImports(source) {
+  const bare = [];
+
+  for (const match of source.matchAll(/\bfrom\s+["']([^"']+)["']|\bimport\(\s*[`"']([^`"']+)[`"']\s*\)/g)) {
+    const specifier = match[1] ?? match[2];
+
+    if (!specifier.startsWith("node:") && !specifier.startsWith(".")) bare.push(specifier);
+  }
+
+  return bare;
+}
+
+export function standAloneHelpers(lock) {
+  const files = new Set();
+
+  for (const job of Object.values(lock.jobs ?? {})) {
+    const steps = job.steps ?? [];
+
+    if (steps.some(step => INSTALLS_DEPENDENCIES.test(step.run ?? ""))) continue;
+
+    for (const step of steps) {
+      const script = `${step.run ?? ""}\n${step.with?.script ?? ""}`;
+
+      for (const match of script.matchAll(/node\s+(\S*tools\/[^\s`']+\.mjs)|GITHUB_WORKSPACE}\/(tools\/[^\s`']+\.mjs)/g)) {
+        files.add((match[1] ?? match[2]).replace(/^upstream-sync-policy\//, ""));
+      }
+    }
+  }
+
+  return files;
+}
+
 export async function validateUpstreamSetup(root) {
   validateRegistry(await readJson(path.join(root, "upstream-sync.json")), await readJson(path.join(root, "port-provenance.json")));
   const text = await readFile(path.join(root, ".github/workflows/upstream-sync.md"), "utf8");
@@ -259,6 +293,14 @@ export async function validateUpstreamSetup(root) {
       !agent.includes("--mount /tmp/gh-aw:/tmp/gh-aw:rw")) throw new Error("Upstream inputs must be visible inside AWF");
 
   if (lock.jobs.agent.permissions?.contents !== "read" || lock.jobs.agent.permissions?.["pull-requests"] !== "read") throw new Error("Agent permissions drift");
+
+  const standAlone = [...standAloneHelpers(lock)].sort();
+
+  for (const file of standAlone) {
+    const bare = findBareImports(await readFile(path.join(root, file), "utf8"));
+
+    if (bare.length) throw new Error(`${file} runs in workflow jobs that never install dependencies; remove these bare imports: ${bare.join(", ")}`);
+  }
 
   return { tracks: 7 };
 }

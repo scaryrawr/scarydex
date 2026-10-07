@@ -4,8 +4,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inflateSync } from "node:zlib";
-import { Type } from "@sinclair/typebox";
-import { Value } from "@sinclair/typebox/value";
 
 export const TRACKS = [
   ...["anti-slop", "better-init", "digivolution", "omlx-media", "screen-record", "pstack"].map(plugin => ({
@@ -23,19 +21,26 @@ const FINAL = new Set(["ported", "excluded", "skipped"]);
 
 const DISPOSITIONS = new Set([...FINAL, "deferred", "unresolved"]);
 
-const TEXT = Type.String();
+const SHA = /^[0-9a-f]{40}$/;
 
-const SHA_TEXT = Type.String({ pattern: "^[0-9a-f]{40}$" });
+// eslint-disable-next-line no-control-regex -- control characters are rejected in upstream paths by design
+const SAFE_PATH = /^[^\x00-\x1f\x7f\\]+$/;
 
-const SAFE_PATH_TEXT = Type.String({ minLength: 1, pattern: "^[^\\x00-\\x1f\\x7f\\\\]+$" });
+const PR_BRANCH = /^upstream-sync\/[a-zA-Z0-9][a-zA-Z0-9._/-]*$/;
 
-const PLAIN_OBJECT = Type.Object({}, { additionalProperties: true });
+// This policy helper runs in workflow jobs that never install dependencies, so its
+// boundary predicates stay dependency-free instead of using a schema library.
+// eslint-disable-next-line anti-slop/no-runtime-typeof -- dependency-free boundary predicate; see check-marketplace's install-free job guard
+const isText = value => typeof value === "string";
 
-const PULL_REQUEST = Type.Object({
-  state: Type.String(), title: Type.String(),
-  user: Type.Object({ login: Type.String() }),
-  head: Type.Object({ ref: Type.String(), repo: Type.Optional(Type.Union([Type.Object({ full_name: Type.Optional(Type.String()) }), Type.Null()])) }),
-});
+// eslint-disable-next-line anti-slop/no-runtime-typeof -- dependency-free boundary predicate; see check-marketplace's install-free job guard
+const plainObject = value => typeof value === "object" && value !== null && !Array.isArray(value);
+
+const openPull = (pull, repository, publisher) => pull.state === "open" &&
+  pull.title.startsWith("[upstream-sync] ") &&
+  pull.user.login.toLowerCase() === publisher.toLowerCase() &&
+  pull.head.repo?.full_name?.toLowerCase() === repository.toLowerCase() &&
+  pull.head.ref.startsWith("upstream-sync/");
 
 const ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 
@@ -46,17 +51,17 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 function requireThat(ok, message) { if (!ok) throw new Error(message); }
 
 function keys(value, expected) {
-  requireThat(Value.Check(PLAIN_OBJECT, value) && same(Object.keys(value).sort(), [...expected].sort()), `Invalid fields; expected ${expected.join(", ")}`);
+  requireThat(plainObject(value) && same(Object.keys(value).sort(), [...expected].sort()), `Invalid fields; expected ${expected.join(", ")}`);
 }
 
 function sha(value) {
-  requireThat(Value.Check(SHA_TEXT, value), `Invalid commit SHA: ${value}`);
+  requireThat(isText(value) && SHA.test(value), `Invalid commit SHA: ${value}`);
 
   return value;
 }
 
 function safePath(value) {
-  requireThat(Value.Check(SAFE_PATH_TEXT, value) &&
+  requireThat(isText(value) && SAFE_PATH.test(value) &&
     !path.posix.isAbsolute(value) && value.split("/").every(p => p && p !== "." && p !== ".."), `Invalid path: ${value}`);
 
   return value;
@@ -109,7 +114,7 @@ export function validateRegistry(registry, provenance) {
       keys(review, ["commit", "disposition", "reason", "paths", "localPaths", "evidence"]);
       sha(review.commit);
       requireThat(DISPOSITIONS.has(review.disposition), "Invalid disposition");
-      requireThat(Value.Check(TEXT, review.reason) && review.reason.trim().length >= 10, "Review needs a specific reason");
+      requireThat(isText(review.reason) && review.reason.trim().length >= 10, "Review needs a specific reason");
 
       for (const key of ["paths", "localPaths"]) {
         requireThat(Array.isArray(review[key]) && new Set(review[key]).size === review[key].length, `Invalid ${key}`);
@@ -117,7 +122,7 @@ export function validateRegistry(registry, provenance) {
       }
 
       requireThat(review.paths.length > 0 && Array.isArray(review.evidence) && review.evidence.length > 0 &&
-        review.evidence.every(e => Value.Check(TEXT, e) && e.trim().length >= 10), "Review needs paths and evidence");
+        review.evidence.every(e => isText(e) && e.trim().length >= 10), "Review needs paths and evidence");
 
       if (review.disposition === "ported") requireThat(review.localPaths.some(file => file.startsWith(`plugins/${track.plugin}/`)), "Ported review needs a local plugin path");
     });
@@ -190,7 +195,7 @@ function cursorHistory(directory, base, head) {
 
     if (!field) continue;
 
-    if (Value.Check(SHA_TEXT, field)) {
+    if (SHA.test(field)) {
       current = field;
 
       if (!commits.has(current)) commits.set(current, new Set());
@@ -253,16 +258,14 @@ export function planSync({ root = ROOT, scarypilot, cursor, heads = {} }) {
 }
 
 export function hasOpenProposal(pulls, repository, publisher) {
-  requireThat(Array.isArray(pulls) && Value.Check(Type.String({ minLength: 1 }), repository) &&
-    Value.Check(Type.String({ minLength: 1 }), publisher), "Duplicate check requires repository and trusted publisher");
+  requireThat(Array.isArray(pulls) && isText(repository) && repository.length > 0 &&
+    isText(publisher) && publisher.length > 0, "Duplicate check requires repository and trusted publisher");
 
   return pulls.some(pull => {
-    requireThat(Value.Check(PULL_REQUEST, pull), "Invalid pull request response");
+    requireThat(plainObject(pull) && isText(pull.state) && isText(pull.title) &&
+      plainObject(pull.user) && isText(pull.user.login) && plainObject(pull.head) && isText(pull.head.ref), "Invalid pull request response");
 
-    return pull.state === "open" && pull.title.startsWith("[upstream-sync] ") &&
-      pull.user.login.toLowerCase() === publisher.toLowerCase() &&
-      pull.head.repo?.full_name?.toLowerCase() === repository.toLowerCase() &&
-      pull.head.ref.startsWith("upstream-sync/");
+    return openPull(pull, repository, publisher);
   });
 }
 
@@ -613,7 +616,7 @@ export function verifyArtifact({ root = ROOT, plan, directory }) {
   const request = requests[0];
   requireThat(!request.base || request.base === "main", "PR must target main");
   requireThat(!request.repo || request.repo === "scaryrawr/scarydex", "Unexpected PR repository");
-  requireThat(Value.Check(Type.String({ pattern: "^upstream-sync/[a-zA-Z0-9][a-zA-Z0-9._/-]*$" }), request.branch), "Explicit upstream-sync/ PR branch required");
+  requireThat(isText(request.branch) && PR_BRANCH.test(request.branch), "Explicit upstream-sync/ PR branch required");
   requireThat(git(root, ["check-ref-format", "--branch", request.branch], [0, 128]).status === 0, "Invalid Git branch name");
   const stem = `aw-${request.branch.replace(/[/\\:*?"<>|]/g, "-").replace(/-{2,}/g, "-").replace(/^-|-$/g, "").toLowerCase()}`;
   requireThat(transports.length > 0 && transports.every(file => file === `${stem}.bundle` || file === `${stem}.patch`), "Unexpected transport filename");
@@ -663,14 +666,12 @@ export function verifyArtifact({ root = ROOT, plan, directory }) {
 }
 
 export function skipEmptyPlan(plan, output) {
-  requireThat(Value.Check(Type.Object({
-    schemaVersion: Type.Literal(1), repository: Type.Literal("scaryrawr/scarydex"),
-    tracks: Type.Array(Type.Object({ id: Type.String(), commits: Type.Array(Type.Unknown()) })),
-  }, { additionalProperties: true }), plan) && plan.tracks.length === TRACKS.length &&
-    plan.tracks.every((track, index) => track.id === TRACKS[index].id), "Invalid empty-plan input");
+  requireThat(plainObject(plan) && plan.schemaVersion === 1 && plan.repository === "scaryrawr/scarydex" &&
+    Array.isArray(plan.tracks) && plan.tracks.length === TRACKS.length &&
+    plan.tracks.every((track, index) => plainObject(track) && track.id === TRACKS[index].id && Array.isArray(track.commits)), "Invalid empty-plan input");
 
   if (plan.tracks.some(track => track.commits.length)) return { skipped: false };
-  requireThat(Value.Check(TEXT, output) && path.isAbsolute(output), "GH_AW_SAFE_OUTPUTS must be an absolute output path");
+  requireThat(isText(output) && path.isAbsolute(output), "GH_AW_SAFE_OUTPUTS must be an absolute output path");
   mkdirSync(path.dirname(output), { recursive: true });
   appendFileSync(output, `${JSON.stringify({ type: "noop", message: "No upstream changes to review" })}\n`);
 

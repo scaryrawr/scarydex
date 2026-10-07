@@ -88,7 +88,9 @@ marketplace inventory, native manifests, skill YAML, local Markdown links, hook
 registration, and bundle hashes. `lint` runs Oxlint with this marketplace's own
 anti-slop plugin over code maintained here (`tools/`, `tests/`, `plugins/omlx-media/`);
 ported plugin content and dependency-free shipped skill runtimes stay verbatim under
-the port boundary. Schema validation uses TypeBox. Tests cover Codex hook wire formats,
+the port boundary. Schema validation uses TypeBox in code that runs after
+`bun install`; the trusted `tools/upstream-sync.mjs` policy helper stays dependency-free
+because workflow jobs execute it from bare checkouts, and `bun run check` enforces that. Tests cover Codex hook wire formats,
 Anti-Slop’s bundled lint rules, OMLX domain behavior and CLI failures, and pstack
 contract/plan validation. `bun test` spawns `git` in temporary repositories, so run it
 unsandboxed: a sandbox kills those children and reports `actual: null` failures and
