@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -99,6 +99,35 @@ test("dependency availability is tracked per step, not per job", () => {
   assert.deepEqual([...job([{ run: "bun install && node tools/upstream-sync.mjs" }])], []);
   assert.deepEqual([...job([{ run: "set -e; bun install; node tools/upstream-sync.mjs" }])], []);
   assert.deepEqual([...job([{ run: "bun install", }, { run: "node tools/upstream-sync.mjs\nnode tools/other.mjs" }])], []);
+
+  // Textual order is not proof. A global or relocated install populates a directory the
+  // checkout never loads from, and the failure, pipeline, background, subshell, and
+  // `continue-on-error` forms all reach the helper without installed dependencies.
+  assert.deepEqual([...job([{ run: "npm install -g @openai/codex" }, { run: helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "bun install -g pkg" }, { run: helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "npm install --prefix /tmp/elsewhere pkg" }, { run: helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: `bun install || ${helper}` }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: `bun install && echo ok || ${helper}` }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: `bun install & ${helper}` }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: `bun install | tee install.log\n${helper}` }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: `(bun install)\n${helper}` }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "bun install", "continue-on-error": true }, { run: helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: install }, { run: helper, if: "always()" }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: `set +e\nbun install\n${helper}` }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: `set +o errexit\nbun install\n${helper}` }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: `cd sub\nbun install\n${helper}` }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "cd sub && bun install" }, { run: helper }])], ["tools/upstream-sync.mjs"]);
+
+  // What does prove it: `&&`, and sequential commands under the `bash -e` shell GitHub
+  // Actions gives `run:` steps — with redirections and quoted text read as text, not as
+  // control, so a `;` or `&` inside a string never splits a command.
+  assert.deepEqual([...job([{ run: "npm install -g pkg" }, { run: install }, { run: helper }])], []);
+  assert.deepEqual([...job([{ run: "bun install > /dev/null 2>&1\n" + helper }])], []);
+  assert.deepEqual([...job([{ run: `bun install\necho '&& ; | &'\n${helper}` }])], []);
+  assert.deepEqual([...job([{ run: install }, { run: helper, if: "success()" }])], []);
+  // A quoted `||` is text, not control: reading it as control would reopen the install's
+  // failing world and wrongly flag the helper.
+  assert.deepEqual([...job([{ run: "bun install && echo " + "'" + "ok || fallback" + "'" + "\n" + helper }])], []);
 });
 
 const SINGLE = String.fromCharCode(10);
@@ -226,6 +255,11 @@ test("workflow helpers executed without dependency install stay dependency-free"
   const aliases = [
     ['aliased computed loader', `const loader = globalThis["ev" + "al"];${SINGLE}loader('import("@scope/pkg")');`],
     ['alias of an alias', `const a = globalThis["ev" + "al"];${SINGLE}const b = a;${SINGLE}b('import("@scope/pkg")');`],
+    // Alias tracking must run to a real fixed point, so a chain written back-to-front —
+    // where each alias is only named on the pass after the one before it — is still caught
+    // however long it is. A cap lets the alias past the cap stay callable.
+    ['nine aliases written back-to-front', `const b9 = b8;${SINGLE}const b8 = b7;${SINGLE}const b7 = b6;${SINGLE}const b6 = b5;${SINGLE}const b5 = b4;${SINGLE}const b4 = b3;${SINGLE}const b3 = b2;${SINGLE}const b2 = b1;${SINGLE}const b1 = globalThis[k];${SINGLE}b9('import("@scope/pkg")');`],
+    ['twelve aliases written back-to-front', `const c12 = globalThis[k];${SINGLE}const c11 = c12;${SINGLE}const c10 = c11;${SINGLE}const c9 = c10;${SINGLE}const c8 = c9;${SINGLE}const c7 = c8;${SINGLE}const c6 = c7;${SINGLE}const c5 = c6;${SINGLE}const c4 = c5;${SINGLE}const c3 = c4;${SINGLE}const c2 = c3;${SINGLE}const c1 = c2;${SINGLE}c1('import("@scope/pkg")');`],
     ['reassigned binding', `let l = Object.keys;${SINGLE}l = globalThis[k];${SINGLE}l('import("@scope/pkg")');`],
   ];
 
@@ -305,6 +339,39 @@ test("the dependency-free guard follows relative imports transitively", async ()
 
   await write("entry.mjs", 'import { node } from "node:os";\nimport { dep } from "./dep.mjs";\nexport const go = () => [node, dep];\n');
   await write("dep.mjs", 'export const dep = "clean";\n');
+
+  assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["dep.mjs", "entry.mjs"]);
+
+  // The closure may only contain files this repository ships. Because this check runs after
+  // `bun install`, installed packages read fine here yet ERR_MODULE_NOT_FOUND in the bare
+  // workflow checkout, and a symlink scans whatever the host happened to point it at.
+  await mkdir(path.join(dir, "node_modules", "pkg"), { recursive: true });
+  await writeFile(path.join(dir, "node_modules", "pkg", "index.mjs"), 'export const pkg = "host";\n');
+  await write("entry.mjs", 'import { pkg } from "./node_modules/pkg/index.mjs";\nexport const go = pkg;\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /is an installed dependency, not a file this repository ships/);
+
+  await writeFile(path.join(dir, "..", "host-installed.mjs"), 'export const host = "outside the checkout";\n');
+  await write("entry.mjs", 'import { host } from "../host-installed.mjs";\nexport const go = host;\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /leaves the checkout/);
+
+  await rm(path.join(dir, "..", "host-installed.mjs"));
+  const host = await mkdtemp(path.join(os.tmpdir(), "scarydex-host-")); roots.push(host);
+  await writeFile(path.join(host, "host.mjs"), 'export const host = "host state";\n');
+  await rm(path.join(dir, "dep.mjs"));
+  await symlink(path.join(host, "host.mjs"), path.join(dir, "dep.mjs"));
+  await write("entry.mjs", 'import { host } from "./dep.mjs";\nexport const go = host;\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs resolved from "\.\/dep\.mjs" is a symlink/);
+
+  await rm(path.join(dir, "dep.mjs"));
+  await write("dep.mjs", 'export const dep = "clean";\n');
+
+  // A directory named like a module is not something the loader can import either.
+  await mkdir(path.join(dir, "sneaky.mjs"));
+  await write("entry.mjs", 'import { sneaky } from "./sneaky.mjs";\nexport const go = sneaky;\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /sneaky[.]mjs resolved from "[.]\/sneaky[.]mjs" is not a regular file/);
+
+  await rm(path.join(dir, "sneaky.mjs"), { recursive: true });
+  await write("entry.mjs", 'import { dep } from "./dep.mjs";\nexport const go = dep;\n');
 
   assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["dep.mjs", "entry.mjs"]);
 

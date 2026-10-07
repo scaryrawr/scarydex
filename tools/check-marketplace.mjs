@@ -188,7 +188,104 @@ export async function validateRepoSkills(root) {
 
 // Matched against a single command anchored at its start, so `echo bun install` and
 // comments mentioning an install do not read as one.
-const INSTALLS_DEPENDENCIES = /^[ \t]*(?:bun|npm)(?:-g|-global)?[ \t]+(?:install|ci)\b/;
+const INSTALLS_DEPENDENCIES = /^[ \t]*(?:bun|npm)[ \t]+(?:install|ci)\b/;
+
+// A global, relocated, or no-op install populates a directory the checkout never loads from,
+// so it never supplies a helper's dependencies however early it appears in the script.
+const INSTALLS_ELSEWHERE = /(?:^|[ \t])(?:-g|-G|--global|--global-style|--link|--location|--prefix|--no-install)(?:[ \t=]|$)/;
+
+// Split one script into commands, each paired with the operator that *follows* it, so the
+// guard can ask how an install hands over to the command after it. Quotes, command
+// substitutions, redirections such as `2>&1` and `&>`, and comments are respected, which keeps
+// a `&` or `|` written in text or a path from being read as shell control.
+function splitCommands(script) {
+  const commands = [];
+
+  let command = "";
+  let quote = null;
+  let substitutions = 0;
+
+  const flush = operator => {
+    commands.push({ command, operator });
+
+    command = "";
+  };
+
+  for (let index = 0; index < script.length; index++) {
+    const character = script[index];
+
+    if (quote) {
+      command += character;
+
+      if (character === "\\" && quote !== "`") command += script[++index] ?? "";
+      else if (character === quote) quote = null;
+
+      continue;
+    }
+
+    if (character === "#" && (command === "" || /[ \t]$/.test(command))) {
+      const newline = script.indexOf("\n", index);
+
+      if (newline === -1) break;
+
+      index = newline - 1;
+
+      continue;
+    }
+
+    if (character === "'" || character === '"' || character === "`") {
+      quote = character;
+      command += character;
+
+      continue;
+    }
+
+    if (character === "$" && script[index + 1] === "(") {
+      substitutions++;
+      command += "$(";
+      index++;
+
+      continue;
+    }
+
+    if (substitutions > 0) {
+      command += character;
+
+      if (character === "(") substitutions++;
+      else if (character === ")") substitutions--;
+
+      continue;
+    }
+
+    const pair = script.slice(index, index + 2);
+
+    if (pair === "&&" || pair === "||" || pair === "|&") {
+      flush(pair);
+      index++;
+
+      continue;
+    }
+
+    // `2>&1`, `>&2` and `&>log` redirect rather than separate commands.
+    if (character === "&" && (/[>&]$/.test(command) || script[index + 1] === ">")) {
+      command += character;
+
+      continue;
+    }
+
+    if (character === "\n" || character === ";" || character === "|" || character === "&") {
+      flush(character);
+
+      continue;
+    }
+
+    command += character;
+  }
+
+  flush("");
+
+  return commands;
+}
 
 const MAX_DEPENDENCY_FREE_MODULES = 200;
 
@@ -295,7 +392,15 @@ export function scanImports(source, file = "module.mjs") {
     return ts.isIdentifier(value) && unprovableNames.has(value.text);
   };
 
-  for (let pass = 0; pass < 8; pass++) {
+  // Iterate until the set stops growing, which is the fixed point: every pass only adds
+  // names and every name is an identifier in this file, so growth is bounded and a pass
+  // that adds nothing ends the loop. A pass *cap* is not a fixed point — with bindings
+  // written back-to-front (`b9 = b8; ...; b1 = globalThis[k]; b9('import("@scope/pkg")')`)
+  // the ninth alias is only named on the ninth pass, so an eight-pass cap leaves `b9`
+  // callable and the target it reaches is never reported.
+  let grew = true;
+
+  while (grew) {
     const before = unprovableNames.size;
 
     const collect = node => {
@@ -308,7 +413,7 @@ export function scanImports(source, file = "module.mjs") {
 
     collect(sourceFile);
 
-    if (unprovableNames.size === before) break;
+    grew = unprovableNames.size !== before;
   }
 
   const record = node => {
@@ -422,13 +527,31 @@ async function readModule(root, file, specifier) {
   // fails it with ERR_MODULE_NOT_FOUND while `dep.mjs` sits right there on disk.
   if (!path.extname(file)) throw new Error(`${file} has no file extension; Node's ESM loader does not append one, so install-free workflow helpers must be imported by their exact path with an explicit .mjs`);
 
+  // This guard runs *after* `bun install`, so a relative specifier that lands in
+  // `node_modules` — or outside the checkout entirely, or on a symlink whose target is host
+  // state — reads successfully here and then ERR_MODULE_NOT_FOUNDs in the bare workflow
+  // checkout. Every closure member must be a committed regular file inside the repository.
+  const absolute = path.resolve(root, file);
+
+  if (!inside(root, absolute)) throw new Error(`${file} resolved from "${specifier}" leaves the checkout; install-free workflow jobs may only import sources committed inside the repository`);
+
+  if (absolute.split(path.sep).includes("node_modules")) throw new Error(`${file} resolved from "${specifier}" is an installed dependency, not a file this repository ships; install-free workflow jobs cannot load it`);
+
+  let stats;
+
   try {
-    return { file, source: await readFile(path.join(root, file), "utf8") };
+    stats = await lstat(absolute);
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
 
     throw new Error(`Unresolved import "${specifier}" from ${file}; install-free workflow jobs cannot load it`);
   }
+
+  if (stats.isSymbolicLink()) throw new Error(`${file} resolved from "${specifier}" is a symlink, so what the closure scanned is host state rather than content this repository ships`);
+
+  if (!stats.isFile()) throw new Error(`${file} resolved from "${specifier}" is not a regular file, so it cannot be a dependency-free workflow source`);
+
+  return { file, source: await readFile(absolute, "utf8") };
 }
 
 export async function dependencyFreeClosure(root, entrypoints) {
@@ -473,33 +596,83 @@ export async function dependencyFreeClosure(root, entrypoints) {
   return [...seen].sort();
 }
 
+// Whether a helper can run without the repository's dependencies is decided by the worlds each
+// command executes in, not by textual order. Each world is a two-character key: whether the
+// dependencies are installed, and whether the commands so far exited 0. `live` worlds keep
+// running, `pending` worlds were short-circuited by a failing `&&` and get work again at the
+// next `||` — which is how `bun install && echo ok || node tools/x.mjs` reaches the helper
+// with nothing installed — and `dead` worlds were ended by a `;` or newline under the `bash -e`
+// shell GitHub Actions gives `run:` steps, so they only reach a later step when this step is
+// `continue-on-error`. A step gated on `always()`, `failure()`, or `cancelled()` runs in the
+// worlds where earlier steps failed, so it starts with nothing installed.
+const HELPERS_IN_COMMAND = /node\s+(\S*tools\/[^\s`']+\.mjs)|GITHUB_WORKSPACE}\/(tools\/[^\s`']+\.mjs)/g;
+
+const world = (deps, ok) => `${deps ? "1" : "0"}${ok ? "1" : "0"}`;
+
+const installedIn = key => key[0] === "1";
+
+const exitedOk = key => key[1] === "1";
+
 export function standAloneHelpers(lock) {
   const files = new Set();
 
   for (const job of Object.values(lock.jobs ?? {})) {
     const steps = job.steps ?? [];
 
-    // Dependency availability is a property of the *command*, not the job or even the
-    // step: `node tools/x.mjs` followed by `bun install` in one script ran with no
-    // dependencies, so installs and invocations are consumed in source order.
+    // Dependencies the next step may rely on: an install hands them over only in the worlds
+    // where it exited 0, so global and relocated installs, `||`/`|`/`&` branches, a
+    // `continue-on-error` install, and any helper written before the install keep that helper
+    // in the dependency-free set.
     let installed = false;
 
     for (const step of steps) {
       const script = `${step.run ?? ""}\n${step.with?.script ?? ""}`;
+      const runsAfterEarlierFailure = /(?:always|failure|cancelled)\(\)/.test(String(step.if ?? ""));
+      let live = installed ? [world(true, true), ...(runsAfterEarlierFailure ? [world(false, true)] : [])] : [world(false, true)];
+      let pending = [];
+      let dead = [];
+      let errexit = true;
+      let relocated = false;
 
-      for (const command of script.split(/[;&|\n]+/)) {
-        if (INSTALLS_DEPENDENCIES.test(command.trim())) {
-          installed = true;
+      for (const { command, operator } of splitCommands(script)) {
+        const text = command.trim();
 
-          continue;
+        if (!text) continue;
+
+        if (/^set[ \t]+(?:[+-]e|[+-]o[ \t]+errexit)$/.test(text)) errexit = !text.startsWith("set +");
+
+        if (live.some(key => !installedIn(key))) {
+          for (const match of text.matchAll(HELPERS_IN_COMMAND)) files.add((match[1] ?? match[2]).replace(/^upstream-sync-policy\//, ""));
         }
 
-        if (installed) continue;
+        // A `cd` moves the working directory, so from there on no install can be credited
+        // with populating the checkout's `node_modules` — the runtime may load a different
+        // directory's tree, or none. `relocated` keeps every later install unprovable.
+        if (/^[ \t]*cd(?:[ \t]|$)/.test(text)) relocated = true;
 
-        for (const match of command.matchAll(/node\s+(\S*tools\/[^\s`']+\.mjs)|GITHUB_WORKSPACE}\/(tools\/[^\s`']+\.mjs)/g)) {
-          files.add((match[1] ?? match[2]).replace(/^upstream-sync-policy\//, ""));
+        // Any command can fail, and an install installs only in the worlds where it exits 0.
+        const installs = INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !relocated;
+        const succeeded = live.map(key => world(installs || installedIn(key), true));
+        const failed = live.map(key => world(installedIn(key), false));
+
+        if (operator === "&&") {
+          pending = failed.concat(pending);
+          live = succeeded;
+        } else if (operator === "||") {
+          live = failed.concat(pending);
+          pending = [];
+        } else if (operator === "|" || operator === "&") {
+          live = live.flatMap(key => [world(installedIn(key), true), world(installedIn(key), false)]);
+        } else {
+          dead = errexit ? failed.concat(pending, dead) : dead;
+          live = errexit ? succeeded : succeeded.concat(failed, pending);
+          pending = [];
         }
       }
+
+      const endings = live.concat(pending, dead);
+
+      installed = endings.filter(key => exitedOk(key) || step["continue-on-error"] === true).every(key => installedIn(key));
     }
   }
 
