@@ -277,6 +277,40 @@ export function scanImports(source, file = "module.mjs") {
 
   const text = node => node.getText(sourceFile).replace(/\s+/g, " ");
 
+  // Identifiers bound to a target this guard cannot name. Without this, `const loader =
+  // globalThis["ev" + "al"]; loader('import("pkg")')` reads as an ordinary identifier call
+  // and escapes, because the unprovable part is a *read* rather than a call target. Names
+  // are collected to a fixed point so an alias of an alias is caught too, and only
+  // unprovable values are tracked: an ordinary `const status = parts[index++]` names
+  // nothing dangerous and its name must stay callable.
+  const unprovableNames = new Set();
+
+  const isUnprovableValue = value => {
+    while (value && ts.isParenthesizedExpression(value)) value = value.expression;
+
+    if (!value) return false;
+
+    if (ts.isElementAccessExpression(value) && !ts.isStringLiteral(value.argumentExpression)) return true;
+
+    return ts.isIdentifier(value) && unprovableNames.has(value.text);
+  };
+
+  for (let pass = 0; pass < 8; pass++) {
+    const before = unprovableNames.size;
+
+    const collect = node => {
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && isUnprovableValue(node.initializer)) unprovableNames.add(node.name.text);
+
+      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(node.left) && isUnprovableValue(node.right)) unprovableNames.add(node.left.text);
+
+      ts.forEachChild(node, collect);
+    };
+
+    collect(sourceFile);
+
+    if (unprovableNames.size === before) break;
+  }
+
   const record = node => {
     if (!node) return;
 
@@ -319,6 +353,12 @@ export function scanImports(source, file = "module.mjs") {
     // Refused wherever the name appears, aliased or not, so a reference cannot be stored
     // and called later past a target-only check.
     if (/^(?:eval|Function)$/.test(calleeName)) {
+      dynamic.add(text(node));
+
+      return;
+    }
+
+    if (isConstruction && ts.isIdentifier(callee) && unprovableNames.has(callee.text)) {
       dynamic.add(text(node));
 
       return;

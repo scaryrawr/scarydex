@@ -101,6 +101,8 @@ test("dependency availability is tracked per step, not per job", () => {
   assert.deepEqual([...job([{ run: "bun install", }, { run: "node tools/upstream-sync.mjs\nnode tools/other.mjs" }])], []);
 });
 
+const SINGLE = String.fromCharCode(10);
+
 test("workflow helpers executed without dependency install stay dependency-free", async () => {
   const lock = parse(await readFile(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
 
@@ -218,6 +220,24 @@ test("workflow helpers executed without dependency install stay dependency-free"
   ];
 
   for (const [label, source] of reflective) assert.equal(scanImports(source).dynamic.length, 1, `guard missed the ${label} escape`);
+
+  // A computed name assigned first and called later is the same escape, so unprovable
+  // values are tracked through aliases and reassignment.
+  const aliases = [
+    ['aliased computed loader', `const loader = globalThis["ev" + "al"];${SINGLE}loader('import("@scope/pkg")');`],
+    ['alias of an alias', `const a = globalThis["ev" + "al"];${SINGLE}const b = a;${SINGLE}b('import("@scope/pkg")');`],
+    ['reassigned binding', `let l = Object.keys;${SINGLE}l = globalThis[k];${SINGLE}l('import("@scope/pkg")');`],
+  ];
+
+  for (const [label, source] of aliases) assert.equal(scanImports(source).dynamic.length, 1, `guard missed the ${label} escape`);
+  // A forward reference needs the collection to reach a fixed point: `b` is bound from `a`
+  // before `a` itself becomes unprovable, and the call is checked only after collection.
+  assert.equal(scanImports(`let a;${SINGLE}let b = a;${SINGLE}a = globalThis[k];${SINGLE}b('import("@scope/pkg")');`).dynamic.length, 1);
+
+  // Only unprovable values are tracked: an ordinary indexed read must stay callable, or
+  // every helper that does `const status = parts[index++]` would be reported.
+  assert.deepEqual(scanImports(`const status = parts[index++];${SINGLE}export const up = () => status.toUpperCase();`).dynamic, []);
+  assert.deepEqual(scanImports(`const svc = make();${SINGLE}export const go = () => svc.run(1);`).dynamic, []);
 
   // The computed-target rule must stay scoped to call and construction targets, or every
   // ordinary indexed read in a helper would be reported as dynamic code.
