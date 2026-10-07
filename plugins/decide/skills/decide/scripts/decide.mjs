@@ -7,6 +7,8 @@ const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 const LIST_TIMEOUT_MS = 10_000;
 const DECISION_TIMEOUT_MS = 300_000;
 const PROBABILITY_SUM_EPSILON = 0.01;
+const MAX_IMAGES = 10;
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 function object(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -40,14 +42,31 @@ function requireOption(options, name) {
   return options[name];
 }
 
-function parseDecisionInput(text) {
+async function parseDecisionInput(text) {
   let input;
   try { input = JSON.parse(text); }
   catch { throw new Error("Input must be valid JSON."); }
-  if (!object(input) || (!nonempty(input.state) && !object(input.state)) ||
-      !object(input.questions) || Object.keys(input.questions).length === 0) {
-    throw new Error("Input must contain state (text or an object) and a non-empty questions object.");
+  if (!object(input)) throw new Error("Input must be a JSON object.");
+  const hasState = nonempty(input.state) || object(input.state);
+  if (!hasState && input.state !== undefined && input.state !== null && input.state !== "") {
+    throw new Error("state must be non-empty text or a JSON object.");
   }
+  if (!object(input.questions) || Object.keys(input.questions).length === 0) {
+    throw new Error("Input must contain a non-empty questions object.");
+  }
+  if (input.images !== undefined && (!Array.isArray(input.images) || input.images.length < 1 || input.images.length > MAX_IMAGES || !input.images.every(nonempty))) {
+    throw new Error(`images must be an array of 1-${MAX_IMAGES} non-empty local image file paths. Only vision decision models such as clef-flash accept images.`);
+  }
+  const images = [];
+  for (const file of input.images ?? []) {
+    let bytes;
+    try { bytes = await readFile(file); }
+    catch { throw new Error(`Image file is unreadable: ${file}`); }
+    if (bytes.length === 0) throw new Error(`Image file is empty: ${file}`);
+    if (bytes.length > MAX_IMAGE_BYTES) throw new Error(`Image file exceeds ${MAX_IMAGE_BYTES} bytes: ${file}`);
+    images.push(bytes.toString("base64"));
+  }
+  if (!hasState && images.length === 0) throw new Error("Input must contain state (text or an object) or images.");
   for (const [name, question] of Object.entries(input.questions)) {
     if (!nonempty(name) || !object(question) || !nonempty(question.instructions)) {
       throw new Error(`Question ${JSON.stringify(name)} requires non-empty instructions.`);
@@ -70,7 +89,7 @@ function parseDecisionInput(text) {
         throw new Error(`Question ${name} has unsupported type. Use choice, noul, or score.`);
     }
   }
-  return { state: input.state, questions: input.questions };
+  return { state: input.state ?? "", questions: input.questions, ...(images.length ? { images } : {}) };
 }
 
 function validateAnswers(result, questions) {
@@ -133,10 +152,10 @@ async function listModels(base) {
     console.log("No models found on Ollama endpoint.");
     return;
   }
-  const candidates = data.models.filter((model) => /^(nimble|tev1)(?::|$)/i.test(model.name.split("/").at(-1)));
+  const candidates = data.models.filter((model) => /^(nimble|tev1|clef)(?::|-|$)/i.test(model.name.split("/").at(-1)));
   console.log("DECISION MODEL CANDIDATES (name heuristic, not capability verification):");
   for (const model of candidates) console.log(`  - ${model.name}`);
-  if (candidates.length === 0) console.log("  None recognized. Pull nimble or tev1, or explicitly select a compatible custom model.");
+  if (candidates.length === 0) console.log("  None recognized. Pull nimble, tev1, or clef-flash, or explicitly select a compatible custom model.");
   console.log("\nALL MODELS:");
   for (const model of data.models) console.log(`  - ${model.name}${model.size === undefined ? "" : ` (${(model.size / 1e6).toFixed(0)}MB)`}`);
 }
@@ -146,12 +165,15 @@ function usage() {
 
 Commands:
   models                         List installed Ollama models and known decision families
-  run --model <name> --input <file>  Send JSON {state, questions} to /v1/systemone
+  run --model <name> --input <file>  Send JSON {state, images?, questions} to /v1/systemone
   help                           Show this help
 
 Question types: choice, noul (yes/no probability), score.
+images: optional array of 1-10 local image file paths, base64-encoded into the
+request. state may be omitted when images are present. Only vision decision
+models such as clef-flash accept images; other models reject the request.
 Output: full SystemOne JSON response, including answers, probabilities and usage.
-Requires Ollama 0.35+ and a compatible decision model such as nimble or tev1.
+Requires Ollama 0.35+ and a compatible decision model such as nimble, tev1, or clef-flash.
 OLLAMA_BASE_URL defaults to http://localhost:11434.`);
 }
 
@@ -173,7 +195,7 @@ async function main() {
   if (command === "run") {
     model = requireOption(values, "model");
     const file = requireOption(values, "input");
-    input = parseDecisionInput(await readFile(file, "utf8"));
+    input = await parseDecisionInput(await readFile(file, "utf8"));
   }
   const base = new URL(process.env.OLLAMA_BASE_URL || DEFAULT_OLLAMA_URL);
   if (!["http:", "https:"].includes(base.protocol) || base.username || base.password || base.search || base.hash) {

@@ -83,6 +83,19 @@
         "The command is never executed.",
         "The output is not treated as authorization for any action."
       ]
+    },
+    {
+      "id": 8,
+      "name": "image-choice-decision",
+      "prompt": "Use the vision decision model to classify this photo (/absolute/path/photo.png) as a hotdog or taco.",
+      "expected_output": "A clef-flash SystemOne choice answer over the attached image with probabilities and confidence.",
+      "files": [],
+      "expectations": [
+        "The input JSON passes the image as a local path in the images array and names hotdog and taco as choice criteria.",
+        "The run uses clef-flash or another vision decision model; no chat fallback is used.",
+        "A model that rejects image inputs is reported and rerun against a vision decision model rather than answered by guessing.",
+        "Returned probabilities and confidence are preserved without inventing a reasoning trace."
+      ]
     }
   ]
 }

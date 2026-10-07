@@ -46,5 +46,9 @@
   {
     "query": "Explain the Judgment-Evaluation-Decision framework.",
     "should_trigger": false
+  },
+  {
+    "query": "Use the vision decision model to classify this image as a hotdog or taco.",
+    "should_trigger": true
   }
 ]

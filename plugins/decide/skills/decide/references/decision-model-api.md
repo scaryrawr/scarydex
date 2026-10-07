@@ -4,6 +4,9 @@ Source: [Ollama's Jev-style decision-model announcement](https://ollama.com/blog
 published September 29, 2026. Jev is TypeSafe's decision API, not an acronym for a
 three-phase reasoning prompt. The criterion bounds and score formula are defined
 in [Ollama's SystemOne implementation](https://github.com/ollama/ollama/blob/main/decision/systemone.go).
+Image input behavior matches Ollama's
+[request types](https://github.com/ollama/ollama/blob/main/decision/types.go)
+and [clef encoder](https://github.com/ollama/ollama/blob/main/decision/clef.go).
 
 ## Endpoint
 
@@ -45,7 +48,14 @@ The helper sends these fields without adding chat messages or system prompts:
 
 The helper supports the following input forms:
 
-- `state`: non-empty text or a JSON object containing the context.
+- `state`: non-empty text or a JSON object containing the context. It may be
+  omitted or empty only when `images` is present.
+- `images`: optional array of 1-10 local image file paths, each 20 MiB or
+  smaller (helper limits). The helper base64-encodes each file into the
+  request's top-level `images` field. The API accepts `images` only for the
+  `clef` encoding, such as `clef-flash`; other decision models return
+  `image inputs are not supported by this decision model`. `videos` are
+  unsupported.
 - `questions`: a non-empty object of named questions, each with non-empty `instructions`.
 - `choice`: `criteria` maps 2–26 option names to descriptions or `null`.
 - `noul`: a yes-or-no question, with no criteria required.
@@ -91,10 +101,27 @@ response JSON. It does not discard usage or generate an explanation.
 
 ## Discovery
 
-`GET /api/tags` lists installed models. The launch families are `nimble` and
-`tev1`, including `tev1:0.8b`. The helper recognizes these names and tagged or
-namespaced variants as candidates. Name matching does not verify API support;
+`GET /api/tags` lists installed models. The known families are `nimble`,
+`tev1`, including `tev1:0.8b`, and `clef`, such as the vision-capable
+`clef-flash`. The helper recognizes these names and tagged, hyphen-suffixed, or
+namespaced variants as candidates. `GET /api/show` or `ollama show <model>`
+reports the actual `decision` and `vision` capabilities. Name matching does not verify API support;
 custom compatible models can be selected explicitly.
+
+## Image request
+
+A vision decision model scores the image as part of the state. Paths are a
+convenience of this helper; the API itself carries base64 strings:
+
+```sh
+node scripts/decide.mjs run --model clef-flash --input photo-decision.json
+```
+
+```sh
+curl http://localhost:11434/v1/systemone \
+  -H 'Content-Type: application/json' \
+  -d "{\"model\":\"clef-flash\",\"state\":\"Classify the attached food.\",\"images\":[\"$(base64 < photo.png)\"],\"questions\":{\"food\":{\"type\":\"choice\",\"instructions\":\"Is this a hotdog or taco?\",\"criteria\":{\"hotdog\":\"Sausage in a bun\",\"taco\":null}}}}"
+```
 
 ## Direct request
 
@@ -111,7 +138,8 @@ curl http://localhost:11434/v1/systemone \
 
 - CLI flags are strict. Unknown flags and positional arguments are rejected.
 - Inputs are validated before network access. Files are read locally, then sent
-  to the configured endpoint.
+  to the configured endpoint. Image paths must be readable, non-empty files of
+  at most 20 MiB, with at most 10 images per request.
 - Discovery times out after 10 seconds. Decisions time out after 300 seconds.
 - HTTP failures, invalid JSON, and incomplete or invalid answers exit nonzero.
 - A SystemOne 404 includes a reminder to check Ollama 0.35 support.
