@@ -154,6 +154,19 @@ test("dependency availability is tracked per step, not per job", () => {
   // Operators inside quotes are arguments, not control: splitting on them would invent a
   // short-circuit that the shell never sees.
   assert.deepEqual([...job([{ run: install + " '&& exit 1'" + "\n" + helper }])], []);
+
+  // An install that omits devDependencies never supplies the tooling a helper imports — the
+  // TypeBox and TypeScript this repository develops against are devDependencies — so every
+  // omitting spelling keeps the helper in the scanned set, comma lists and space forms included.
+  assert.deepEqual([...job([{ run: "bun install --production\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "npm ci --omit=dev\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "npm ci --omit dev\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: install + " --omit=dev,optional\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "npm install --only=production\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  // Omitting a different bucket still installs devDependencies, and a negated flag asks for
+  // them, so both are still proof.
+  assert.deepEqual([...job([{ run: "npm ci --omit=optional\n" + helper }])], []);
+  assert.deepEqual([...job([{ run: "npm install --production=false\n" + helper }])], []);
   assert.deepEqual([...job([{ run: install + " \"|| exit 1\"" + "\n" + helper }])], []);
 });
 

@@ -194,6 +194,22 @@ const INSTALLS_DEPENDENCIES = /^[ \t]*(?:bun|npm)[ \t]+(?:install|ci)\b/;
 // so it never supplies a helper's dependencies however early it appears in the script.
 const INSTALLS_ELSEWHERE = /(?:^|[ \t])(?:-g|-G|--global|--global-style|--link|--location|--prefix|--no-install)(?:[ \t=]|$)/;
 
+// An install that leaves devDependencies out never supplies the tooling a helper imports,
+// and the TypeBox and TypeScript that the code in this repository loads are devDependencies,
+// so it is no more proof than an install that did not run. `--production`, `--prod`,
+// `--only=production`, `--no-dev`, and every `--omit=dev` spelling disqualify it, including
+// comma lists such as `--omit=dev,optional` and the space-separated `--omit dev`.
+function omitsDevDependencies(text) {
+  const omit = /--omit[ \t]*=[ \t]*(\S+)|--omit[ \t]+(\S+)/.exec(text);
+
+  if (omit && /(?:^|,)(?:dev|development)(?:,|$)/.test(omit[1] ?? omit[2] ?? "")) return true;
+
+  // A negated flag (`--production=false`) asks for devDependencies, so it stays proof.
+  return /(?:^|[ \t])(?:--production|--prod|--no-dev(?:elopment)?)(?![ \t]*=[ \t]*false)(?:[ \t=]|$)/.test(text) ||
+    /(?:^|[ \t])--dev(?:elopment)?=false(?:[ \t]|$)/.test(text) ||
+    /(?:^|[ \t])--only[ \t]*[=]?[ \t]*(?:prod|production)(?:[ \t=]|$)/.test(text);
+}
+
 // Operators that run their right-hand side beside or after the left without waiting for it
 // to land, so an install written there cannot be credited to the command that follows.
 const PIPELINE = new Set(["|", "&", "|&"]);
@@ -672,7 +688,9 @@ export function standAloneHelpers(lock) {
 
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
-        const installs = INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !relocated && !PIPELINE.has(operator);
+        const installs = INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !omitsDevDependencies(text) &&
+          !relocated && !PIPELINE.has(operator);
+
         // A command with a certain exit status opens only the worlds it can reach.
         const constantOk = constantStatus(text);
 
