@@ -167,6 +167,22 @@ test("dependency availability is tracked per step, not per job", () => {
   // them, so both are still proof.
   assert.deepEqual([...job([{ run: "npm ci --omit=optional\n" + helper }])], []);
   assert.deepEqual([...job([{ run: "npm install --production=false\n" + helper }])], []);
+
+  // An install written inside a block runs only if the block runs, so a never-taken branch,
+  // a loop over an empty list, or a function body that is never called cannot credit a later
+  // helper. `bash -c 'if false; then touch m; fi'` really leaves the file absent.
+  assert.deepEqual([...job([{ run: "if false; then\nbun install\nfi\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "install_it() {\nbun install\n}\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "for x in ; do\nbun install\ndone\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "while false; do\nbun install\ndone\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  // Failing closed must not smear past the block: once it closes, a full install is proof
+  // again, and a block that only echoes leaves that proof alone.
+  assert.deepEqual([...job([{ run: "if true; then\necho ok\nfi\n" + install + "\n" + helper }])], []);
+  assert.deepEqual([...job([{ run: "install_it() {\necho ok\n}\n" + install + "\n" + helper }])], []);
+
+  // Depth never goes negative, so a stray delimiter left by an edit cannot unwind a block
+  // that follows it and re-credit an install written inside that block.
+  assert.deepEqual([...job([{ run: "}" + "\n" + "if true; then\nbun install\nfi\n" + helper }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: install + " \"|| exit 1\"" + "\n" + helper }])], []);
 });
 

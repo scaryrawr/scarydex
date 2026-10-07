@@ -214,6 +214,16 @@ function omitsDevDependencies(text) {
 // to land, so an install written there cannot be credited to the command that follows.
 const PIPELINE = new Set(["|", "&", "|&"]);
 
+// Shell block delimiters, matched on the keyword that starts or ends a command. Anything
+// written inside a block runs only if the block runs — an `if false` branch, a loop over an
+// empty list, a function body that is never called — so its effect cannot be proven from
+// text and an install written there never credits a later helper. A `} else {` closes one
+// branch and opens the next, so both halves apply and the depth does not change.
+const BLOCK_OPENERS = /^(?:if|for|while|until|case)\b|\{$/;
+
+const BLOCK_CLOSERS = /^(?:fi|done|esac)\b|\}$/;
+
+
 // Split one script into commands, each paired with the operator that *follows* it, so the
 // guard can ask how an install hands over to the command after it. Quotes, command
 // substitutions, redirections such as `2>&1` and `&>`, and comments are respected, which keeps
@@ -668,6 +678,7 @@ export function standAloneHelpers(lock) {
       let errexit = true;
       let relocated = false;
       let shortCircuited = false;
+      let blockDepth = 0;
 
       for (const { command, operator } of splitCommands(script)) {
         const text = command.trim();
@@ -675,6 +686,16 @@ export function standAloneHelpers(lock) {
         if (!text) continue;
 
         if (/^set[ \t]+(?:[+-]e|[+-]o[ \t]+errexit)$/.test(text)) errexit = !text.startsWith("set +");
+
+        // Move the depth for any delimiter written on this line, then ask whether what
+        // follows is inside a block. The order is not a judgement call: an install is only
+        // ever matched at the start of a command, so it can never sit on a delimiter line,
+        // and reading the depth before or after the move gives the same answer.
+        if (BLOCK_CLOSERS.test(text)) blockDepth = Math.max(blockDepth - 1, 0);
+
+        if (BLOCK_OPENERS.test(text)) blockDepth++;
+
+        const insideBlock = blockDepth > 0;
 
         const executing = group.filter(key => nextOn === "always" || (nextOn === "ok") === exitedOk(key));
 
@@ -689,7 +710,7 @@ export function standAloneHelpers(lock) {
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
         const installs = INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !omitsDevDependencies(text) &&
-          !relocated && !PIPELINE.has(operator);
+          !relocated && !insideBlock && !PIPELINE.has(operator);
 
         // A command with a certain exit status opens only the worlds it can reach.
         const constantOk = constantStatus(text);
