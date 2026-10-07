@@ -76,6 +76,7 @@ Node.js 22.18+ is required. The repository’s `.npmrc` selects
 npm ci --ignore-scripts
 npm run build
 npm run check
+npm run lint
 npm run typecheck
 npm test
 node tools/smoke-install.mjs  # optional, requires Codex CLI
@@ -84,9 +85,14 @@ node tools/smoke-install.mjs  # optional, requires Codex CLI
 `build` produces the checked-in, self-contained OMLX and pstack CLI helpers.
 Installed users do not run npm or install their development dependencies. `check` validates the exact
 marketplace inventory, native manifests, skill YAML, local Markdown links, hook
-registration, and bundle hashes. Tests cover Codex hook wire formats,
+registration, and bundle hashes. `lint` runs Oxlint with this marketplace's own
+anti-slop plugin over code maintained here (`tools/`, `tests/`, `plugins/omlx-media/`);
+ported plugin content and dependency-free shipped skill runtimes stay verbatim under
+the port boundary. Schema validation uses TypeBox. Tests cover Codex hook wire formats,
 Anti-Slop’s bundled lint rules, OMLX domain behavior and CLI failures, and pstack
-contract/plan validation. Optional Bun tests for the retained pstack helpers:
+contract/plan validation. `bun test` spawns `git` in temporary repositories, so run it
+unsandboxed: a sandbox kills those children and reports `actual: null` failures and
+5000ms timeouts instead of the real result. Optional Bun tests for the retained pstack helpers:
 
 ```sh
 cd plugins/pstack/skills/poteto-mode/scripts
