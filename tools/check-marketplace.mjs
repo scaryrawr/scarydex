@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { lstat, readFile, readdir, realpath } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
@@ -189,6 +190,38 @@ const INSTALLS_DEPENDENCIES = /\b(?:bun|npm)\s+(?:install|ci)\b/;
 
 const MAX_DEPENDENCY_FREE_MODULES = 200;
 
+// `import.meta.resolve(...)` and `import.meta["resolve"](...)` are the loader; anything
+// else — `new.target.resolve(...)`, or an object with a `resolve` method named `meta` —
+// is not. A non-literal element (`import.meta["re" + "solve"]`) is still a loader whose
+// target is unknown, so the caller records its argument and fails closed on it.
+function isImportMetaResolve(expression) {
+  if (!ts.isPropertyAccessExpression(expression) && !ts.isElementAccessExpression(expression)) return false;
+
+  const receiver = expression.expression;
+
+  if (!ts.isMetaProperty(receiver) || receiver.keywordToken !== ts.SyntaxKind.ImportKeyword) return false;
+
+  if (ts.isPropertyAccessExpression(expression)) return expression.name.text === "resolve";
+
+  return !ts.isStringLiteral(expression.argumentExpression) || expression.argumentExpression.text === "resolve";
+}
+
+// The workflow runs these helpers with bare `node`, so ask that exact runtime whether the
+// module parses. `--check` compiles without executing and honours the `.mjs` module goal.
+// This is the *validity* oracle and it closes the hole the TypeScript parser leaves open:
+// parsing as JavaScript still accepts TypeScript annotations, so `const value: string = "x"`
+// in a `.mjs` helper yields zero diagnostics yet fails to load. `scanImports` is the other
+// oracle, and the two are not interchangeable: Node 24 accepts `import source txt from
+// "node:fs"` (exit 0) while the TypeScript parser reports `'=' expected` and its traversal
+// silently drops that specifier, so only the parser gate turns that into a finding.
+export function checkModuleSyntax(absoluteFile) {
+  const checked = spawnSync("node", ["--check", absoluteFile], { encoding: "utf8" });
+
+  if (checked.error) throw new Error(`${absoluteFile} could not be syntax-checked: ${checked.error.message}`);
+
+  if (checked.status !== 0) throw new Error(`${absoluteFile} is not valid JavaScript for the workflow's Node runtime: ${(checked.stderr || checked.stdout).trim().split("\n").slice(0, 2).join(" / ")}`);
+}
+
 // Every module target a loader can be pointed at, bucketed by how much the guard can
 // prove about it. `literals` are specifiers written as literals in `import`, re-export
 // `export ... from`, side-effect `import "pkg"`, `import(...)` with trailing arguments
@@ -196,22 +229,26 @@ const MAX_DEPENDENCY_FREE_MODULES = 200;
 // every *other* loader argument — an identifier, concatenation, conditional, member
 // access, call result, or interpolated template — because the resolved target is unknown
 // at scan time, and `const name = "pkg"; await import(name)` is valid Node.
-// `requires` names any `require`/`createRequire` reference, which closes aliasing
-// (`const r = require; r("pkg")`) by refusing the pattern rather than chasing it; ESM
+// `requires` names any `require`/`createRequire` reference, reached by dot or by literal
+// element access, which closes aliasing (`const r = require; r("pkg")`) by refusing the
+// pattern rather than chasing it; ESM
 // install-free helpers have no `require` to reach for in the first place.
 //
 // This walks parsed module syntax rather than matching regexes, so trivia such as
 // `import /* c */ "pkg"` counts while a package name inside a comment or string does
 // not. Everything the guard cannot prove is a finding, never a pass.
 export function scanImports(source, file = "module.mjs") {
-  const syntaxErrors = (ts.transpileModule(source, {
-    reportDiagnostics: true,
-    compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
-  }).diagnostics ?? []).map(diagnostic => ts.flattenDiagnosticMessageText(diagnostic.messageText, " "));
+  const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+
+  // Parse as the JavaScript Node will load, then fail closed on anything the parser could
+  // not place: where it errors, the traversal below cannot be trusted to find every
+  // specifier. It is the *modelling* oracle and stays deliberately separate from
+  // `checkModuleSyntax`, the validity oracle — this parser rejects newer JavaScript Node
+  // accepts, and reports nothing for TypeScript syntax it tolerates.
+  const syntaxErrors = (sourceFile.parseDiagnostics ?? []).map(diagnostic => ts.flattenDiagnosticMessageText(diagnostic.messageText, " "));
 
   if (syntaxErrors.length) throw new Error(`${file} cannot be parsed by the dependency-free guard; fix the syntax so its imports can be verified: ${syntaxErrors.join("; ")}`);
 
-  const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, false, ts.ScriptKind.JS);
   const literals = new Set();
   const computed = new Set();
   const requires = new Set();
@@ -232,12 +269,16 @@ export function scanImports(source, file = "module.mjs") {
       const { expression } = node;
       const isDynamicImport = expression.kind === ts.SyntaxKind.ImportKeyword;
       const isRequire = ts.isIdentifier(expression) && expression.text === "require";
-      const isResolve = ts.isPropertyAccessExpression(expression) && ts.isMetaProperty(expression.expression) && expression.name.text === "resolve";
+      const isResolve = isImportMetaResolve(expression);
 
       if (isDynamicImport || isRequire || isResolve) record(node.arguments[0]);
     }
 
-    if (ts.isPropertyAccessExpression(node) && /^(?:require|createRequire)$/.test(node.name.text)) {
+    // A loader name is reachable through a literal element access exactly as through a dot,
+    // so `module["createRequire"](import.meta.url)("@scope/pkg")` must count as the
+    // CommonJS escape that it is.
+    if ((ts.isPropertyAccessExpression(node) && /^(?:require|createRequire)$/.test(node.name.text)) ||
+        (ts.isElementAccessExpression(node) && ts.isStringLiteral(node.argumentExpression) && /^(?:require|createRequire)$/.test(node.argumentExpression.text))) {
       requires.add(text(node));
 
       return;
@@ -294,6 +335,8 @@ export async function dependencyFreeClosure(root, entrypoints) {
     seen.add(file);
 
     const { source } = await readModule(root, file, specifier);
+    checkModuleSyntax(path.join(root, file));
+
     const { literals, computed, requires } = scanImports(source, file);
     const bare = literals.filter(specifier => !specifier.startsWith("node:") && !specifier.startsWith("."));
 

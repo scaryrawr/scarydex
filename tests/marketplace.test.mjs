@@ -6,7 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, test } from "node:test";
 import { parse } from "yaml";
-import { dependencyFreeClosure, EXPECTED_PLUGINS, findBareImports, findComputedImports, scanImports, standAloneHelpers, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
+import { checkModuleSyntax, dependencyFreeClosure, EXPECTED_PLUGINS, findBareImports, findComputedImports, scanImports, standAloneHelpers, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
 
@@ -136,6 +136,23 @@ test("workflow helpers executed without dependency install stay dependency-free"
   assert.deepEqual(scanImports('const { createRequire } = await import("node:module");').requires, ["createRequire"]);
   assert.deepEqual(scanImports('const required = 1;\nexport const requiresLike = required + 1;').requires, []);
 
+  // A literal element access reaches the same CommonJS loaders as a dot property, so
+  // `module["createRequire"](...)` must not read as dependency-free.
+  const commonjs = [
+    ['element createRequire', 'module["createRequire"](import.meta.url)("@sinclair/typebox");'],
+    ['element require', 'module["require"]("@sinclair/typebox");'],
+    ['element require after alias', 'const ns = module;\nns["createRequire"](import.meta.url)("@sinclair/typebox");'],
+  ];
+
+  for (const [label, source] of commonjs) assert.equal(scanImports(source).requires.length, 1, `guard missed the ${label} CommonJS escape`);
+
+  // Only `import.meta` names the resolve loader; a string element access is the same
+  // loader as the dot form, and unrelated receivers must not be reported as one.
+  assert.deepEqual(scanImports('const pkg = await import.meta["resolve"]("@sinclair/typebox");').literals, ["@sinclair/typebox"]);
+  assert.deepEqual(scanImports('const pkg = await import.meta["re" + "solve"]("@sinclair/typebox");').literals, ["@sinclair/typebox"]);
+  assert.deepEqual(scanImports('new.target.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [] });
+  assert.deepEqual(scanImports('const meta = { resolve: s => s };\nmeta.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [] });
+
   assert.throws(() => findBareImports('import source txt from "@sinclair/typebox";\nexport default txt;'), /cannot be parsed by the dependency-free guard; fix the syntax so its imports can be verified/);
 
   const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-bare-checkout-")); roots.push(dir);
@@ -153,6 +170,32 @@ test("workflow helpers executed without dependency install stay dependency-free"
   assert.deepEqual(helper.skipEmptyPlan(emptyPlan, path.join(dir, "noop.json")), { skipped: true });
 
   assert.match(await readFile(path.join(dir, "noop.json"), "utf8"), /No upstream changes to review/);
+});
+
+test("Node is the validity oracle for install-free helpers", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-node-syntax-")); roots.push(dir);
+  const write = (file, text) => writeFile(path.join(dir, file), text);
+  const typescript = 'const value: string = "x";\nexport default value;\n';
+
+  // The guard's parser reads this as JavaScript without complaint, so only asking the
+  // runtime that loads it can keep a TypeScript annotation out of the workflow helpers.
+  assert.equal(scanImports(typescript, "annotation.mjs").literals.length, 0);
+
+  await write("annotation.mjs", typescript);
+  assert.throws(() => checkModuleSyntax(path.join(dir, "annotation.mjs")), /is not valid JavaScript for the workflow's Node runtime/);
+
+  await write("entry.mjs", typescript);
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /entry\.mjs is not valid JavaScript for the workflow's Node runtime/);
+
+  // The parser gate stays for syntax Node accepts but the traversal cannot model, so
+  // removing it would silently drop the specifier instead of reporting a finding.
+  await write("entry.mjs", 'import source txt from "./clean.mjs";\nexport default txt;\n');
+  await write("clean.mjs", 'export const clean = true;\n');
+  checkModuleSyntax(path.join(dir, "clean.mjs"));
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /entry\.mjs cannot be parsed by the dependency-free guard/);
+
+  await write("entry.mjs", 'import { clean } from "./clean.mjs";\nexport default clean;\n');
+  assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["clean.mjs", "entry.mjs"]);
 });
 
 test("the dependency-free guard follows relative imports transitively", async () => {
@@ -204,6 +247,9 @@ test("the dependency-free guard follows relative imports transitively", async ()
 
   await write("dep.mjs", 'const { createRequire } = await import("node:module");\nconst require = createRequire(import.meta.url);\nexport const alias = require;\n');
   await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs reaches for CommonJS loading; install-free workflow jobs must use literal static imports so the dependency-free guard can traverse them/);
+
+  await write("dep.mjs", 'module["createRequire"](import.meta.url)("@sinclair/typebox");\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs reaches for CommonJS loading.*module\["createRequire"\]/);
 
   await write("dep.mjs", 'export const dep = "clean";\n');
   await write("cyclic-a.mjs", 'import { b } from "./cyclic-b.mjs";\nexport const a = b;\n');
