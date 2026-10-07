@@ -90,7 +90,8 @@ anti-slop plugin over code maintained here (`tools/`, `tests/`, `plugins/omlx-me
 ported plugin content and dependency-free shipped skill runtimes stay verbatim under
 the port boundary. Schema validation uses TypeBox in code that runs after
 `bun install`; the trusted `tools/upstream-sync.mjs` policy helper stays dependency-free
-because workflow jobs execute it from bare checkouts, and `bun run check` enforces that. Tests cover Codex hook wire formats,
+because workflow jobs execute it and everything it imports from bare checkouts, and
+`bun run check` walks that import closure and enforces it. Tests cover Codex hook wire formats,
 Anti-Slop’s bundled lint rules, OMLX domain behavior and CLI failures, and pstack
 contract/plan validation. `bun test` spawns `git` in temporary repositories, so run it
 unsandboxed: a sandbox kills those children and reports `actual: null` failures and

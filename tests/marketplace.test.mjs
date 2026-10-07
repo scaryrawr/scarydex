@@ -6,7 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, test } from "node:test";
 import { parse } from "yaml";
-import { EXPECTED_PLUGINS, findBareImports, standAloneHelpers, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
+import { dependencyFreeClosure, EXPECTED_PLUGINS, findBareImports, standAloneHelpers, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
 
@@ -81,6 +81,8 @@ test("workflow helpers executed without dependency install stay dependency-free"
 
   assert.deepEqual(findBareImports('import path from "node:path";\nimport { x } from "./rel.mjs";\nimport { Value } from "@sinclair/typebox/value";\nconst loaded = await import("@acme/pkg");'), ["@sinclair/typebox/value", "@acme/pkg"]);
 
+  assert.deepEqual(findBareImports('import "@sinclair/typebox";\nimport "./local.mjs";\nimport "node:fs";'), ["@sinclair/typebox"]);
+
   const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-bare-checkout-")); roots.push(dir);
   await mkdir(path.join(dir, "tools"), { recursive: true });
   await cp(path.join(root, "tools/upstream-sync.mjs"), path.join(dir, "tools/upstream-sync.mjs"));
@@ -96,4 +98,34 @@ test("workflow helpers executed without dependency install stay dependency-free"
   assert.deepEqual(helper.skipEmptyPlan(emptyPlan, path.join(dir, "noop.json")), { skipped: true });
 
   assert.match(await readFile(path.join(dir, "noop.json"), "utf8"), /No upstream changes to review/);
+});
+
+test("the dependency-free guard follows relative imports transitively", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-closure-")); roots.push(dir);
+  const write = (file, text) => writeFile(path.join(dir, file), text);
+
+  await write("entry.mjs", 'import { node } from "node:os";\nimport { dep } from "./dep.mjs";\nexport const go = () => [node, dep];\n');
+  await write("dep.mjs", 'export const dep = "clean";\n');
+
+  assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["dep.mjs", "entry.mjs"]);
+
+  await write("dep.mjs", 'import { Value } from "@sinclair/typebox/value";\nexport const dep = Value;\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs is reachable from workflow jobs that never install dependencies; remove these bare imports: @sinclair\/typebox\/value/);
+
+  await write("dep.mjs", 'import { side } from "@sinclair/typebox";\nexport const side2 = side;\n');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /@sinclair\/typebox/);
+
+  await write("dep.mjs", 'export const dep = "clean";\n');
+  await write("cyclic-a.mjs", 'import { b } from "./cyclic-b.mjs";\nexport const a = b;\n');
+  await write("cyclic-b.mjs", 'import { a } from "./cyclic-a.mjs";\nexport const b = a;\n');
+
+  assert.deepEqual(await dependencyFreeClosure(dir, ["cyclic-a.mjs"]), ["cyclic-a.mjs", "cyclic-b.mjs"]);
+
+  await assert.rejects(dependencyFreeClosure(dir, ["missing.mjs"]), /Unresolved import "missing\.mjs"/);
+});
+
+test("the shipped workflow entrypoint closure is dependency-free", async () => {
+  const lock = parse(await readFile(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
+
+  assert.deepEqual(await dependencyFreeClosure(root, [...standAloneHelpers(lock)].sort()), ["tools/upstream-sync.mjs"]);
 });

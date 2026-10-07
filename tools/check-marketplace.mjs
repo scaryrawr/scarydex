@@ -186,16 +186,61 @@ export async function validateRepoSkills(root) {
 
 const INSTALLS_DEPENDENCIES = /\b(?:bun|npm)\s+(?:install|ci)\b/;
 
+const MAX_DEPENDENCY_FREE_MODULES = 200;
+
+export function findImports(source) {
+  const patterns = [
+    /\bfrom\s*["']([^"']+)["']/g,
+    /^\s*import\s*["']([^"']+)["']/gm,
+    /\bimport\(\s*[`"']([^`"']+)[`"']\s*\)/g,
+  ];
+
+  return patterns.flatMap(pattern => [...source.matchAll(pattern)].map(match => match[1]));
+}
+
 export function findBareImports(source) {
-  const bare = [];
+  return findImports(source).filter(specifier => !specifier.startsWith("node:") && !specifier.startsWith("."));
+}
 
-  for (const match of source.matchAll(/\bfrom\s+["']([^"']+)["']|\bimport\(\s*[`"']([^`"']+)[`"']\s*\)/g)) {
-    const specifier = match[1] ?? match[2];
+async function readModule(root, file, specifier) {
+  const candidates = path.extname(file) ? [file] : [`${file}.mjs`, `${file}.js`];
 
-    if (!specifier.startsWith("node:") && !specifier.startsWith(".")) bare.push(specifier);
+  for (const candidate of candidates) {
+    try {
+      return { file: candidate, source: await readFile(path.join(root, candidate), "utf8") };
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
   }
 
-  return bare;
+  throw new Error(`Unresolved import "${specifier}" from ${file}; install-free workflow jobs cannot load it`);
+}
+
+export async function dependencyFreeClosure(root, entrypoints) {
+  const seen = new Set();
+
+  const queue = entrypoints.map(file => ({ file, specifier: file }));
+
+  while (queue.length > 0) {
+    const { file, specifier } = queue.shift();
+
+    if (seen.has(file)) continue;
+
+    if (seen.size >= MAX_DEPENDENCY_FREE_MODULES) throw new Error(`Dependency-free module closure exceeded ${MAX_DEPENDENCY_FREE_MODULES} modules`);
+
+    seen.add(file);
+
+    const { source } = await readModule(root, file, specifier);
+    const bare = findBareImports(source);
+
+    if (bare.length) throw new Error(`${file} is reachable from workflow jobs that never install dependencies; remove these bare imports: ${bare.join(", ")}`);
+
+    for (const relative of findImports(source).filter(s => s.startsWith(".") && !s.includes("${"))) {
+      queue.push({ file: path.posix.normalize(path.posix.join(path.posix.dirname(file), relative)), specifier: relative });
+    }
+  }
+
+  return [...seen].sort();
 }
 
 export function standAloneHelpers(lock) {
@@ -294,13 +339,7 @@ export async function validateUpstreamSetup(root) {
 
   if (lock.jobs.agent.permissions?.contents !== "read" || lock.jobs.agent.permissions?.["pull-requests"] !== "read") throw new Error("Agent permissions drift");
 
-  const standAlone = [...standAloneHelpers(lock)].sort();
-
-  for (const file of standAlone) {
-    const bare = findBareImports(await readFile(path.join(root, file), "utf8"));
-
-    if (bare.length) throw new Error(`${file} runs in workflow jobs that never install dependencies; remove these bare imports: ${bare.join(", ")}`);
-  }
+  await dependencyFreeClosure(root, [...standAloneHelpers(lock)].sort());
 
   return { tracks: 7 };
 }
