@@ -636,13 +636,18 @@ test("shadowed installers and sourced shell state cannot prove installation", ()
     "npm() { :; }",
     "function bun { :; }",
     "function npm() { :; }",
-    "source /tmp/shell-state.sh",
-    ". /tmp/shell-state.sh",
-    "builtin source /tmp/shell-state.sh",
     "alias bun=true",
   ]) assert.deepEqual(job(`${prefix}; bun install; npm install; ${helper}`), ["tools/upstream-sync.mjs"]);
 
-  for (const env of [{ BASH_ENV: "/tmp/shell-state.sh" }, { ENV: "${{ inputs.shell_state }}" }, { "BASH_FUNC_bun%%": "() { :; }" }]) {
+  for (const prefix of ["source /tmp/shell-state.sh", ". /tmp/shell-state.sh", "builtin source /tmp/shell-state.sh"]) {
+    assert.throws(() => job(`${prefix}; bun install; ${helper}`), /unprovable helper working directory/);
+  }
+
+  for (const env of [{ BASH_ENV: "/tmp/shell-state.sh" }, { ENV: "${{ inputs.shell_state }}" }]) {
+    assert.throws(() => job("bun install; " + helper, env), /unprovable helper working directory/);
+  }
+
+  for (const env of [{ "BASH_FUNC_bun%%": "() { :; }" }]) {
     assert.deepEqual(job("bun install; " + helper, env), ["tools/upstream-sync.mjs"]);
   }
 
@@ -730,6 +735,35 @@ test("directory-stack mutations use effective commands and invalidate proof", ()
   }
 
   assert.deepEqual(job([{ run: "command -v cd; bun install; " + helper }]), []);
+});
+
+test("eval and sourced state cannot hide a changed helper directory", async () => {
+  const helper = "node tools/x.mjs";
+  const job = (run, env) => [...standAloneHelpers({ env, jobs: { build: { steps: [{ run }] } } })];
+
+  for (const prefix of ["eval 'cd sub'", "builtin eval 'pushd sub'", `eval 'eval "cd sub"'`, "source state.sh", ". state.sh", "command source state.sh"]) {
+    assert.throws(() => job(`${prefix}; ${helper}`), /unprovable helper working directory/);
+  }
+
+  assert.throws(() => job(helper, { BASH_ENV: "state.sh" }), /unprovable helper working directory/);
+  assert.deepEqual(job("eval 'echo ready'; " + helper), ["tools/x.mjs"]);
+  assert.deepEqual(job("bash -c 'cd sub'; " + helper), ["tools/x.mjs"]);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-eval-directory-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await mkdir(path.join(dir, "sub/tools"), { recursive: true });
+  await writeFile(path.join(dir, "tools/x.mjs"), "export const clean = true;");
+  await writeFile(path.join(dir, "sub/tools/x.mjs"), 'import "@scope/missing-package";');
+  await writeFile(path.join(dir, "state.sh"), "cd sub\n");
+
+  for (const prefix of ["eval 'cd sub'", "source state.sh"]) {
+    const loaded = spawnSync("bash", ["-e", "-c", `${prefix}; ${helper}`], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.notEqual(loaded.status, 0);
+    assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
 });
 
 test("inherited npm no-op settings cannot prove an installation", () => {
@@ -934,6 +968,56 @@ test("github-script dynamic evaluation follows the module scanner boundary", () 
 
   assert.deepEqual(job(`const text = 'eval("require(unsafe)")'; core.info(text);`), []);
   assert.deepEqual(job('const callback = () => core.info("done"); callback();'), []);
+});
+
+test("workspace template proof rejects environment overrides and process shadowing", () => {
+  const target = "`${process.env.GITHUB_WORKSPACE}/tools/helper.mjs`";
+  const job = (script, env, jobEnv, stepEnv) => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ env: stepEnv, uses: "actions/github-script@pinned", with: { script } }] } } })];
+
+  for (const load of [`await import(${target});`, `require(${target});`]) {
+    assert.throws(() => job(load, { GITHUB_WORKSPACE: "/tmp/other" }), /unprovable (?:import|require) target/);
+    assert.throws(() => job(load, undefined, { GITHUB_WORKSPACE: "/tmp/other" }), /unprovable (?:import|require) target/);
+    assert.throws(() => job(load, undefined, undefined, { GITHUB_WORKSPACE: "/tmp/other" }), /unprovable (?:import|require) target/);
+
+    for (const script of [
+      `const process = fake; ${load}`,
+      `async function go(process) { ${load} } go(fake);`,
+      `const go = async ({ process }) => { ${load} }; go(fake);`,
+      `try { throw fake; } catch (process) { ${load} }`,
+      `const { process } = fake; ${load}`,
+      `process.env.GITHUB_WORKSPACE = "/tmp/other"; ${load}`,
+    ]) assert.throws(() => job(script), /unprovable (?:import|require) target/);
+
+    assert.deepEqual(job(load), ["tools/helper.mjs"]);
+    assert.deepEqual(job(load, { GITHUB_WORKSPACE: "${{ github.workspace }}" }), ["tools/helper.mjs"]);
+    assert.deepEqual(job(load, { GITHUB_WORKSPACE: "/tmp/other" }, undefined, { GITHUB_WORKSPACE: "${{ github.workspace }}" }), ["tools/helper.mjs"]);
+  }
+});
+
+test("constructor-based code generation is refused in modules and action scripts", async () => {
+  const job = script => [...standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script } }] } } })];
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-constructor-code-"));
+
+  roots.push(dir);
+
+  for (const source of [
+    `await Object.constructor('return import("@scope/missing-package")')();`,
+    `await (async () => {}).constructor('return import("@scope/missing-package")')();`,
+    `await (() => {}).constructor('return import("@scope/missing-package")')();`,
+    `const build = Object["constructor"]; await build('return import("@scope/missing-package")')();`,
+    `const { constructor: build } = Object; await build('return import("@scope/missing-package")')();`,
+  ]) {
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    assert.ok(scanImports(source).dynamic.length, source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /evaluates code at runtime/);
+    assert.throws(() => job(source), /github-script.*evaluates code at runtime/);
+    const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.notEqual(loaded.status, 0);
+    assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
+
+  assert.deepEqual(scanImports('class Ordinary { constructor(value) { this.value = value; } } new Ordinary(1);').dynamic, []);
 });
 
 const SINGLE = String.fromCharCode(10);

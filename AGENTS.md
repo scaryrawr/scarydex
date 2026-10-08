@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 220 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 223 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -96,6 +96,11 @@ so relative paths cannot accidentally validate different files.
 Unknown Node options, including environment-file loaders, fail closed instead
 of hiding a later entrypoint behind an option value. GitHub Script reuses the
 module scanner's dynamic-code/alias boundary for `eval` and `Function`.
+Constructor member access is also dynamic code, while ordinary class constructor
+definitions remain supported. Workspace templates use the same environment and
+immutable-binding proof as require targets, including parameter/destructuring
+shadowing. Literal eval propagates directory changes through nested eval; sourced
+state and shell startup configuration make the parent directory unprovable.
 It parses each module with the TypeScript compiler rather than matching regexes,
 so trivia between tokens (`import /* c */ "pkg"`) counts
 and a package name inside a comment or string does not. Every target lands in one of

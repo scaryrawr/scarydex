@@ -678,7 +678,7 @@ export function scanImports(source, file = "module.mjs") {
 
     // Refused wherever the name appears, aliased or not, so a reference cannot be stored
     // and called later past a target-only check.
-    if (/^(?:eval|Function)$/.test(calleeName)) {
+    if (/^(?:eval|Function|constructor)$/.test(calleeName)) {
       dynamic.add(text(node));
 
       return;
@@ -1235,6 +1235,8 @@ function githubScriptHelpers(script, environment, actionsDirectoryAvailable) {
       bindings.set(node.name.text, constant && !bindings.has(node.name.text) ? node.initializer : undefined);
     }
 
+    if ((ts.isParameter(node) || ts.isBindingElement(node) || ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) && node.name && ts.isIdentifier(node.name)) bindings.set(node.name.text, undefined);
+
     if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
       let target = node.left;
 
@@ -1344,13 +1346,9 @@ function githubScriptHelpers(script, environment, actionsDirectoryAvailable) {
         if (isRelativeSpecifier(specifier)) file = specifier;
         else if (!specifier.startsWith("node:")) throw new Error(`github-script has a bare import without proven dependencies: ${specifier}`);
       } else if (target && ts.isTemplateExpression(target) && target.head.text === "" && target.templateSpans.length === 1) {
-        const span = target.templateSpans[0];
-        const workspace = span.expression;
+        const resolved = resolve(target);
 
-        if (ts.isPropertyAccessExpression(workspace) && workspace.name.text === "GITHUB_WORKSPACE" &&
-            ts.isPropertyAccessExpression(workspace.expression) && workspace.expression.name.text === "env" &&
-            ts.isIdentifier(workspace.expression.expression) && workspace.expression.expression.text === "process" &&
-            span.literal.text.startsWith("/")) file = span.literal.text.slice(1);
+        if (resolved?.kind === "workspace") file = resolved.value;
       }
 
       // The workspace prefix is the only computed form proved above. Everything else must
@@ -1387,6 +1385,24 @@ function constantStatus(text) {
   const exit = /^exit[ \t]+([0-9]+)$/.exec(text);
 
   return exit ? Number(exit[1]) === 0 : null;
+}
+
+function shellRelocates(script, environment) {
+  for (const { command } of splitCommands(script)) {
+    const list = words(command);
+    const context = commandContext(list, environment);
+    const executable = context.introspection ? undefined : list[context.index]?.value;
+
+    if (["cd", "pushd", "popd", "source", "."].includes(executable)) return true;
+
+    if (executable === "eval") {
+      const args = list.slice(context.index + 1);
+
+      if (args.some(word => word.hasExpansion) || shellRelocates(args.map(word => word.value).join(" "), context.environment)) return true;
+    }
+  }
+
+  return false;
 }
 
 export function standAloneHelpers(lock) {
@@ -1428,7 +1444,7 @@ export function standAloneHelpers(lock) {
       let nextOn = "always";
       let dead = [];
       let errexit = modeledShell;
-      let relocated = false;
+      let relocated = Object.entries(environment).some(([name, value]) => /^(?:BASH_ENV|ENV)$/.test(name) && String(value).trim() !== "");
       let shortCircuited = false;
       let blockDepth = 0;
 
@@ -1495,7 +1511,7 @@ export function standAloneHelpers(lock) {
 
         // A `cd` moves the working directory, so no later install can be credited with
         // populating the checkout's `node_modules`: the runtime may load a different tree.
-        if (["cd", "pushd", "popd"].includes(commandName)) relocated = true;
+        if (["cd", "pushd", "popd", "source", "."].includes(commandName) || (commandName === "eval" && shellRelocates(effectiveArgv.slice(1).join(" "), context.environment))) relocated = true;
 
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
