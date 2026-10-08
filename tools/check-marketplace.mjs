@@ -487,9 +487,8 @@ function splitCommands(script) {
 
 const MAX_DEPENDENCY_FREE_MODULES = 200;
 
-// Workers start another module graph, including through aliased constructors. Refuse the
-// loader module itself until the guard can prove and traverse those entrypoints.
-const UNSUPPORTED_MODULE_LOADERS = new Set(["node:worker_threads"]);
+// Workers and module registration start graphs the static import closure cannot traverse.
+const UNSUPPORTED_MODULE_LOADERS = new Set(["node:worker_threads", "node:module"]);
 
 const ROOT_WORKING_DIRECTORIES = new Set([".", "./", "${{ github.workspace }}"]);
 
@@ -1238,7 +1237,7 @@ export function standAloneHelpers(lock) {
         const parsedWords = words(text);
         const argv = parsedWords.map(word => word.value);
         const firstCommand = parsedWords.findIndex(word => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value));
-        const environmentWords = argv[0] === "export" ? parsedWords.slice(1) : parsedWords.slice(0, firstCommand === -1 ? parsedWords.length : firstCommand);
+        const environmentWords = ["export", "declare", "typeset", "readonly", "local"].includes(argv[0]) ? parsedWords.slice(1) : parsedWords.slice(0, firstCommand === -1 ? parsedWords.length : firstCommand);
 
         for (const word of environmentWords) {
           const assignment = /^(NODE_OPTIONS|NODE_ENV|npm_config_[A-Za-z0-9_]+)=(.*)$/i.exec(word.value);

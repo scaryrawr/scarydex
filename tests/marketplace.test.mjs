@@ -519,6 +519,25 @@ test("inherited npm relocation settings cannot prove checkout dependencies", () 
   assert.deepEqual(job({ NPM_CONFIG_GLOBAL: "", NPM_CONFIG_LOCATION: "project", NPM_CONFIG_PREFIX: "" }), []);
 });
 
+test("Bash declaration builtins cannot hide dependency environment mutations", () => {
+  const helper = "node tools/upstream-sync.mjs";
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const declaration of ["declare -x", "declare -gx", "typeset -x", "readonly", "local -x"]) {
+    for (const assignment of ["NPM_CONFIG_DRY_RUN=true", "npm_config_global=true", "NODE_ENV=production"]) {
+      assert.deepEqual(job(`${declaration} ${assignment}; npm install; ${helper}`), ["tools/upstream-sync.mjs"]);
+    }
+
+    assert.throws(() => job(`${declaration} NODE_OPTIONS='--import ./bootstrap.mjs'; ${helper}`), /unprovable NODE_OPTIONS/);
+  }
+
+  assert.deepEqual(job("declare -x UNRELATED=true; npm install; " + helper), []);
+  const bash = spawnSync("bash", ["-c", 'declare -x NPM_CONFIG_DRY_RUN=true; typeset -x NPM_CONFIG_GLOBAL=true; printenv NPM_CONFIG_DRY_RUN; printenv NPM_CONFIG_GLOBAL'], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(bash.status, 0, bash.stderr);
+  assert.equal(bash.stdout, "true\ntrue\n");
+});
+
 test("inherited npm no-op settings cannot prove an installation", () => {
   const helper = { run: "node tools/upstream-sync.mjs" };
   const job = (env, jobEnv, stepEnv, run = "npm install") => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ run, env: stepEnv }, helper] } } })];
@@ -949,7 +968,7 @@ test("the dependency-free guard follows relative imports transitively", async ()
   await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs builds import targets at runtime/);
 
   await write("dep.mjs", 'const { createRequire } = await import("node:module");\nconst require = createRequire(import.meta.url);\nexport const alias = require;\n');
-  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs reaches for CommonJS loading; install-free workflow jobs must use literal static imports so the dependency-free guard can traverse them/);
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs imports an unsupported module loader.*node:module/);
 
   await write("dep.mjs", 'module["createRequire"](import.meta.url)("@sinclair/typebox");\n');
   await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs reaches for CommonJS loading.*module\["createRequire"\]/);
@@ -1043,6 +1062,34 @@ test("worker loaders cannot bypass the install-free import closure", async () =>
   }
 
   await writeFile(path.join(dir, "entry.mjs"), 'import "node:fs"; export const info = "node:worker_threads";');
+  assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["entry.mjs"]);
+});
+
+test("Node module registration cannot start an unscanned module graph", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-module-registration-"));
+
+  roots.push(dir);
+  await writeFile(path.join(dir, "bootstrap.mjs"), 'import "@scope/missing-package";');
+  await writeFile(path.join(dir, "entry.mjs"), 'import { register } from "node:module"; register("./bootstrap.mjs", import.meta.url);');
+  const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+
+  for (const source of [
+    'import { register } from "node:module"; register("./bootstrap.mjs", import.meta.url);',
+    'import { register as install } from "node:module"; install("./bootstrap.mjs", import.meta.url);',
+    'import * as modules from "node:module"; modules.register("./bootstrap.mjs", import.meta.url);',
+    'const modules = await import("node:module"); modules["register"]("./bootstrap.mjs", import.meta.url);',
+    'export { register, registerHooks } from "node:module";',
+  ]) {
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /unsupported module loader.*node:module/);
+  }
+
+  assert.throws(() => standAloneHelpers({ jobs: { build: { steps: [{ run: "node --import node:module tools/x.mjs" }] } } }), /unsupported module loader/);
+  assert.throws(() => standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script: 'await import("node:module");' } }] } } }), /unsupported module loader/);
+  await writeFile(path.join(dir, "entry.mjs"), 'import "node:fs"; export const note = "node:module register";');
   assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["entry.mjs"]);
 });
 
