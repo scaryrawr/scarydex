@@ -627,6 +627,33 @@ test("literal shell eval exposes helpers without establishing install proof", as
   assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
+test("shadowed installers and sourced shell state cannot prove installation", () => {
+  const job = (run, env) => [...standAloneHelpers({ env, jobs: { build: { steps: [{ run }] } } })];
+  const helper = "node tools/upstream-sync.mjs";
+
+  for (const prefix of [
+    "bun() { :; }",
+    "npm() { :; }",
+    "function bun { :; }",
+    "function npm() { :; }",
+    "source /tmp/shell-state.sh",
+    ". /tmp/shell-state.sh",
+    "builtin source /tmp/shell-state.sh",
+    "alias bun=true",
+  ]) assert.deepEqual(job(`${prefix}; bun install; npm install; ${helper}`), ["tools/upstream-sync.mjs"]);
+
+  for (const env of [{ BASH_ENV: "/tmp/shell-state.sh" }, { ENV: "${{ inputs.shell_state }}" }, { "BASH_FUNC_bun%%": "() { :; }" }]) {
+    assert.deepEqual(job("bun install; " + helper, env), ["tools/upstream-sync.mjs"]);
+  }
+
+  assert.deepEqual(job("other() { :; }; bun install; " + helper), []);
+  assert.deepEqual(job("bun install; " + helper, { BASH_ENV: "", ENV: "" }), []);
+  const bash = spawnSync("bash", ["-e", "-c", "bun() { :; }; node() { printf 'HELPER_EXECUTED\\n'; }; bun install; node tools/x.mjs"], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(bash.status, 0, bash.stderr);
+  assert.equal(bash.stdout, "HELPER_EXECUTED\n");
+});
+
 test("inherited npm no-op settings cannot prove an installation", () => {
   const helper = { run: "node tools/upstream-sync.mjs" };
   const job = (env, jobEnv, stepEnv, run = "npm install") => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ run, env: stepEnv }, helper] } } })];
@@ -771,6 +798,49 @@ test("github-script workspace imports are independent dependency-free entrypoint
   await mkdir(path.join(dir, "tools"));
   await writeFile(path.join(dir, "tools/duplicate-check.mjs"), 'import "@scope/missing-package";');
   await assert.rejects(dependencyFreeClosure(dir, job([scriptStep(script), { run: "bun install" }])), /duplicate-check\.mjs.*bare imports: @scope\/missing-package/);
+});
+
+test("github-script require targets join the verified workspace closure", async () => {
+  const job = (script, env) => [...standAloneHelpers({ env, jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script } }] } } })];
+
+  for (const script of [
+    'require("./tools/helper.mjs");',
+    'require(`${process.env.GITHUB_WORKSPACE}/tools/helper.mjs`);',
+    'const path = require("path"); require(path.join(process.env.GITHUB_WORKSPACE, "tools/helper.mjs"));',
+    'const path = require("node:path"); const workspace = process.env.GITHUB_WORKSPACE; const target = path.join(workspace, "tools", "helper.mjs"); require(target);',
+  ]) assert.deepEqual(job(script), ["tools/helper.mjs"]);
+
+  for (const script of [
+    "require(target);",
+    'const path = require("path"); require(path.join(process.env.GITHUB_WORKSPACE, name));',
+    'const load = require; load("./tools/helper.mjs");',
+    'require("@scope/missing-package");',
+    'require("node:module");',
+    'require("worker_threads");',
+    'const path = require("path"); path.join = custom; require(path.join(process.env.RUNNER_TEMP, "helper.mjs"));',
+  ]) assert.throws(() => job(script), /github-script.*(?:unprovable|bare|unsupported)/);
+
+  assert.deepEqual(job('require("fs"); require("node:path");'), []);
+  const external = 'const path = require("path"); const actionsDir = path.join(process.env.RUNNER_TEMP, "gh-aw", "actions"); require(path.join(actionsDir, "setup_globals.cjs"));';
+
+  assert.deepEqual(job(external), []);
+  assert.throws(() => job(external, { RUNNER_TEMP: "${{ github.workspace }}" }), /unprovable require target/);
+  assert.deepEqual(job('require(process.env.GH_AW_ACTIONS_DIR + "/setup_globals.cjs");', { GH_AW_ACTIONS_DIR: "${{ runner.temp }}/gh-aw/actions" }), []);
+  assert.throws(() => job('require(process.env.GH_AW_ACTIONS_DIR + "/helper.mjs");', { GH_AW_ACTIONS_DIR: "${{ github.workspace }}" }), /unprovable require target/);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-github-script-require-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/helper.mjs"), 'import "@scope/missing-package";');
+  const script = 'const path = require("path"); require(path.join(process.env.GITHUB_WORKSPACE, "tools/helper.mjs"));';
+
+  await assert.rejects(dependencyFreeClosure(dir, job(script)), /bare imports.*@scope\/missing-package/);
+  await writeFile(path.join(dir, "entry.mjs"), 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url); ' + script);
+  const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, env: { ...process.env, GITHUB_WORKSPACE: dir }, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
 const SINGLE = String.fromCharCode(10);

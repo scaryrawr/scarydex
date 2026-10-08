@@ -3,6 +3,7 @@ import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { isBuiltin } from "node:module";
 import { parse } from "yaml";
 import { Type } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
@@ -1165,14 +1166,116 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
 
 // GitHub Script runs JavaScript, not shell commands. Read its import arguments from the
 // AST so comments and strings cannot become entrypoints or dependency-install proof.
-function githubScriptHelpers(script) {
+function githubScriptHelpers(script, environment, actionsDirectoryAvailable) {
   const source = ts.createSourceFile("github-script.js", script, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
   const files = new Set();
+  const bindings = new Map();
 
   if (source.parseDiagnostics.length) throw new Error("github-script cannot be parsed to verify its workspace imports");
 
+  const collect = node => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+      const constant = ts.isVariableDeclarationList(node.parent) && (node.parent.flags & ts.NodeFlags.Const) !== 0;
+
+      bindings.set(node.name.text, constant && !bindings.has(node.name.text) ? node.initializer : undefined);
+    }
+
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+      let target = node.left;
+
+      while (ts.isPropertyAccessExpression(target) || ts.isElementAccessExpression(target)) target = target.expression;
+
+      if (ts.isIdentifier(target)) bindings.set(target.text, undefined);
+    }
+
+    ts.forEachChild(node, collect);
+  };
+
+  collect(source);
+
+  const rooted = (base, suffix, concatenate = false) => {
+    if (!base || !suffix || suffix.kind !== "literal") return undefined;
+
+    if (base.kind === "literal") return { kind: "literal", value: concatenate ? base.value + suffix.value : path.posix.join(base.value, suffix.value) };
+
+    if (concatenate && base.value === "" && !suffix.value.startsWith("/")) return undefined;
+
+    const value = concatenate ? path.posix.normalize(`/__root__/${base.value}${suffix.value}`) : path.posix.join("/__root__", base.value, suffix.value);
+
+    return value.startsWith("/__root__/") || value === "/__root__" ? { kind: base.kind, value: value.slice("/__root__/".length) } : undefined;
+  };
+
+  const resolve = (node, seen = new Set()) => {
+    if (!node) return undefined;
+
+    if (ts.isParenthesizedExpression(node)) return resolve(node.expression, seen);
+
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return { kind: "literal", value: node.text };
+
+    if (ts.isIdentifier(node)) {
+      if (seen.has(node.text)) return undefined;
+
+      return resolve(bindings.get(node.text), new Set([...seen, node.text]));
+    }
+
+    if (ts.isPropertyAccessExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.name.text === "env" && ts.isIdentifier(node.expression.expression) && node.expression.expression.text === "process" && !bindings.has("process")) {
+      const name = node.name.text;
+
+      if (name === "GITHUB_WORKSPACE" && (environment[name] === undefined || environment[name] === "${{ github.workspace }}")) return { kind: "workspace", value: "" };
+
+      if (name === "RUNNER_TEMP" && (environment[name] === undefined || environment[name] === "${{ runner.temp }}")) return { kind: "external", value: "" };
+
+      if (name === "GH_AW_ACTIONS_DIR" && ((actionsDirectoryAvailable && environment[name] === undefined) || environment[name] === "${{ runner.temp }}/gh-aw/actions")) return { kind: "external", value: "gh-aw/actions" };
+    }
+
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) return rooted(resolve(node.left, seen), resolve(node.right, seen), true);
+
+    if (ts.isTemplateExpression(node) && node.head.text === "" && node.templateSpans.length === 1) {
+      const span = node.templateSpans[0];
+
+      return rooted(resolve(span.expression, seen), { kind: "literal", value: span.literal.text }, true);
+    }
+
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "join" && ts.isIdentifier(node.expression.expression)) {
+      const receiver = bindings.get(node.expression.expression.text);
+
+      const pathModule = receiver && ts.isCallExpression(receiver) && ts.isIdentifier(receiver.expression) && receiver.expression.text === "require" &&
+        receiver.arguments.length === 1 && ts.isStringLiteral(receiver.arguments[0]) && ["path", "node:path"].includes(receiver.arguments[0].text);
+
+      if (pathModule && node.arguments.length) {
+        let result = resolve(node.arguments[0], seen);
+
+        for (const argument of node.arguments.slice(1)) result = rooted(result, resolve(argument, seen));
+
+        return result;
+      }
+    }
+
+    return undefined;
+  };
+
   const visit = node => {
     if (accessedName(node) === "getBuiltinModule") throw new Error("github-script reaches for a builtin module accessor; use literal static imports");
+
+    if (accessedName(node) === "require" || accessedName(node) === "__original_require__") {
+      if (!ts.isIdentifier(node) || !ts.isCallExpression(node.parent) || node.parent.expression !== node || node.text !== "require") throw new Error("github-script has an unprovable require alias; use direct require with a proven target");
+
+      const target = node.parent.arguments[0];
+      const resolved = resolve(target);
+
+      if (!resolved) throw new Error(`github-script has an unprovable require target: ${target?.getText(source) ?? "<missing>"}`);
+
+      if (resolved.kind === "workspace") files.add(resolved.value);
+      else if (resolved.kind === "literal") {
+        const specifier = resolved.value;
+
+        if (UNSUPPORTED_MODULE_LOADERS.has(specifier.startsWith("node:") ? specifier : `node:${specifier}`)) throw new Error(`github-script requires an unsupported module loader: ${specifier}`);
+
+        if (isRelativeSpecifier(specifier)) files.add(path.posix.normalize(specifier));
+        else if (!isBuiltin(specifier)) throw new Error(`github-script has a bare require without proven dependencies: ${specifier}`);
+      }
+    }
 
     if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
       const target = node.arguments[0];
@@ -1242,6 +1345,7 @@ export function standAloneHelpers(lock) {
     // branches, a `continue-on-error` install, and any helper written before the install stay
     // in the dependency-free set.
     let installed = false;
+    let actionsDirectoryAvailable = false;
 
     for (const step of steps) {
       const script = step.run ?? "";
@@ -1255,11 +1359,14 @@ export function standAloneHelpers(lock) {
       const mayContinueOnError = step["continue-on-error"] !== undefined && step["continue-on-error"] !== false;
       const environment = { ...lock.env, ...job.env, ...step.env };
       let environmentMutated = false;
+      let installerShadowed = Object.entries(environment).some(([name, value]) => (/^(?:BASH_ENV|ENV)$/.test(name) && String(value).trim() !== "") || /^BASH_FUNC_(?:bun|npm)%%$/.test(name));
+
+      if (step.uses?.startsWith("github/gh-aw-actions/setup@") && step.with?.destination === "${{ runner.temp }}/gh-aw/actions" && step.if === undefined) actionsDirectoryAvailable = true;
 
       if (step.uses?.startsWith("actions/github-script@") && (!installed || runsAfterEarlierFailure)) {
         rejectNodeOptions(environment);
 
-        for (const file of githubScriptHelpers(step.with?.script ?? "")) files.add(file);
+        for (const file of githubScriptHelpers(step.with?.script ?? "", environment, actionsDirectoryAvailable)) files.add(file);
       }
 
       let group = [world(installed, true), ...(runsAfterEarlierFailure ? [world(false, true)] : [])];
@@ -1285,8 +1392,10 @@ export function standAloneHelpers(lock) {
 
         if (commandName === "eval") environmentMutated = true;
 
+        if (["source", ".", "alias"].includes(commandName) || /^(?:(?:bun|npm)\s*\(\s*\)|function\s+(?:bun|npm)(?:\s|\())/.test(text)) installerShadowed = true;
+
         for (const word of environmentWords) {
-          const assignment = /^(NODE_OPTIONS|NODE_ENV|npm_config_[A-Za-z0-9_]+)=(.*)$/i.exec(word.value);
+          const assignment = /^(NODE_OPTIONS|NODE_ENV|BASH_ENV|ENV|npm_config_[A-Za-z0-9_]+)=(.*)$/i.exec(word.value);
 
           if (!assignment) continue;
 
@@ -1330,7 +1439,7 @@ export function standAloneHelpers(lock) {
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
         const installs = canCreditInstall && parsedWords.every(word => !word.hasExpansion) && INSTALLERS.has(argv[0]) && INSTALL_COMMANDS.has(argv[1]) &&
-          !installsElsewhere(argv, environment) && !omitsDevDependencies(argv, environment) && !environmentMutated &&
+          !installsElsewhere(argv, environment) && !omitsDevDependencies(argv, environment) && !environmentMutated && !installerShadowed &&
           !installsNothing(argv, environment) && !relocated && !insideBlock && !PIPELINE.has(operator);
 
         // A command with a certain exit status opens only the worlds it can reach.
