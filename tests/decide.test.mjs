@@ -391,7 +391,7 @@ test("OMLX validation and authentication errors are reported without retries or 
     [401, { detail: "Invalid API key" }, "Invalid API key"],
     [403, { error: { message: "Inference key required" } }, "Inference key required"],
     [413, { detail: "State exceeds context length" }, "State exceeds context length"],
-    [422, { detail: [{ msg: "Field required" }] }, "422"],
+    [422, { detail: [{ msg: "Field required" }] }, "Field required"],
   ]) {
     const { file, invoke, requests } = await fixture({ status, response });
     const result = await invoke(["run", "--model", "clef-flash-4bit", "--input", file]);
@@ -426,4 +426,22 @@ test("discovery preserves server-reported unavailability without guessing vision
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /custom-decision \(unavailable: Unsupported checkpoint\)/);
   assert.ok(!result.stdout.includes("vision"));
+});
+
+test("FastAPI validation arrays preserve messages without dumping input values", async () => {
+  const { file, invoke, requests } = await fixture({ status: 422, response: { detail: [
+    { loc: ["body", "state"], msg: "Field required", input: "private-state" },
+    null,
+    { msg: 42 },
+    { input: "private-value" },
+    { loc: ["body", "truncate"], msg: "Input should be a valid boolean", input: "private-flag" },
+  ] } });
+  const result = await invoke(["run", "--model", "clef-flash-4bit", "--input", file]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /OMLX API error: 422/);
+  assert.match(result.stderr, /Field required/);
+  assert.match(result.stderr, /Input should be a valid boolean/);
+  assert.ok(!result.stderr.includes("private-"));
+  assert.equal(result.stdout, "");
+  assert.equal(requests.length, 1);
 });

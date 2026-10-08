@@ -158,8 +158,15 @@ async function request(base, endpoint, body) {
     const hint = endpoint === "/v1/systemone" && response.status === 404 ? " Check that this OMLX server supports /v1/systemone and that the requested decision model is available." : "";
     const errorBody = await response.json().catch(() => null);
     const message = object(errorBody) ? errorBody.detail ?? errorBody.error : undefined;
-    const detail = nonempty(message) ? ` ${message}` :
-      object(message) && nonempty(message.message) ? ` ${message.message}` : "";
+    let detail = "";
+    if (Array.isArray(message)) {
+      const messages = [];
+      for (const entry of message) {
+        if (object(entry) && nonempty(entry.msg)) messages.push(entry.msg);
+      }
+      if (messages.length) detail = ` ${messages.join("; ")}`;
+    } else if (nonempty(message)) detail = ` ${message}`;
+    else if (object(message) && nonempty(message.message)) detail = ` ${message.message}`;
     throw new Error(`OMLX API error: ${response.status} ${response.statusText}.${detail}${hint}`);
   }
   try { return await response.json(); }

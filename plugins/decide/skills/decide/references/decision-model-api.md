@@ -153,6 +153,7 @@ curl http://127.0.0.1:8000/v1/systemone \
 - HTTP failures, invalid JSON, and incomplete or invalid answers exit nonzero.
 - A SystemOne 404 includes a reminder to check endpoint support and the model ID.
 - OMLX error text is preserved from FastAPI `detail` or JSON `error` messages.
+  Validation-detail arrays contribute their `msg` strings, not raw input values.
 - `OMLX_BASE_URL` accepts HTTP or HTTPS without credentials, query parameters,
   or fragments. It can include a reverse-proxy path prefix.
 - The helper does not install servers, download models, retry requests, or fall
