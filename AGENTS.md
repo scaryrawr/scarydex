@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 190 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 192 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -51,8 +51,13 @@ checkouts that never install dependencies, so it imports only `node:` builtins a
 relative paths. `bun run check` derives those install-free jobs from
 `upstream-sync.lock.yml`, walks the transitive relative-import closure of every
 `.mjs` entrypoint they execute, including workspace imports in `actions/github-script`.
-JavaScript action scripts are parsed separately from shell `run` steps. It parses
-each module with the TypeScript compiler rather than matching regexes, so trivia between tokens (`import /* c */ "pkg"`) counts
+JavaScript action scripts are parsed separately from shell `run` steps. Unprovable
+import targets fail the guard instead of silently omitting an entrypoint. Only
+unconditional install steps in the checkout root establish dependency availability,
+including inherited working-directory defaults. Worker loaders are refused because
+their entrypoints are outside the static import graph.
+It parses each module with the TypeScript compiler rather than matching regexes,
+so trivia between tokens (`import /* c */ "pkg"`) counts
 and a package name inside a comment or string does not. Every target lands in one of
 three buckets: provable literal specifiers, `computed` targets (identifiers,
 concatenation, conditionals, member access, call results, interpolated templates), and

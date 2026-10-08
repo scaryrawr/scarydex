@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { copyFile, cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -285,6 +286,28 @@ test("dependency availability is tracked per step, not per job", () => {
   assert.deepEqual([...job([{ run: "npm install --prefix=/tmp/dry-running\n" + helper }])], ["tools/upstream-sync.mjs"]);
 });
 
+test("install credit requires unconditional steps in the checkout root", () => {
+  const helper = { run: "node tools/upstream-sync.mjs" };
+  const job = (steps, defaults) => [...standAloneHelpers({ jobs: { build: { steps, defaults } } })];
+
+  for (const condition of [false, "false", "${{ false }}", "${{ inputs.install }}", "success()", true]) {
+    assert.deepEqual(job([{ if: condition, run: "bun install" }, helper]), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job([{ run: "bun install" }, { if: condition, run: "bun install" }, helper]), []);
+  }
+
+  for (const directory of ["plugins/omlx-media", "${{ inputs.directory }}", "/tmp/other"]) {
+    assert.deepEqual(job([{ "working-directory": directory, run: "bun install" }, helper]), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job([{ run: "bun install" }, helper], { run: { "working-directory": directory } }), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual([...standAloneHelpers({ defaults: { run: { "working-directory": directory } }, jobs: { build: { steps: [{ run: "bun install" }, helper] } } })], ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job([{ run: "bun install" }, { "working-directory": directory, run: "bun install" }, helper]), []);
+    assert.deepEqual(job([{ "working-directory": ".", run: "bun install" }, helper], { run: { "working-directory": directory } }), []);
+  }
+
+  assert.deepEqual(job([{ run: "bun install" }, helper]), []);
+  assert.deepEqual(job([{ "working-directory": "./", run: "bun install" }, helper]), []);
+  assert.deepEqual(job([{ "working-directory": "${{ github.workspace }}", run: "bun install" }, helper]), []);
+});
+
 test("github-script workspace imports are independent dependency-free entrypoints", async () => {
   const lock = parse(await readFile(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
   const preActivation = lock.jobs.pre_activation;
@@ -304,6 +327,22 @@ test("github-script workspace imports are independent dependency-free entrypoint
   assert.deepEqual(job([scriptStep('await import("node:fs");')]), []);
   assert.deepEqual(job([scriptStep('const text = `\nbun install\n`;'), scriptStep(script)]), ["tools/duplicate-check.mjs"]);
   assert.throws(() => job([scriptStep('await import(')]), /github-script cannot be parsed/);
+
+  const computed = [
+    'const target = `${process.env.GITHUB_WORKSPACE}/tools/duplicate-check.mjs`; await import(target);',
+    'await import("./tools/" + name + ".mjs");',
+    'await import(`${process.env.GITHUB_WORKSPACE}/tools/${name}.mjs`);',
+    'await import(new URL("./tools/duplicate-check.mjs", base));',
+    'await import(condition ? "./tools/one.mjs" : "./tools/two.mjs");',
+  ];
+
+  for (const source of computed) assert.throws(() => job([scriptStep(source)]), /github-script.*unprovable import target/);
+
+  assert.throws(() => job([scriptStep('await import("@scope/missing-package");')]), /github-script.*bare import/);
+  assert.deepEqual(job([scriptStep('await import("./tools/duplicate-check.js");')]), ["tools/duplicate-check.js"]);
+  assert.deepEqual(job([{ run: "bun install" }, scriptStep(computed[0])]), []);
+  assert.throws(() => job([scriptStep('await import("node:worker_threads");')]), /unsupported module loader/);
+  assert.throws(() => job([scriptStep('await import("node:fs", { extra: import(target) });')]), /unprovable import target/);
 
   const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-github-script-"));
 
@@ -621,6 +660,33 @@ test("the dependency-free guard follows relative imports transitively", async ()
 
   await write("entry.mjs", 'import { dep } from "./dep.mjs";\nexport const go = dep;\n');
   assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["dep.mjs", "entry.mjs"]);
+});
+
+test("worker loaders cannot bypass the install-free import closure", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-worker-loader-"));
+
+  roots.push(dir);
+  await writeFile(path.join(dir, "dep.mjs"), 'import "@scope/missing-package";');
+  await writeFile(path.join(dir, "entry.mjs"), 'import { Worker } from "node:worker_threads"; new Worker(new URL("./dep.mjs", import.meta.url)).on("error", error => console.log(error.code));');
+
+  // The parent has only a builtin import, but its worker really tries to load the package.
+  const loaded = spawnSync("node", [path.join(dir, "entry.mjs")], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(loaded.status, 0, loaded.stderr);
+  assert.equal(loaded.stdout.trim(), "ERR_MODULE_NOT_FOUND");
+
+  for (const source of [
+    'import { Worker } from "node:worker_threads"; new Worker(new URL("./dep.mjs", import.meta.url), { type: "module" });',
+    'import { Worker as Background } from "node:worker_threads"; new Background(new URL("./dep.mjs", import.meta.url));',
+    'const threads = await import("node:worker_threads"); new threads.Worker(new URL("./dep.mjs", import.meta.url));',
+    'export { Worker } from "node:worker_threads";',
+  ]) {
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /entry\.mjs.*unsupported module loader.*node:worker_threads/);
+  }
+
+  await writeFile(path.join(dir, "entry.mjs"), 'import "node:fs"; export const info = "node:worker_threads";');
+  assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["entry.mjs"]);
 });
 
 test("the shipped workflow entrypoint closure is dependency-free", async () => {

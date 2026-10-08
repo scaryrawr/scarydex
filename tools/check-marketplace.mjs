@@ -405,6 +405,12 @@ function splitCommands(script) {
 
 const MAX_DEPENDENCY_FREE_MODULES = 200;
 
+// Workers start another module graph, including through aliased constructors. Refuse the
+// loader module itself until the guard can prove and traverse those entrypoints.
+const UNSUPPORTED_MODULE_LOADERS = new Set(["node:worker_threads"]);
+
+const ROOT_WORKING_DIRECTORIES = new Set([".", "./", "${{ github.workspace }}"]);
+
 // `import.meta.resolve(...)` and `import.meta["resolve"](...)` are the loader; anything
 // else — `new.target.resolve(...)`, or an object with a `resolve` method named `meta` —
 // is not. A non-literal element (`import.meta["re" + "solve"]`) is still a loader whose
@@ -694,6 +700,10 @@ export async function dependencyFreeClosure(root, entrypoints) {
     checkModuleSyntax(path.join(root, file));
     const bare = literals.filter(specifier => !specifier.startsWith("node:") && !specifier.startsWith("."));
 
+    const unsupported = literals.filter(specifier => UNSUPPORTED_MODULE_LOADERS.has(specifier));
+
+    if (unsupported.length) throw new Error(`${file} imports an unsupported module loader; install-free helpers must use imports the guard can traverse: ${unsupported.join(", ")}`);
+
     if (bare.length) throw new Error(`${file} is reachable from workflow jobs that never install dependencies; remove these bare imports: ${bare.join(", ")}`);
 
     if (computed.length) throw new Error(`${file} builds import targets at runtime; install-free workflow jobs need literal paths so the dependency-free guard can traverse them: ${computed.join(", ")}`);
@@ -843,8 +853,13 @@ function githubScriptHelpers(script) {
       const target = node.arguments[0];
       let file;
 
-      if (target && (ts.isStringLiteral(target) || ts.isNoSubstitutionTemplateLiteral(target)) && target.text.startsWith(".")) {
-        file = target.text;
+      if (target && (ts.isStringLiteral(target) || ts.isNoSubstitutionTemplateLiteral(target))) {
+        const specifier = target.text;
+
+        if (UNSUPPORTED_MODULE_LOADERS.has(specifier)) throw new Error(`github-script imports an unsupported module loader: ${specifier}`);
+
+        if (specifier.startsWith("./") || specifier.startsWith("../")) file = specifier;
+        else if (!specifier.startsWith("node:")) throw new Error(`github-script has a bare import without proven dependencies: ${specifier}`);
       } else if (target && ts.isTemplateExpression(target) && target.head.text === "" && target.templateSpans.length === 1) {
         const span = target.templateSpans[0];
         const workspace = span.expression;
@@ -855,7 +870,13 @@ function githubScriptHelpers(script) {
             span.literal.text.startsWith("/")) file = span.literal.text.slice(1);
       }
 
-      if (file?.endsWith(".mjs")) files.add(path.posix.normalize(file));
+      // The workspace prefix is the only computed form proved above. Everything else must
+      // fail closed rather than silently removing the entrypoint from the scanned closure.
+      if (file === undefined && !(target && (ts.isStringLiteral(target) || ts.isNoSubstitutionTemplateLiteral(target)))) {
+        throw new Error(`github-script has an unprovable import target: ${target?.getText(source) ?? "<missing>"}`);
+      }
+
+      if (file !== undefined) files.add(path.posix.normalize(file));
     }
 
     ts.forEachChild(node, visit);
@@ -900,6 +921,8 @@ export function standAloneHelpers(lock) {
     for (const step of steps) {
       const script = step.run ?? "";
       const runsAfterEarlierFailure = /(?:always|failure|cancelled)\(\)/.test(String(step.if ?? ""));
+      const workingDirectory = step["working-directory"] ?? job.defaults?.run?.["working-directory"] ?? lock.defaults?.run?.["working-directory"] ?? ".";
+      const canCreditInstall = step.if === undefined && ROOT_WORKING_DIRECTORIES.has(workingDirectory);
 
       if (step.uses?.startsWith("actions/github-script@") && (!installed || runsAfterEarlierFailure)) {
         for (const file of githubScriptHelpers(step.with?.script ?? "")) files.add(file);
@@ -946,7 +969,7 @@ export function standAloneHelpers(lock) {
 
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
-        const installs = INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !omitsDevDependencies(text) &&
+        const installs = canCreditInstall && INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !omitsDevDependencies(text) &&
           !installsNothing(text) && !relocated && !insideBlock && !PIPELINE.has(operator);
 
         // A command with a certain exit status opens only the worlds it can reach.
