@@ -136,7 +136,9 @@ test("invalid image inputs fail before making network requests", async () => {
     assert.match(result.stderr, /decide:/);
   }
   await writeInput({ questions });
-  assert.equal((await invoke(["run", "--model", "clef-flash-4bit", "--input", file])).status, 1);
+  const missingContext = await invoke(["run", "--model", "clef-flash-4bit", "--input", file]);
+  assert.equal(missingContext.status, 1);
+  assert.match(missingContext.stderr, /state \(text, an object, or an array\) or images/);
   await writeInput({ state: "text", questions, images: ["huge.png"] });
   const oversized = await invoke(["run", "--model", "clef-flash-4bit", "--input", file]);
   assert.equal(oversized.status, 1);

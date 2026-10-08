@@ -84,7 +84,7 @@ async function parseDecisionInput(text) {
       await handle.close();
     }
   }
-  if (!hasState && images.length === 0) throw new Error("Input must contain state (text or an object) or images.");
+  if (!hasState && images.length === 0) throw new Error("Input must contain state (text, an object, or an array) or images.");
   for (const [name, question] of Object.entries(input.questions)) {
     if (!nonempty(name) || !object(question) || !nonempty(question.instructions)) {
       throw new Error(`Question ${JSON.stringify(name)} requires non-empty instructions.`);
