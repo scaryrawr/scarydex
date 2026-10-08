@@ -124,7 +124,7 @@ test("dependency availability is tracked per step, not per job", () => {
   assert.deepEqual([...job([{ run: install }, { run: helper, if: "always()" }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: `set +e\nbun install\n${helper}` }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: `set +o errexit\nbun install\n${helper}` }])], ["tools/upstream-sync.mjs"]);
-  assert.deepEqual([...job([{ run: `cd sub\nbun install\n${helper}` }])], ["tools/upstream-sync.mjs"]);
+  assert.throws(() => job([{ run: `cd sub\nbun install\n${helper}` }]), /unprovable helper working directory/);
   assert.deepEqual([...job([{ run: "cd sub && bun install" }, { run: helper }])], ["tools/upstream-sync.mjs"]);
 
   // What does prove it: `&&`, and sequential commands under the `bash -e` shell GitHub
@@ -417,7 +417,7 @@ test("computed install arguments cannot establish dependency availability", () =
   assert.deepEqual(job('npm install --cache "/tmp/*literal"'), []);
   assert.deepEqual(job('npm install --cache "/tmp/\\$literal"'), []);
   assert.deepEqual(job('set "+e"; npm install\n' + helper), ["tools/upstream-sync.mjs"]);
-  assert.deepEqual(job('"cd" sub; npm install'), ["tools/upstream-sync.mjs"]);
+  assert.throws(() => job('"cd" sub; npm install'), /unprovable helper working directory/);
 });
 
 test("Bash special quotes cannot disguise install flags or interpreters", () => {
@@ -654,6 +654,59 @@ test("shadowed installers and sourced shell state cannot prove installation", ()
   assert.equal(bash.stdout, "HELPER_EXECUTED\n");
 });
 
+test("env wrapper options preserve executable and environment identity", () => {
+  const job = (run, env) => [...standAloneHelpers({ env, jobs: { build: { steps: [{ run }] } } })];
+
+  for (const wrapper of ["env -u NODE_OPTIONS", "/usr/bin/env --unset NODE_OPTIONS", "env --unset=NODE_OPTIONS", "env -uNODE_OPTIONS", "env -i", "env --ignore-environment"]) {
+    assert.deepEqual(job(`${wrapper} node tools/x.mjs`, { NODE_OPTIONS: "--import tsx" }), ["tools/x.mjs"]);
+  }
+
+  assert.deepEqual(job("env -u UNRELATED node tools/x.mjs"), ["tools/x.mjs"]);
+  assert.throws(() => job('env -u "$NAME" node tools/x.mjs'), /unprovable env option/);
+  assert.throws(() => job('env -S "node tools/x.mjs"'), /unsupported env option/);
+  assert.throws(() => job("env -C tools node x.mjs"), /unsupported env option/);
+  assert.deepEqual(job("command -v node"), []);
+});
+
+test("effective wrapped set commands control errexit proof", () => {
+  const helper = "node tools/upstream-sync.mjs";
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const wrapper of ["builtin", "command", "command -p"]) {
+    assert.deepEqual(job(`${wrapper} set +e; bun install; ${helper}`), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job(`${wrapper} set +o errexit; bun install; ${helper}`), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job(`set +e; ${wrapper} set -e; bun install; ${helper}`), []);
+  }
+
+  assert.deepEqual(job("command -v set +e; bun install; " + helper), []);
+  const bash = spawnSync("bash", ["-e", "-c", "bun() { return 1; }; node() { printf 'HELPER_EXECUTED\\n'; }; builtin set +e; bun install; node tools/x.mjs"], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(bash.status, 0, bash.stderr);
+  assert.equal(bash.stdout, "HELPER_EXECUTED\n");
+});
+
+test("non-root working-directory helper invocations fail closed", () => {
+  const helper = { run: "node helper.mjs" };
+  const job = (steps, defaults, workflowDefaults) => [...standAloneHelpers({ defaults: workflowDefaults, jobs: { build: { defaults, steps } } })];
+
+  assert.throws(() => job([{ ...helper, "working-directory": "tools" }]), /unprovable helper working directory/);
+  assert.throws(() => job([helper], { run: { "working-directory": "tools" } }), /unprovable helper working directory/);
+  assert.throws(() => job([helper], undefined, { run: { "working-directory": "${{ inputs.directory }}" } }), /unprovable helper working directory/);
+  assert.deepEqual(job([{ ...helper, "working-directory": "." }], { run: { "working-directory": "tools" } }), ["helper.mjs"]);
+});
+
+test("directory-stack mutations use effective commands and invalidate proof", () => {
+  const helper = "node tools/upstream-sync.mjs";
+  const job = steps => [...standAloneHelpers({ jobs: { build: { steps } } })];
+
+  for (const mutation of ["cd sub", "builtin cd sub", "command cd sub", "pushd sub", "popd", "builtin pushd sub", "command popd"]) {
+    assert.deepEqual(job([{ run: `${mutation}; bun install` }, { run: helper }]), ["tools/upstream-sync.mjs"]);
+    assert.throws(() => job([{ run: `${mutation}; ${helper}` }]), /unprovable helper working directory/);
+  }
+
+  assert.deepEqual(job([{ run: "command -v cd; bun install; " + helper }]), []);
+});
+
 test("inherited npm no-op settings cannot prove an installation", () => {
   const helper = { run: "node tools/upstream-sync.mjs" };
   const job = (env, jobEnv, stepEnv, run = "npm install") => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ run, env: stepEnv }, helper] } } })];
@@ -715,8 +768,8 @@ test("install credit requires unconditional steps in the checkout root", () => {
 
   for (const directory of ["plugins/omlx-media", "${{ inputs.directory }}", "/tmp/other"]) {
     assert.deepEqual(job([{ "working-directory": directory, run: "bun install" }, helper]), ["tools/upstream-sync.mjs"]);
-    assert.deepEqual(job([{ run: "bun install" }, helper], { run: { "working-directory": directory } }), ["tools/upstream-sync.mjs"]);
-    assert.deepEqual([...standAloneHelpers({ defaults: { run: { "working-directory": directory } }, jobs: { build: { steps: [{ run: "bun install" }, helper] } } })], ["tools/upstream-sync.mjs"]);
+    assert.throws(() => job([{ run: "bun install" }, helper], { run: { "working-directory": directory } }), /unprovable helper working directory/);
+    assert.throws(() => standAloneHelpers({ defaults: { run: { "working-directory": directory } }, jobs: { build: { steps: [{ run: "bun install" }, helper] } } }), /unprovable helper working directory/);
     assert.deepEqual(job([{ run: "bun install" }, { "working-directory": directory, run: "bun install" }, helper]), []);
     assert.deepEqual(job([{ "working-directory": ".", run: "bun install" }, helper], { run: { "working-directory": directory } }), []);
   }

@@ -1006,50 +1006,89 @@ function rejectNodeOptions(environment) {
   }
 }
 
-function commandIndex(list) {
+function commandContext(list, environment) {
   let executable = 0;
+  let effectiveEnvironment = { ...environment };
+  let introspection = false;
 
   while (executable < list.length) {
     const word = list[executable];
+    const assignment = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(word.value);
+    const wrapper = path.posix.basename(word.value);
 
-    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value) || ["env", "command", "builtin", "exec", "--", "if", "elif", "while", "until", "then", "do", "!"].includes(word.value)) {
+    if (assignment) {
+      effectiveEnvironment[assignment[1]] = word.hasExpansion ? "${unprovable}" : assignment[2];
       executable++;
-    } else if (executable > 0 && word.value.startsWith("-")) {
+    } else if (["--", "if", "elif", "while", "until", "then", "do", "!"].includes(word.value)) {
       executable++;
+    } else if (!word.hasExpansion && ["env", "command", "builtin", "exec"].includes(wrapper)) {
+      executable++;
+
+      while (executable < list.length && list[executable].value.startsWith("-")) {
+        const option = list[executable++];
+
+        if (option.hasExpansion) throw new Error(`unprovable ${wrapper} option: ${option.value}`);
+
+        if (option.value === "--") break;
+
+        if (wrapper === "env" && ["-i", "--ignore-environment", "-"].includes(option.value)) {
+          effectiveEnvironment = {};
+
+          continue;
+        }
+
+        if (wrapper === "env" && /^(?:-u|--unset)(?:=|$)|^-u./.test(option.value)) {
+          const separate = ["-u", "--unset"].includes(option.value);
+          const name = separate ? list[executable++] : { value: option.value.startsWith("--unset=") ? option.value.slice("--unset=".length) : option.value.slice(2), hasExpansion: false };
+
+          if (!name || name.hasExpansion || name.value === "") throw new Error(`unprovable env option: ${option.value}`);
+
+          delete effectiveEnvironment[name.value];
+
+          continue;
+        }
+
+        if (wrapper === "command" && /^-[pVv]+$/.test(option.value)) {
+          if (/[Vv]/.test(option.value)) introspection = true;
+
+          continue;
+        }
+
+        if (wrapper === "exec" && ["-c", "-l"].includes(option.value)) {
+          if (option.value === "-c") effectiveEnvironment = {};
+
+          continue;
+        }
+
+        throw new Error(`unsupported ${wrapper} option: ${option.value}; use a directly provable executable`);
+      }
     } else {
       break;
     }
   }
 
-  return executable;
+  return { index: executable, environment: effectiveEnvironment, introspection };
 }
 
 function helperReferences(text, environment = {}, substitutionsOnly = false) {
   const list = words(text);
-  const executable = commandIndex(list);
+  const context = commandContext(list, environment);
+  const executable = context.index;
+  const { introspection } = context;
 
-  if (!substitutionsOnly && list[executable]?.hasExpansion && !["[", "[["].includes(list[executable].value)) throw new Error(`unprovable shell interpreter: ${list[executable].value}; use a literal executable`);
+  if (!substitutionsOnly && !introspection && list[executable]?.hasExpansion && !["[", "[["].includes(list[executable].value)) throw new Error(`unprovable shell interpreter: ${list[executable].value}; use a literal executable`);
 
   const start = !substitutionsOnly && list[executable] && !list[executable].hasExpansion && path.posix.basename(list[executable].value) === "node" ? executable : -1;
-  const prefix = list.slice(0, executable);
-  const wrapper = prefix[0]?.value;
-  const introspection = wrapper === "command" && prefix.some(word => word.value === "-v" || word.value === "-V");
   const executesNode = start !== -1 && !introspection;
   const references = new Set();
-  const commandEnvironment = { ...environment };
-
-  for (const word of prefix) {
-    const assignment = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(word.value);
-
-    if (assignment) commandEnvironment[assignment[1]] = word.hasExpansion ? "${unprovable}" : assignment[2];
-  }
+  const commandEnvironment = context.environment;
 
   const recordScript = script => {
     // Nested execution cannot establish install proof for its parent or sibling commands.
     for (const reference of standAloneHelpers({ env: commandEnvironment, jobs: { nested: { steps: [{ run: script, shell: "bash {0}" }] } } })) references.add(reference);
   };
 
-  if (!substitutionsOnly && list[executable]?.value === "eval") {
+  if (!substitutionsOnly && !introspection && list[executable]?.value === "eval") {
     const args = list.slice(executable + 1);
 
     if (args.some(word => word.hasExpansion)) throw new Error("unprovable shell payload; use literal eval arguments");
@@ -1057,7 +1096,7 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
     recordScript(args.map(word => word.value).join(" "));
   }
 
-  if (!substitutionsOnly && ["bash", "sh"].includes(path.posix.basename(list[executable]?.value ?? ""))) {
+  if (!substitutionsOnly && !introspection && ["bash", "sh"].includes(path.posix.basename(list[executable]?.value ?? ""))) {
     const commandOption = list.findIndex((word, index) => index > executable && /^-[A-Za-z]*c[A-Za-z]*$/.test(word.value));
 
     if (commandOption !== -1) {
@@ -1384,8 +1423,10 @@ export function standAloneHelpers(lock) {
 
         const parsedWords = words(text);
         const argv = parsedWords.map(word => word.value);
-        const commandPosition = commandIndex(parsedWords);
-        const commandName = parsedWords[commandPosition]?.value;
+        const context = commandContext(parsedWords, environment);
+        const commandPosition = context.index;
+        const effectiveArgv = argv.slice(commandPosition);
+        const commandName = context.introspection ? undefined : effectiveArgv[0];
         const firstCommand = parsedWords.findIndex(word => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value));
         const declaration = ENVIRONMENT_DECLARATIONS.has(commandName);
         const environmentWords = declaration ? parsedWords.slice(commandPosition + 1) : parsedWords.slice(0, firstCommand === -1 ? parsedWords.length : firstCommand);
@@ -1402,9 +1443,9 @@ export function standAloneHelpers(lock) {
           environmentMutated = true;
         }
 
-        if (argv[0] === "set" && argv.length === 2 && /^[+-]e$/.test(argv[1])) errexit = argv[1] === "-e";
+        if (commandName === "set" && effectiveArgv.length === 2 && /^[+-]e$/.test(effectiveArgv[1])) errexit = effectiveArgv[1] === "-e";
 
-        if (argv[0] === "set" && argv.length === 3 && /^[+-]o$/.test(argv[1]) && argv[2] === "errexit") errexit = argv[1] === "-o";
+        if (commandName === "set" && effectiveArgv.length === 3 && /^[+-]o$/.test(effectiveArgv[1]) && effectiveArgv[2] === "errexit") errexit = effectiveArgv[1] === "-o";
 
         // Move the depth for any delimiter written on this line, then ask whether what
         // follows is inside a block. The order is not a judgement call: an install is only
@@ -1428,13 +1469,17 @@ export function standAloneHelpers(lock) {
           }
 
           for (const [index, scan] of [text].concat(heredocs).entries()) {
-            for (const reference of helperReferences(scan, environment, index > 0)) files.add(reference.replace(/^upstream-sync-policy\//, ""));
+            for (const reference of helperReferences(scan, environment, index > 0)) {
+              if (relocated || !ROOT_WORKING_DIRECTORIES.has(workingDirectory)) throw new Error(`unprovable helper working directory: ${workingDirectory}; invoke install-free helpers from the checkout root without directory-stack mutations`);
+
+              files.add(reference.replace(/^upstream-sync-policy\//, ""));
+            }
           }
         }
 
         // A `cd` moves the working directory, so no later install can be credited with
         // populating the checkout's `node_modules`: the runtime may load a different tree.
-        if (argv[0] === "cd") relocated = true;
+        if (["cd", "pushd", "popd"].includes(commandName)) relocated = true;
 
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.

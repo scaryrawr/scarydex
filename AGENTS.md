@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 214 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 218 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -88,6 +88,11 @@ startup configuration cannot establish install proof. GitHub Script `require`
 targets are proven from literal paths and immutable workspace-path expressions;
 unknown targets and loader aliases fail closed. Compiler action scripts in
 proven runner-temp directories remain outside the repository module graph.
+Command wrappers use one shared parser, including literal `env` unset/clear
+options. Unsupported wrapper options fail closed. Wrapped `set` controls
+errexit; all `cd`/`pushd`/`popd` forms invalidate install proof. Install-free
+helpers must run from the checkout root without directory-stack mutations,
+so relative paths cannot accidentally validate different files.
 It parses each module with the TypeScript compiler rather than matching regexes,
 so trivia between tokens (`import /* c */ "pkg"`) counts
 and a package name inside a comment or string does not. Every target lands in one of
