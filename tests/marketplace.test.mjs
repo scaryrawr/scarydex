@@ -1272,6 +1272,28 @@ test("dependency tree changes invalidate prior successful installation", async (
   assert.match(after.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
+test("wrapped installations use the effective executable and environment", () => {
+  const helper = { run: "node tools/x.mjs" };
+  const job = (run, env) => [...standAloneHelpers({ env, jobs: { build: { steps: [{ run }, helper] } } })];
+
+  for (const run of ["env bun install", "command npm ci", "command -p npm ci", "command env bun install", "exec npm ci"]) {
+    assert.deepEqual(job(run), []);
+  }
+
+  assert.deepEqual(job("env -u NPM_CONFIG_DRY_RUN npm ci", { NPM_CONFIG_DRY_RUN: "true" }), []);
+  assert.deepEqual(job("env NPM_CONFIG_DRY_RUN=true npm ci"), ["tools/x.mjs"]);
+  assert.deepEqual(job("env npm ci --omit=dev"), ["tools/x.mjs"]);
+
+  for (const run of ["builtin bun install", "builtin npm ci", "command -v npm ci", "env command npm ci", "env builtin npm ci"]) {
+    assert.deepEqual(job(run), ["tools/x.mjs"]);
+  }
+
+  const builtin = spawnSync("bash", ["-c", "builtin npm ci"], { encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(builtin.status, 0);
+  assert.match(builtin.stderr, /not a shell builtin/);
+});
+
 const SINGLE = String.fromCharCode(10);
 
 test("workflow helpers executed without dependency install stay dependency-free", async () => {

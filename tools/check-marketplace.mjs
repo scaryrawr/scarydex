@@ -1067,6 +1067,8 @@ function commandContext(list, environment) {
   let executable = 0;
   let effectiveEnvironment = { ...environment };
   let introspection = false;
+  let launchesExternal = true;
+  let externalOnly = false;
 
   while (executable < list.length) {
     const word = list[executable];
@@ -1079,6 +1081,10 @@ function commandContext(list, environment) {
     } else if (["--", "if", "elif", "while", "until", "then", "do", "!"].includes(word.value)) {
       executable++;
     } else if (!word.hasExpansion && ["env", "command", "builtin", "exec"].includes(wrapper)) {
+      if (wrapper === "builtin" || (externalOnly && wrapper !== "env")) launchesExternal = false;
+
+      if (["env", "exec"].includes(wrapper)) externalOnly = true;
+
       executable++;
 
       while (executable < list.length && list[executable].value.startsWith("-")) {
@@ -1124,7 +1130,7 @@ function commandContext(list, environment) {
     }
   }
 
-  return { index: executable, environment: effectiveEnvironment, introspection };
+  return { index: executable, environment: effectiveEnvironment, introspection, launchesExternal };
 }
 
 function helperReferences(text, environment = {}, substitutionsOnly = false) {
@@ -1659,9 +1665,9 @@ export function standAloneHelpers(lock) {
 
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
-        const installs = canCreditInstall && parsedWords.every(word => !word.hasExpansion) && INSTALLERS.has(argv[0]) && INSTALL_COMMANDS.has(argv[1]) &&
-          !installsElsewhere(argv, environment) && !omitsDevDependencies(argv, environment) && !environmentMutated && !installerShadowed &&
-          !installsNothing(argv, environment) && !relocated && !insideBlock && !PIPELINE.has(operator);
+        const installs = canCreditInstall && context.launchesExternal && !context.introspection && parsedWords.every(word => !word.hasExpansion) && INSTALLERS.has(effectiveArgv[0]) && INSTALL_COMMANDS.has(effectiveArgv[1]) &&
+          !installsElsewhere(effectiveArgv, context.environment) && !omitsDevDependencies(effectiveArgv, context.environment) && !environmentMutated && !installerShadowed &&
+          !installsNothing(effectiveArgv, context.environment) && !relocated && !insideBlock && !PIPELINE.has(operator);
 
         // A command with a certain exit status opens only the worlds it can reach.
         const constantOk = constantStatus(text);
