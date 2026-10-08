@@ -636,8 +636,9 @@ test("shadowed installers and sourced shell state cannot prove installation", ()
     "npm() { :; }",
     "function bun { :; }",
     "function npm() { :; }",
-    "alias bun=true",
   ]) assert.deepEqual(job(`${prefix}; bun install; npm install; ${helper}`), ["tools/upstream-sync.mjs"]);
+
+  assert.throws(() => job("alias bun=true; bun install; " + helper), /unprovable shell alias/);
 
   for (const prefix of ["source /tmp/shell-state.sh", ". /tmp/shell-state.sh", "builtin source /tmp/shell-state.sh"]) {
     assert.throws(() => job(`${prefix}; bun install; ${helper}`), /unprovable helper working directory/);
@@ -1151,6 +1152,54 @@ test("trusted root objects cannot escape or undergo indirect mutation", () => {
   }
 
   assert.deepEqual(job('const workspace = process.env.GITHUB_WORKSPACE; const path = require("path"); require(path.join(workspace, "tools/x.mjs"));'), ["tools/x.mjs"]);
+});
+
+test("computed property extraction taints binding and assignment aliases", async () => {
+  const job = script => [...standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script } }] } } })];
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-computed-pattern-"));
+
+  roots.push(dir);
+
+  for (const source of [
+    `const { ["ev" + "al"]: load } = globalThis; await load('import("@scope/missing-package")');`,
+    `let load; ({ ["ev" + "al"]: load } = globalThis); await load('import("@scope/missing-package")');`,
+    `const { ["eval"]: load } = globalThis; await load('import("@scope/missing-package")');`,
+    `const { nested: { ["ev" + "al"]: load } } = { nested: globalThis }; await load('import("@scope/missing-package")');`,
+    `function invoke({ ["ev" + "al"]: load }) { return load('import("@scope/missing-package")'); } await invoke(globalThis);`,
+  ]) {
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    assert.ok(scanImports(source).dynamic.length, source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /evaluates code at runtime/);
+    assert.throws(() => job(source), /github-script.*evaluates code at runtime/);
+    const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.notEqual(loaded.status, 0);
+    assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
+});
+
+test("install-free alias definitions cannot hide or inject helpers", async () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const run of [
+    `shopt -s expand_aliases\nalias node='node --import @scope/missing-package'\nnode tools/x.mjs`,
+    `shopt -s expand_aliases\nalias run='node tools/x.mjs'\nrun`,
+    `builtin alias node='node --import @scope/missing-package'\nnode tools/x.mjs`,
+    `alias "$DEFINITION"\nrun`,
+  ]) assert.throws(() => job(run), /unprovable shell alias/);
+
+  assert.deepEqual(job("alias; alias -p; alias node"), []);
+  assert.deepEqual(job("bun install; alias node='node --import package'; node tools/x.mjs"), []);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-shell-alias-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/x.mjs"), "export const clean = true;");
+  const loaded = spawnSync("bash", ["-e", "-c", "shopt -s expand_aliases\nalias node='node --import @scope/missing-package'\nnode tools/x.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
 const SINGLE = String.fromCharCode(10);

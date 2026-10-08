@@ -627,6 +627,13 @@ export function scanImports(source, file = "module.mjs") {
     else if (ts.isBinaryExpression(pattern) && pattern.operatorToken.kind === ts.SyntaxKind.EqualsToken) taintPattern(pattern.left);
   };
 
+  const hasComputedPattern = pattern => {
+    if ((ts.isBindingElement(pattern) && pattern.propertyName && ts.isComputedPropertyName(pattern.propertyName)) ||
+        (ts.isPropertyAssignment(pattern) && ts.isComputedPropertyName(pattern.name))) return true;
+
+    return ts.forEachChild(pattern, hasComputedPattern) ?? false;
+  };
+
   // Iterate until the set stops growing, which is the fixed point: every pass only adds
   // names and every name is an identifier in this file, so growth is bounded and a pass
   // that adds nothing ends the loop. A pass *cap* is not a fixed point — with bindings
@@ -641,7 +648,9 @@ export function scanImports(source, file = "module.mjs") {
     const collect = node => {
       if ((ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isParameter(node)) && isUnprovableValue(node.initializer)) taintPattern(node.name);
 
-      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && isUnprovableValue(node.right)) taintPattern(node.left);
+      if (ts.isBindingElement(node) && node.propertyName && ts.isComputedPropertyName(node.propertyName)) taintPattern(node.name);
+
+      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && (isUnprovableValue(node.right) || hasComputedPattern(node.left))) taintPattern(node.left);
 
       ts.forEachChild(node, collect);
     };
@@ -1106,7 +1115,9 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
   const commandEnvironment = context.environment;
   const commandName = path.posix.basename(list[executable]?.value ?? "");
 
-  if (!substitutionsOnly && !introspection && !executesNode && !["echo", "printf", "cat", "which", "type", "[", "[[", "test", "eval", "bash", "sh"].includes(commandName) &&
+  if (!substitutionsOnly && !introspection && commandName === "alias" && list.slice(executable + 1).some(word => word.hasExpansion || word.value.includes("="))) throw new Error("unprovable shell alias; install-free commands must not define aliases that can alter executable identity");
+
+  if (!substitutionsOnly && !introspection && !executesNode && !["echo", "printf", "cat", "which", "type", "[", "[[", "test", "alias", "eval", "bash", "sh"].includes(commandName) &&
       list.slice(executable + 1).some(word => path.posix.basename(word.value) === "node" || /(?:^|[\s;|&])(?:[\w/.-]+\/)?node(?:\s|$)/.test(word.value))) {
     throw new Error(`unmodeled command ${commandName} forwards Node execution; invoke the helper directly or through a modeled wrapper`);
   }
