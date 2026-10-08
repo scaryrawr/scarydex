@@ -673,6 +673,31 @@ test("env wrapper options preserve executable and environment identity", () => {
   assert.deepEqual(job("command -v node"), []);
 });
 
+test("unmodeled execution wrappers cannot omit forwarded Node helpers", async () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const run of [
+    "timeout 30 node tools/x.mjs",
+    "/usr/bin/nice -n 5 node tools/x.mjs",
+    "env nice node tools/x.mjs",
+    "custom-wrapper -- node tools/x.mjs",
+    `timeout 30 bash -c 'node tools/x.mjs'`,
+  ]) assert.throws(() => job(run), /unmodeled command.*Node/);
+
+  assert.deepEqual(job('echo "node tools/x.mjs"'), []);
+  assert.deepEqual(job(`printf '%s\\n' 'node tools/x.mjs'`), []);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-forwarded-node-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/x.mjs"), 'import "@scope/missing-package";');
+  const loaded = spawnSync("nice", ["node", "tools/x.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
 test("unrecognized Node options cannot hide helper entrypoints", async () => {
   const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
 
@@ -1018,6 +1043,60 @@ test("constructor-based code generation is refused in modules and action scripts
   }
 
   assert.deepEqual(scanImports('class Ordinary { constructor(value) { this.value = value; } } new Ordinary(1);').dynamic, []);
+});
+
+test("destructuring propagates computed code aliases through nested patterns", async () => {
+  const job = script => [...standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script } }] } } })];
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-pattern-code-"));
+
+  roots.push(dir);
+
+  for (const source of [
+    `const [load] = [globalThis["ev" + "al"]]; await load('import("@scope/missing-package")');`,
+    `const { tools: { load } } = { tools: { load: globalThis["ev" + "al"] } }; await load('import("@scope/missing-package")');`,
+    `let load; [load] = [globalThis["ev" + "al"]]; await load('import("@scope/missing-package")');`,
+    `let load; ({ load } = { load: globalThis["ev" + "al"] }); await load('import("@scope/missing-package")');`,
+    `const box = [globalThis["ev" + "al"]]; const [load] = box; await load('import("@scope/missing-package")');`,
+    `const [load = globalThis["ev" + "al"]] = []; await load('import("@scope/missing-package")');`,
+  ]) {
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    assert.ok(scanImports(source).dynamic.length, source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /evaluates code at runtime/);
+    assert.throws(() => job(source), /github-script.*evaluates code at runtime/);
+    const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.notEqual(loaded.status, 0);
+    assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
+
+  assert.deepEqual(scanImports("const [value] = [1]; const { nested: { other } } = { nested: { other: 2 } }; console.log(value, other);").dynamic, []);
+});
+
+test("trusted root objects cannot escape or undergo indirect mutation", () => {
+  const job = script => [...standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script } }] } } })];
+  const load = 'await import(`${process.env.GITHUB_WORKSPACE}/tools/x.mjs`);';
+
+  for (const mutation of [
+    'Object.assign(process.env, { GITHUB_WORKSPACE: "/tmp/other" });',
+    'Object.defineProperty(process, "env", { value: { GITHUB_WORKSPACE: "/tmp/other" } });',
+    'const environment = process.env; environment.GITHUB_WORKSPACE = "/tmp/other";',
+    'const { env } = process; env.GITHUB_WORKSPACE = "/tmp/other";',
+    'process.env.GITHUB_WORKSPACE += "/sub";',
+    'delete process.env.GITHUB_WORKSPACE;',
+  ]) assert.throws(() => job(mutation + load), /unprovable import target/);
+
+  for (const mutation of [
+    'Object.assign(path, { join: custom });',
+    'Object.defineProperty(path, "join", { value: custom });',
+    'const alias = path; alias.join = custom;',
+    'mutate(path);',
+    'Object.assign(require("path"), { join: custom });',
+    'const other = require("node:path"); other.join = custom;',
+  ]) {
+    assert.throws(() => job('const path = require("path"); ' + mutation + ' require(path.join(process.env.RUNNER_TEMP, "helper.mjs"));'), /unprovable require target/);
+  }
+
+  assert.deepEqual(job('const workspace = process.env.GITHUB_WORKSPACE; const path = require("path"); require(path.join(workspace, "tools/x.mjs"));'), ["tools/x.mjs"]);
 });
 
 const SINGLE = String.fromCharCode(10);

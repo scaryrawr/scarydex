@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 223 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 226 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -101,6 +101,12 @@ definitions remain supported. Workspace templates use the same environment and
 immutable-binding proof as require targets, including parameter/destructuring
 shadowing. Literal eval propagates directory changes through nested eval; sourced
 state and shell startup configuration make the parent directory unprovable.
+Computed-code alias taint propagates through nested binding/assignment patterns
+and aggregates to a fixed point. Unmodeled command wrappers that forward Node
+fail closed; data/lookup commands and scanned substitutions remain supported.
+Trusted process/environment and native path objects cannot escape to aliases or
+mutators; compound/delete writes invalidate their proof, and all native path
+bindings share one mutation boundary.
 It parses each module with the TypeScript compiler rather than matching regexes,
 so trivia between tokens (`import /* c */ "pkg"`) counts
 and a package name inside a comment or string does not. Every target lands in one of

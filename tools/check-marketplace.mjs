@@ -604,7 +604,27 @@ export function scanImports(source, file = "module.mjs") {
 
     if (ts.isElementAccessExpression(value) && !ts.isStringLiteral(value.argumentExpression)) return true;
 
+    if (ts.isArrayLiteralExpression(value)) return value.elements.some(isUnprovableValue);
+
+    if (ts.isObjectLiteralExpression(value)) return value.properties.some(property => isUnprovableValue(ts.isPropertyAssignment(property) ? property.initializer : ts.isShorthandPropertyAssignment(property) ? property.name : ts.isSpreadAssignment(property) ? property.expression : undefined));
+
+    if (ts.isSpreadElement(value)) return isUnprovableValue(value.expression);
+
+    if (ts.isPropertyAccessExpression(value)) return isUnprovableValue(value.expression);
+
     return ts.isIdentifier(value) && unprovableNames.has(value.text);
+  };
+
+  const taintPattern = pattern => {
+    if (ts.isIdentifier(pattern)) unprovableNames.add(pattern.text);
+    else if (ts.isObjectBindingPattern(pattern) || ts.isArrayBindingPattern(pattern) || ts.isArrayLiteralExpression(pattern)) {
+      for (const element of pattern.elements) taintPattern(element);
+    } else if (ts.isObjectLiteralExpression(pattern)) {
+      for (const property of pattern.properties) taintPattern(property);
+    } else if (ts.isBindingElement(pattern) || ts.isShorthandPropertyAssignment(pattern)) taintPattern(pattern.name);
+    else if (ts.isPropertyAssignment(pattern)) taintPattern(pattern.initializer);
+    else if (ts.isSpreadAssignment(pattern) || ts.isSpreadElement(pattern) || ts.isParenthesizedExpression(pattern)) taintPattern(pattern.expression);
+    else if (ts.isBinaryExpression(pattern) && pattern.operatorToken.kind === ts.SyntaxKind.EqualsToken) taintPattern(pattern.left);
   };
 
   // Iterate until the set stops growing, which is the fixed point: every pass only adds
@@ -619,9 +639,9 @@ export function scanImports(source, file = "module.mjs") {
     const before = unprovableNames.size;
 
     const collect = node => {
-      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && isUnprovableValue(node.initializer)) unprovableNames.add(node.name.text);
+      if ((ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isParameter(node)) && isUnprovableValue(node.initializer)) taintPattern(node.name);
 
-      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(node.left) && isUnprovableValue(node.right)) unprovableNames.add(node.left.text);
+      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && isUnprovableValue(node.right)) taintPattern(node.left);
 
       ts.forEachChild(node, collect);
     };
@@ -1084,6 +1104,12 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
   const executesNode = start !== -1 && !introspection;
   const references = new Set();
   const commandEnvironment = context.environment;
+  const commandName = path.posix.basename(list[executable]?.value ?? "");
+
+  if (!substitutionsOnly && !introspection && !executesNode && !["echo", "printf", "cat", "which", "type", "[", "[[", "test", "eval", "bash", "sh"].includes(commandName) &&
+      list.slice(executable + 1).some(word => path.posix.basename(word.value) === "node" || /(?:^|[\s;|&])(?:[\w/.-]+\/)?node(?:\s|$)/.test(word.value))) {
+    throw new Error(`unmodeled command ${commandName} forwards Node execution; invoke the helper directly or through a modeled wrapper`);
+  }
 
   const recordScript = script => {
     // Nested execution cannot establish install proof for its parent or sibling commands.
@@ -1221,6 +1247,8 @@ function githubScriptHelpers(script, environment, actionsDirectoryAvailable) {
   const source = ts.createSourceFile("github-script.js", script, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
   const files = new Set();
   const bindings = new Map();
+  const pathBindings = new Set();
+  let pathImmutable = true;
 
   if (source.parseDiagnostics.length) throw new Error("github-script cannot be parsed to verify its workspace imports");
 
@@ -1228,17 +1256,26 @@ function githubScriptHelpers(script, environment, actionsDirectoryAvailable) {
 
   if (dynamic.length) throw new Error(`github-script builds or evaluates code at runtime: ${dynamic.join(", ")}`);
 
+  const isPathRequire = node => node && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "require" &&
+    node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0]) && ["path", "node:path"].includes(node.arguments[0].text);
+
   const collect = node => {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
       const constant = ts.isVariableDeclarationList(node.parent) && (node.parent.flags & ts.NodeFlags.Const) !== 0;
 
       bindings.set(node.name.text, constant && !bindings.has(node.name.text) ? node.initializer : undefined);
+
+      if (isPathRequire(node.initializer)) pathBindings.add(node.name.text);
     }
 
     if ((ts.isParameter(node) || ts.isBindingElement(node) || ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) && node.name && ts.isIdentifier(node.name)) bindings.set(node.name.text, undefined);
 
-    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
-      let target = node.left;
+    const mutation = ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment ? node.left :
+      ts.isDeleteExpression(node) ? node.expression :
+        (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) && [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(node.operator) ? node.operand : undefined;
+
+    if (mutation) {
+      let target = mutation;
 
       while (ts.isPropertyAccessExpression(target) || ts.isElementAccessExpression(target)) target = target.expression;
 
@@ -1249,6 +1286,33 @@ function githubScriptHelpers(script, environment, actionsDirectoryAvailable) {
   };
 
   collect(source);
+
+  const proveObjects = node => {
+    const parent = node.parent;
+
+    if (ts.isIdentifier(node) && node.text === "process" && !(ts.isPropertyAccessExpression(parent) && parent.name === node)) {
+      if (!(ts.isPropertyAccessExpression(parent) && parent.expression === node && parent.name.text === "env")) bindings.set("process", undefined);
+    }
+
+    if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "process" && node.name.text === "env") {
+      if (!((ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent)) && parent.expression === node)) bindings.set("process", undefined);
+    }
+
+    if ((ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) && accessedName(node) === "process") bindings.set("process", undefined);
+
+    if (isPathRequire(node) && !(ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name) && bindings.get(parent.name.text) === node)) pathImmutable = false;
+
+    if (ts.isIdentifier(node) && pathBindings.has(node.text) && !(ts.isPropertyAccessExpression(parent) && parent.name === node)) {
+      const declaration = ts.isVariableDeclaration(parent) && parent.name === node && bindings.get(node.text) === parent.initializer;
+      const joinCall = ts.isPropertyAccessExpression(parent) && parent.expression === node && parent.name.text === "join" && ts.isCallExpression(parent.parent) && parent.parent.expression === parent;
+
+      if (!declaration && !joinCall) pathImmutable = false;
+    }
+
+    ts.forEachChild(node, proveObjects);
+  };
+
+  proveObjects(source);
 
   const rooted = (base, suffix, concatenate = false) => {
     if (!base || !suffix || suffix.kind !== "literal") return undefined;
@@ -1297,8 +1361,7 @@ function githubScriptHelpers(script, environment, actionsDirectoryAvailable) {
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "join" && ts.isIdentifier(node.expression.expression)) {
       const receiver = bindings.get(node.expression.expression.text);
 
-      const pathModule = receiver && ts.isCallExpression(receiver) && ts.isIdentifier(receiver.expression) && receiver.expression.text === "require" &&
-        receiver.arguments.length === 1 && ts.isStringLiteral(receiver.arguments[0]) && ["path", "node:path"].includes(receiver.arguments[0].text);
+      const pathModule = pathImmutable && isPathRequire(receiver);
 
       if (pathModule && node.arguments.length) {
         let result = resolve(node.arguments[0], seen);
