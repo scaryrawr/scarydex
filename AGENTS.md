@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 196 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 198 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -59,7 +59,9 @@ environment settings. Shell helper discovery includes process substitutions and
 path-qualified Node interpreters. Lockfile-only installs never establish dependencies.
 Custom or unresolved shell invocations cannot establish install proof; unresolved
 `continue-on-error` values are treated as potentially tolerating failure. Relative
-module specifiers must start with `./` or `../`, not merely a dot. Worker loaders are refused because
+module specifiers must start with `./` or `../`, not merely a dot. Every module path
+component below the checkout root must be free of symlinks. Install predicates use
+parsed shell words so quoted options cannot bypass the proof. Worker loaders are refused because
 their entrypoints are outside the static import graph.
 It parses each module with the TypeScript compiler rather than matching regexes,
 so trivia between tokens (`import /* c */ "pkg"`) counts

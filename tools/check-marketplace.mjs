@@ -186,21 +186,21 @@ export async function validateRepoSkills(root) {
   return skills;
 }
 
-// Matched against a single command anchored at its start, so `echo bun install` and
-// comments mentioning an install do not read as one.
-const INSTALLS_DEPENDENCIES = /^[ \t]*(?:bun|npm)[ \t]+(?:install|ci)\b/;
+// Shell words preserve option boundaries after Bash removes quoting. Matching the first
+// two words also keeps echoed install text and non-install commands out of the proof.
+const INSTALLERS = new Set(["bun", "npm"]);
 
-// A global, relocated, or no-op install populates a directory the checkout never loads from,
-// so it never supplies a helper's dependencies however early it appears in the script.
-const INSTALLS_ELSEWHERE = /(?:^|[ \t])(?:-g|-G|--global|--global-style|--link|--location|--prefix|--no-install)(?:[ \t=]|$)/;
+const INSTALL_COMMANDS = new Set(["install", "ci"]);
+
+const INSTALLS_ELSEWHERE = new Set(["-g", "-G", "--global", "--global-style", "--link", "--location", "--prefix", "--no-install"]);
 
 // An install that leaves devDependencies out never supplies the tooling a helper imports,
 // and the TypeBox and TypeScript that the code in this repository loads are devDependencies,
 // so it is no more proof than an install that did not run. `--production`, `--prod`,
 // `--only=production`, `--no-dev`, and every `--omit=dev` spelling disqualify it, including
 // comma lists such as `--omit=dev,optional` and the space-separated `--omit dev`.
-function omitsDevDependencies(text, environment) {
-  if (/^npm[ \t]/.test(text)) {
+function omitsDevDependencies(argv, environment) {
+  if (argv[0] === "npm") {
     for (const [name, rawValue] of Object.entries(environment)) {
       const key = name.toLowerCase();
       const value = String(rawValue).trim().toLowerCase();
@@ -221,14 +221,23 @@ function omitsDevDependencies(text, environment) {
     }
   }
 
-  const omit = /--omit[ \t]*=[ \t]*(\S+)|--omit[ \t]+(\S+)/.exec(text);
+  for (let index = 2; index < argv.length; index++) {
+    const word = argv[index];
+    const separator = word.indexOf("=");
+    const flag = separator === -1 ? word : word.slice(0, separator);
+    const value = separator === -1 ? argv[index + 1] : word.slice(separator + 1);
 
-  if (omit && /(?:^|,)(?:dev|development)(?:,|$)/.test(omit[1] ?? omit[2] ?? "")) return true;
+    if (flag === "--omit" && value?.split(/[\s,]+/).some(part => part === "dev" || part === "development")) return true;
 
-  // A negated flag (`--production=false`) asks for devDependencies, so it stays proof.
-  return /(?:^|[ \t])(?:--production|--prod|--no-dev(?:elopment)?)(?![ \t]*=[ \t]*false)(?:[ \t=]|$)/.test(text) ||
-    /(?:^|[ \t])--dev(?:elopment)?=false(?:[ \t]|$)/.test(text) ||
-    /(?:^|[ \t])--only[ \t]*[=]?[ \t]*(?:prod|production)(?:[ \t=]|$)/.test(text);
+    // Boolean negation belongs to this option word, not to a later argument.
+    if (["--production", "--prod", "--no-dev", "--no-development"].includes(flag) && !(separator !== -1 && value === "false")) return true;
+
+    if (["--dev", "--development"].includes(flag) && separator !== -1 && value === "false") return true;
+
+    if (flag === "--only" && (value === "prod" || value === "production")) return true;
+  }
+
+  return false;
 }
 
 // An install that only reports, or only restages a lockfile, never populates `node_modules`,
@@ -238,8 +247,8 @@ function omitsDevDependencies(text, environment) {
 // for the real install and stays proof, and the flags that merely skip bookkeeping —
 // `--no-save`, `--no-package-lock`, `--no-audit`, `--ignore-scripts`, `--frozen-lockfile` —
 // all still write `node_modules` and are deliberately not refused here.
-function installsNothing(text) {
-  return /(?:^|[ \t])(?:--dry-run|--package-lock-only|--lockfile-only)(?![ \t]*=[ \t]*false)(?:[ \t=]|$)/.test(text);
+function installsNothing(argv) {
+  return argv.slice(2).some(word => /^(?:--dry-run|--package-lock-only|--lockfile-only)(?:=(?!false$).*)?$/.test(word));
 }
 
 // Operators that run their right-hand side beside or after the left without waiting for it
@@ -685,14 +694,21 @@ async function readModule(root, file, specifier) {
   let stats;
 
   try {
-    stats = await lstat(absolute);
+    let current = path.resolve(root);
+
+    for (const component of path.relative(root, absolute).split(path.sep)) {
+      current = path.join(current, component);
+      stats = await lstat(current);
+
+      if (stats.isSymbolicLink()) throw new Error(`${file} resolved from "${specifier}" traverses a symlink at ${current}; the closure must read repository files, not redirected host content`);
+
+      if (current !== absolute && !stats.isDirectory()) throw new Error(`${file} resolved from "${specifier}" traverses a non-directory path component at ${current}`);
+    }
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
 
     throw new Error(`Unresolved import "${specifier}" from ${file}; install-free workflow jobs cannot load it`);
   }
-
-  if (stats.isSymbolicLink()) throw new Error(`${file} resolved from "${specifier}" is a symlink, so what the closure scanned is host state rather than content this repository ships`);
 
   if (!stats.isFile()) throw new Error(`${file} resolved from "${specifier}" is not a regular file, so it cannot be a dependency-free workflow source`);
 
@@ -999,8 +1015,11 @@ export function standAloneHelpers(lock) {
 
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
-        const installs = canCreditInstall && INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !omitsDevDependencies(text, environment) &&
-          !installsNothing(text) && !relocated && !insideBlock && !PIPELINE.has(operator);
+        const argv = words(text);
+
+        const installs = canCreditInstall && INSTALLERS.has(argv[0]) && INSTALL_COMMANDS.has(argv[1]) &&
+          !argv.slice(2).some(word => INSTALLS_ELSEWHERE.has(word.split("=")[0])) && !omitsDevDependencies(argv, environment) &&
+          !installsNothing(argv) && !relocated && !insideBlock && !PIPELINE.has(operator);
 
         // A command with a certain exit status opens only the worlds it can reach.
         const constantOk = constantStatus(text);

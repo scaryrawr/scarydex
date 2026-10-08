@@ -289,6 +289,38 @@ test("dependency availability is tracked per step, not per job", () => {
   assert.deepEqual([...job([{ run: "npm install --prefix=/tmp/dry-running\n" + helper }])], ["tools/upstream-sync.mjs"]);
 });
 
+test("install proof uses shell words rather than raw quoted options", () => {
+  const helper = "node tools/upstream-sync.mjs";
+  const job = install => [...standAloneHelpers({ jobs: { build: { steps: [{ run: install + "\n" + helper }] } } })];
+
+  for (const install of [
+    'npm install "--package-lock-only"',
+    "npm install '--dry-run'",
+    'bun install "--lockfile-only"',
+    'npm install "--production"',
+    'npm install "--omit" "dev"',
+    'npm install --omit="dev,optional"',
+    'npm install "--only=production"',
+    'npm install "--global"',
+    'npm install "--prefix=/tmp/other"',
+    'npm install "--package-lock-"only',
+    '"npm" install "--production"',
+  ]) assert.deepEqual(job(install), ["tools/upstream-sync.mjs"]);
+
+  for (const install of [
+    'npm install "--dry-run=false"',
+    'npm install "--production=false"',
+    'npm install --cache "/tmp/--production --dry-run"',
+    'bun install "--frozen-lockfile"',
+    '"npm" install "--ignore-scripts"',
+  ]) assert.deepEqual(job(install), []);
+
+  const bash = spawnSync("bash", ["-c", 'npm() { printf "%s\\n" "$@"; }; npm install "--package-lock-only"'], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(bash.status, 0, bash.stderr);
+  assert.equal(bash.stdout, "install\n--package-lock-only\n");
+});
+
 test("executable substitutions and path-qualified Node commands expose their helpers", () => {
   const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })].sort();
 
@@ -668,7 +700,7 @@ test("the dependency-free guard follows relative imports transitively", async ()
   await rm(path.join(dir, "dep.mjs"));
   await symlink(path.join(host, "host.mjs"), path.join(dir, "dep.mjs"));
   await write("entry.mjs", 'import { host } from "./dep.mjs";\nexport const go = host;\n');
-  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs resolved from "\.\/dep\.mjs" is a symlink/);
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /dep\.mjs resolved from "\.\/dep\.mjs" traverses a symlink/);
 
   await rm(path.join(dir, "dep.mjs"));
   await write("dep.mjs", 'export const dep = "clean";\n');
@@ -746,6 +778,31 @@ test("the dependency-free guard follows relative imports transitively", async ()
 
   await write("entry.mjs", 'import { dep } from "./dep.mjs";\nexport const go = dep;\n');
   assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["dep.mjs", "entry.mjs"]);
+});
+
+test("parent path symlinks cannot redirect the import closure to other bytes", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-linked-parent-"));
+  const outside = await mkdtemp(path.join(os.tmpdir(), "scarydex-linked-source-"));
+
+  roots.push(dir, outside);
+  await writeFile(path.join(outside, "dep.mjs"), 'export const host = true;');
+  await mkdir(path.join(dir, "sources"));
+  await writeFile(path.join(dir, "sources/dep.mjs"), 'export const shipped = true;');
+  await mkdir(path.join(dir, "node_modules/pkg"), { recursive: true });
+  await writeFile(path.join(dir, "node_modules/pkg/dep.mjs"), 'export const installed = true;');
+
+  for (const [name, target] of [["outside", outside], ["internal", path.join(dir, "sources")], ["installed", path.join(dir, "node_modules/pkg")]]) {
+    await symlink(target, path.join(dir, name));
+    await writeFile(path.join(dir, "entry.mjs"), `import "./${name}/dep.mjs";`);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /symlink/);
+  }
+
+  await mkdir(path.join(dir, "nested"));
+  await symlink(outside, path.join(dir, "nested/linked"));
+  await writeFile(path.join(dir, "entry.mjs"), 'import "./nested/linked/dep.mjs";');
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /symlink/);
+  await writeFile(path.join(dir, "entry.mjs"), 'import "./sources/dep.mjs";');
+  assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["entry.mjs", "sources/dep.mjs"]);
 });
 
 test("dot-prefixed bare specifiers are not traversed as relative files", async () => {
