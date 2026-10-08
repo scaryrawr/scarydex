@@ -247,7 +247,17 @@ function omitsDevDependencies(argv, environment) {
 // for the real install and stays proof, and the flags that merely skip bookkeeping —
 // `--no-save`, `--no-package-lock`, `--no-audit`, `--ignore-scripts`, `--frozen-lockfile` —
 // all still write `node_modules` and are deliberately not refused here.
-function installsNothing(argv) {
+function installsNothing(argv, environment) {
+  if (argv[0] === "npm") {
+    for (const [name, rawValue] of Object.entries(environment)) {
+      if (!["npm_config_dry_run", "npm_config_package_lock_only"].includes(name.toLowerCase())) continue;
+
+      const value = String(rawValue).trim().toLowerCase();
+
+      if (value !== "" && value !== "false") return true;
+    }
+  }
+
   return argv.slice(2).some(word => /^(?:--dry-run|--package-lock-only|--lockfile-only)(?:=(?!false$).*)?$/.test(word));
 }
 
@@ -1019,7 +1029,7 @@ export function standAloneHelpers(lock) {
 
         const installs = canCreditInstall && INSTALLERS.has(argv[0]) && INSTALL_COMMANDS.has(argv[1]) &&
           !argv.slice(2).some(word => INSTALLS_ELSEWHERE.has(word.split("=")[0])) && !omitsDevDependencies(argv, environment) &&
-          !installsNothing(argv) && !relocated && !insideBlock && !PIPELINE.has(operator);
+          !installsNothing(argv, environment) && !relocated && !insideBlock && !PIPELINE.has(operator);
 
         // A command with a certain exit status opens only the worlds it can reach.
         const constantOk = constantStatus(text);

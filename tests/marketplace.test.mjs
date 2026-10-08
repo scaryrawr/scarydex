@@ -346,6 +346,28 @@ test("executable substitutions and path-qualified Node commands expose their hel
   assert.equal(bash.stdout.trim(), "HELPER_EXECUTED");
 });
 
+test("inherited npm no-op settings cannot prove an installation", () => {
+  const helper = { run: "node tools/upstream-sync.mjs" };
+  const job = (env, jobEnv, stepEnv, run = "npm install") => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ run, env: stepEnv }, helper] } } })];
+
+  for (const key of ["NPM_CONFIG_DRY_RUN", "npm_config_dry_run", "NPM_CONFIG_PACKAGE_LOCK_ONLY", "npm_config_package_lock_only"]) {
+    for (const value of [true, "true", "${{ inputs.no_op }}"]) {
+      const env = { [key]: value };
+
+      assert.deepEqual(job(env), ["tools/upstream-sync.mjs"]);
+      assert.deepEqual(job(undefined, env), ["tools/upstream-sync.mjs"]);
+      assert.deepEqual(job(undefined, undefined, env), ["tools/upstream-sync.mjs"]);
+      assert.deepEqual(job(env, { [key]: "false" }), []);
+      assert.deepEqual(job(env, undefined, { [key]: "false" }), []);
+    }
+
+    assert.deepEqual(job({ [key]: false }), []);
+    assert.deepEqual(job({ [key]: "false" }), []);
+    assert.deepEqual(job({ [key]: "" }), []);
+    assert.deepEqual(job({ [key]: true }, undefined, undefined, "bun install"), []);
+  }
+});
+
 test("inherited production and omit-dev environments cannot prove npm dependencies", () => {
   const install = { run: "npm install" };
   const helper = { run: "node tools/upstream-sync.mjs" };
