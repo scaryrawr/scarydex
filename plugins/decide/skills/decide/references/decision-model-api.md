@@ -153,6 +153,8 @@ curl http://127.0.0.1:8000/v1/systemone \
   Timeouts before headers or during body reads, including error-response bodies,
   are reported as timeouts rather than connectivity failures or HTTP errors.
 - HTTP failures, invalid JSON, and incomplete or invalid answers exit nonzero.
+  Keepalive error envelopes also exit nonzero and preserve the server message,
+  even when the response status is HTTP 200.
 - A SystemOne 404 includes a reminder to check endpoint support and the model ID.
 - OMLX error text is preserved from FastAPI `detail` or JSON `error` messages.
   Validation-detail arrays contribute their `msg` strings, not raw input values.

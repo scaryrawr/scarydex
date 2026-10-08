@@ -162,7 +162,7 @@ async function request(base, endpoint, body) {
     if (response.ok) throw new Error("OMLX returned invalid JSON.");
     data = null;
   }
-  if (!response.ok) {
+  if (!response.ok || (object(data) && Object.hasOwn(data, "error") && data.error !== null)) {
     const hint = endpoint === "/v1/systemone" && response.status === 404 ? " Check that this OMLX server supports /v1/systemone and that the requested decision model is available." : "";
     const message = object(data) ? data.detail ?? data.error : undefined;
     let detail = "";
@@ -174,7 +174,8 @@ async function request(base, endpoint, body) {
       if (messages.length) detail = ` ${messages.join("; ")}`;
     } else if (nonempty(message)) detail = ` ${message}`;
     else if (object(message) && nonempty(message.message)) detail = ` ${message.message}`;
-    throw new Error(`OMLX API error: ${response.status} ${response.statusText}.${detail}${hint}`);
+    const failure = response.ok ? "OMLX returned an error." : `OMLX API error: ${response.status} ${response.statusText}.`;
+    throw new Error(`${failure}${detail}${hint}`);
   }
   return data;
 }

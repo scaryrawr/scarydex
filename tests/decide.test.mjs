@@ -472,3 +472,24 @@ test("malformed HTTP error bodies preserve the server status", async () => {
   assert.equal(result.stdout, "");
   assert.equal(requests.length, 1);
 });
+
+test("HTTP 200 keepalive error envelopes preserve the server failure message", async () => {
+  for (const error of [{ message: "Memory guard rejected inference", type: "server_error" }, "Decision inference failed"]) {
+    const { file, invoke, requests } = await fixture({ raw: ` \n${JSON.stringify({ error })}` });
+    const result = await invoke(["run", "--model", "clef-flash-4bit", "--input", file]);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes(typeof error === "string" ? error : error.message));
+    assert.ok(!result.stderr.includes("missing answers"));
+    assert.equal(result.stdout, "");
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].path, "/v1/systemone");
+  }
+});
+
+test("a null optional error field does not override a valid decision", async () => {
+  const response = { ...answer, error: null };
+  const { file, invoke } = await fixture({ response });
+  const result = await invoke(["run", "--model", "clef-flash-4bit", "--input", file]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), response);
+});
