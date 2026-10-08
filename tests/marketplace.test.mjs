@@ -538,6 +538,70 @@ test("Bash declaration builtins cannot hide dependency environment mutations", (
   assert.equal(bash.stdout, "true\ntrue\n");
 });
 
+test("parenthesized blocks never establish dependency availability", () => {
+  const helper = "node tools/upstream-sync.mjs";
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const block of [
+    "false && (\nbun install\n)",
+    "(\nbun install\n)",
+    "false && ( echo skipped\nbun install\n)",
+    "( echo start\nbun install\n)",
+  ]) assert.deepEqual(job(block + "\n" + helper), ["tools/upstream-sync.mjs"]);
+
+  assert.deepEqual(job("false && (\nbun install\n)\nbun install\n" + helper), []);
+  const bash = spawnSync("bash", ["-e", "-c", "bun() { printf 'INSTALL_EXECUTED\\n'; }; node() { printf 'HELPER_EXECUTED\\n'; }; false && (\nbun install\n)\nnode tools/x.mjs"], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(bash.status, 0, bash.stderr);
+  assert.equal(bash.stdout, "HELPER_EXECUTED\n");
+});
+
+test("literal nested shells expose helpers and reject unprovable payloads", async () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const interpreter of ["bash", "sh", "/bin/bash", "/bin/sh", "env bash", "command sh"]) {
+    assert.deepEqual(job(`${interpreter} -c 'node tools/x.mjs'`), ["tools/x.mjs"]);
+    assert.throws(() => job(`${interpreter} -c "$PAYLOAD"`), /unprovable shell payload/);
+  }
+
+  assert.deepEqual(job("bash -ec 'node tools/x.mjs'"), ["tools/x.mjs"]);
+  assert.deepEqual(job(`bash -c 'sh -c "node tools/x.mjs"'`), ["tools/x.mjs"]);
+  assert.deepEqual(job("bash -c 'npm install; node tools/x.mjs'"), ["tools/x.mjs"]);
+  assert.deepEqual(job("bash -c 'echo done'"), []);
+  assert.deepEqual(job("bun install; bash -c 'node tools/x.mjs'"), []);
+  assert.throws(() => job(`bash -c 'export NODE_OPTIONS="--import ./bootstrap.mjs"; node tools/x.mjs'`), /unprovable NODE_OPTIONS/);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-nested-shell-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/x.mjs"), 'import "@scope/missing-package";');
+  await assert.rejects(dependencyFreeClosure(dir, job("bash -c 'node tools/x.mjs'")), /bare imports.*@scope\/missing-package/);
+  const loaded = spawnSync("bash", ["-c", "node tools/x.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
+test("computed declaration names fail closed without rejecting unrelated values", () => {
+  const helper = "node tools/upstream-sync.mjs";
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const declaration of ["export", "declare -x", "typeset -x", "readonly", "local -x"]) {
+    for (const argument of ['"$ASSIGNMENT"', `"$(printf 'NODE_OPTIONS=--import ./bootstrap.mjs')"`, '"NPM_CONFIG_${NAME}=true"']) {
+      assert.throws(() => job(`${declaration} ${argument}; ${helper}`), /unprovable shell environment mutation/);
+    }
+  }
+
+  assert.deepEqual(job('export PATH="$PATH:/tmp/bin"; npm install; ' + helper), []);
+  assert.deepEqual(job("export UNRELATED='NODE_OPTIONS=--import ./bootstrap.mjs'; npm install; " + helper), []);
+  assert.deepEqual(job('bun install; export "$ASSIGNMENT"; ' + helper), []);
+  const bash = spawnSync("bash", ["-c", `export "$(printf 'NODE_OPTIONS=--import ./bootstrap.mjs')"; printenv NODE_OPTIONS`], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(bash.status, 0, bash.stderr);
+  assert.equal(bash.stdout, "--import ./bootstrap.mjs\n");
+});
+
 test("inherited npm no-op settings cannot prove an installation", () => {
   const helper = { run: "node tools/upstream-sync.mjs" };
   const job = (env, jobEnv, stepEnv, run = "npm install") => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ run, env: stepEnv }, helper] } } })];

@@ -192,6 +192,8 @@ const INSTALLERS = new Set(["bun", "npm"]);
 
 const INSTALL_COMMANDS = new Set(["install", "ci"]);
 
+const ENVIRONMENT_DECLARATIONS = new Set(["export", "declare", "typeset", "readonly", "local"]);
+
 const INSTALLS_ELSEWHERE = new Set(["-g", "-G", "--global", "--global-style", "--link", "--location", "--prefix", "--no-install"]);
 
 function installsElsewhere(argv, environment) {
@@ -293,9 +295,9 @@ const PIPELINE = new Set(["|", "&", "|&"]);
 // empty list, a function body that is never called — so its effect cannot be proven from
 // text and an install written there never credits a later helper. A `} else {` closes one
 // branch and opens the next, so both halves apply and the depth does not change.
-const BLOCK_OPENERS = /^(?:if|for|while|until|case)\b|\{$/;
+const BLOCK_OPENERS = /^(?:if|for|while|until|case)\b|\{$|^\(|\($/;
 
-const BLOCK_CLOSERS = /^(?:fi|done|esac)\b|\}$/;
+const BLOCK_CLOSERS = /^(?:fi|done|esac)\b|\}$|^\)/;
 
 
 // Split one script into commands, each paired with the operator that *follows* it, so the
@@ -1013,11 +1015,35 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
   if (!substitutionsOnly && list[executable]?.hasExpansion && !["[", "[["].includes(list[executable].value)) throw new Error(`unprovable shell interpreter: ${list[executable].value}; use a literal executable`);
 
   const start = !substitutionsOnly && list[executable] && !list[executable].hasExpansion && path.posix.basename(list[executable].value) === "node" ? executable : -1;
-  const prefix = list.slice(0, start);
+  const prefix = list.slice(0, executable);
   const wrapper = prefix[0]?.value;
   const introspection = wrapper === "command" && prefix.some(word => word.value === "-v" || word.value === "-V");
   const executesNode = start !== -1 && !introspection;
   const references = new Set();
+  const commandEnvironment = { ...environment };
+
+  for (const word of prefix) {
+    const assignment = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(word.value);
+
+    if (assignment) commandEnvironment[assignment[1]] = word.hasExpansion ? "${unprovable}" : assignment[2];
+  }
+
+  const recordScript = script => {
+    // Nested execution cannot establish install proof for its parent or sibling commands.
+    for (const reference of standAloneHelpers({ env: commandEnvironment, jobs: { nested: { steps: [{ run: script, shell: "bash {0}" }] } } })) references.add(reference);
+  };
+
+  if (!substitutionsOnly && ["bash", "sh"].includes(path.posix.basename(list[executable]?.value ?? ""))) {
+    const commandOption = list.findIndex((word, index) => index > executable && /^-[A-Za-z]*c[A-Za-z]*$/.test(word.value));
+
+    if (commandOption !== -1) {
+      const payload = list[commandOption + 1];
+
+      if (list[commandOption].hasExpansion || !payload || payload.hasExpansion) throw new Error("unprovable shell payload; use a literal bash/sh -c command");
+
+      recordScript(payload.value);
+    }
+  }
 
   // A reserved GitHub workspace prefix has a known base. No other expansion may choose
   // an entrypoint, even when another literal helper happens to appear in the arguments.
@@ -1054,14 +1080,6 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
   };
 
   if (executesNode) {
-    const commandEnvironment = { ...environment };
-
-    for (const word of prefix) {
-      const assignment = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(word.value);
-
-      if (assignment) commandEnvironment[assignment[1]] = word.hasExpansion ? "${unprovable}" : assignment[2];
-    }
-
     rejectNodeOptions(commandEnvironment);
 
     const args = list.slice(start + 1);
@@ -1116,9 +1134,7 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
   }
 
   for (const inner of commandSubstitutions(text)) {
-    for (const { command } of splitCommands(inner)) {
-      for (const reference of helperReferences(command, environment)) references.add(reference);
-    }
+    recordScript(inner);
   }
 
   return [...references];
@@ -1237,7 +1253,8 @@ export function standAloneHelpers(lock) {
         const parsedWords = words(text);
         const argv = parsedWords.map(word => word.value);
         const firstCommand = parsedWords.findIndex(word => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value));
-        const environmentWords = ["export", "declare", "typeset", "readonly", "local"].includes(argv[0]) ? parsedWords.slice(1) : parsedWords.slice(0, firstCommand === -1 ? parsedWords.length : firstCommand);
+        const declaration = ENVIRONMENT_DECLARATIONS.has(argv[0]);
+        const environmentWords = declaration ? parsedWords.slice(1) : parsedWords.slice(0, firstCommand === -1 ? parsedWords.length : firstCommand);
 
         for (const word of environmentWords) {
           const assignment = /^(NODE_OPTIONS|NODE_ENV|npm_config_[A-Za-z0-9_]+)=(.*)$/i.exec(word.value);
@@ -1267,6 +1284,8 @@ export function standAloneHelpers(lock) {
         // there, so a helper named inside one still runs and must be flagged.
         if (executing.some(key => !installedIn(key))) {
           for (const word of environmentWords) {
+            if (declaration && word.hasExpansion && !/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value)) throw new Error(`unprovable shell environment mutation: ${word.value}; declare literal variable names`);
+
             if (word.value.startsWith("NODE_OPTIONS=") && (word.hasExpansion || word.value.slice("NODE_OPTIONS=".length).trim() !== "")) rejectNodeOptions({ NODE_OPTIONS: word.value });
           }
 
