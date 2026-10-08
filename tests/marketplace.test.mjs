@@ -587,7 +587,7 @@ test("computed declaration names fail closed without rejecting unrelated values"
   const helper = "node tools/upstream-sync.mjs";
   const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
 
-  for (const declaration of ["export", "declare -x", "typeset -x", "readonly", "local -x"]) {
+  for (const declaration of ["export", "declare -x", "typeset -x", "readonly", "local -x", "builtin export", "command export"]) {
     for (const argument of ['"$ASSIGNMENT"', `"$(printf 'NODE_OPTIONS=--import ./bootstrap.mjs')"`, '"NPM_CONFIG_${NAME}=true"']) {
       assert.throws(() => job(`${declaration} ${argument}; ${helper}`), /unprovable shell environment mutation/);
     }
@@ -600,6 +600,31 @@ test("computed declaration names fail closed without rejecting unrelated values"
 
   assert.equal(bash.status, 0, bash.stderr);
   assert.equal(bash.stdout, "--import ./bootstrap.mjs\n");
+});
+
+test("literal shell eval exposes helpers without establishing install proof", async () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  assert.deepEqual(job("eval 'node tools/x.mjs'"), ["tools/x.mjs"]);
+  assert.deepEqual(job("eval node tools/x.mjs"), ["tools/x.mjs"]);
+  assert.deepEqual(job(`bash -c 'eval "node tools/x.mjs"'`), ["tools/x.mjs"]);
+  assert.deepEqual(job("eval 'export NPM_CONFIG_DRY_RUN=true'; npm install; node tools/x.mjs"), ["tools/x.mjs"]);
+  assert.deepEqual(job("builtin eval 'export NPM_CONFIG_DRY_RUN=true'; npm install; node tools/x.mjs"), ["tools/x.mjs"]);
+  assert.throws(() => job('eval "$PAYLOAD"'), /unprovable shell payload/);
+  assert.throws(() => job("eval 'node tools/x.mjs' \"$PAYLOAD\""), /unprovable shell payload/);
+  assert.deepEqual(job("eval 'echo done'"), []);
+  assert.deepEqual(job("bun install; eval 'node tools/x.mjs'"), []);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-shell-eval-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/x.mjs"), 'import "@scope/missing-package";');
+  await assert.rejects(dependencyFreeClosure(dir, job("eval 'node tools/x.mjs'")), /bare imports.*@scope\/missing-package/);
+  const loaded = spawnSync("bash", ["-c", "eval 'node tools/x.mjs'"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
 test("inherited npm no-op settings cannot prove an installation", () => {
@@ -894,8 +919,8 @@ test("workflow helpers executed without dependency install stay dependency-free"
   // The computed-target rule must stay scoped to call and construction targets, or every
   // ordinary indexed read in a helper would be reported as dynamic code.
   for (const [label, source] of [['indexed reads', 'export const a = track[key];\nexport const b = match[1];\nexport const c = heads[index];'], ['callback call', 'export const go = () => obj.run(1);'], ['literal member call', 'export const go = () => obj["run"](1);']]) assert.deepEqual(scanImports(source).dynamic, [], `guard reported the ordinary ${label} form as dynamic code`);
-  assert.deepEqual(scanImports('new.target.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], resolvers: [], dynamic: [] });
-  assert.deepEqual(scanImports('const meta = { resolve: s => s };\nmeta.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], resolvers: [], dynamic: [] });
+  assert.deepEqual(scanImports('new.target.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], builtins: [], resolvers: [], dynamic: [] });
+  assert.deepEqual(scanImports('const meta = { resolve: s => s };\nmeta.resolve("@sinclair/typebox");'), { literals: [], computed: [], requires: [], builtins: [], resolvers: [], dynamic: [] });
 
   assert.throws(() => findBareImports('import source txt from "@sinclair/typebox";\nexport default txt;'), /cannot be parsed by the dependency-free guard; fix the syntax so its imports can be verified/);
 
@@ -1155,6 +1180,34 @@ test("Node module registration cannot start an unscanned module graph", async ()
   assert.throws(() => standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script: 'await import("node:module");' } }] } } }), /unsupported module loader/);
   await writeFile(path.join(dir, "entry.mjs"), 'import "node:fs"; export const note = "node:module register";');
   assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["entry.mjs"]);
+});
+
+test("builtin module accessors cannot bypass static import verification", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-builtin-accessor-"));
+
+  roots.push(dir);
+  await writeFile(path.join(dir, "bootstrap.mjs"), 'import "@scope/missing-package";');
+  await writeFile(path.join(dir, "entry.mjs"), 'process.getBuiltinModule("node:module").register("./bootstrap.mjs", import.meta.url);');
+  const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+
+  for (const source of [
+    'process.getBuiltinModule("node:module").register("./bootstrap.mjs", import.meta.url);',
+    'process["getBuiltinModule"]("node:worker_threads");',
+    'const load = process.getBuiltinModule; load("module");',
+    'const { getBuiltinModule: load } = process; load("worker_threads");',
+    'const load = process.getBuiltinModule; export { load };',
+    'process.getBuiltinModule("node:fs");',
+  ]) {
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /builtin module accessor.*getBuiltinModule/);
+  }
+
+  await writeFile(path.join(dir, "entry.mjs"), 'import "node:fs"; export const note = "process.getBuiltinModule";');
+  assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["entry.mjs"]);
+  assert.throws(() => standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script: 'const load = process.getBuiltinModule; load("node:module");' } }] } } }), /builtin module accessor/);
 });
 
 test("the shipped workflow entrypoint closure is dependency-free", async () => {

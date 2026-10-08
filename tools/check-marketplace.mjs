@@ -580,6 +580,7 @@ export function scanImports(source, file = "module.mjs") {
   const literals = new Set();
   const computed = new Set();
   const requires = new Set();
+  const builtins = new Set();
   const resolvers = new Set();
   const dynamic = new Set();
 
@@ -666,6 +667,12 @@ export function scanImports(source, file = "module.mjs") {
     const callee = isConstruction ? node.expression : node;
     const calleeName = accessedName(callee);
 
+    if (calleeName === "getBuiltinModule") {
+      builtins.add(text(node));
+
+      return;
+    }
+
     // Refused wherever the name appears, aliased or not, so a reference cannot be stored
     // and called later past a target-only check.
     if (/^(?:eval|Function)$/.test(calleeName)) {
@@ -717,7 +724,7 @@ export function scanImports(source, file = "module.mjs") {
 
   visit(sourceFile);
 
-  return { literals: [...literals], computed: [...computed], requires: [...requires], resolvers: [...resolvers], dynamic: [...dynamic] };
+  return { literals: [...literals], computed: [...computed], requires: [...requires], builtins: [...builtins], resolvers: [...resolvers], dynamic: [...dynamic] };
 }
 
 export function findImports(source, file = "module.mjs") {
@@ -791,7 +798,7 @@ export async function dependencyFreeClosure(root, entrypoints) {
     // The parser runs first so the finding does not depend on which Node the host
     // happens to provide: the bundled parser reports the same diagnostics anywhere,
     // while `checkModuleSyntax` answers for this host's runtime. Both must pass.
-    const { literals, computed, requires, resolvers, dynamic } = scanImports(source, file);
+    const { literals, computed, requires, builtins, resolvers, dynamic } = scanImports(source, file);
 
     checkModuleSyntax(path.join(root, file));
     const bare = literals.filter(specifier => !specifier.startsWith("node:") && !isRelativeSpecifier(specifier));
@@ -805,6 +812,8 @@ export async function dependencyFreeClosure(root, entrypoints) {
     if (computed.length) throw new Error(`${file} builds import targets at runtime; install-free workflow jobs need literal paths so the dependency-free guard can traverse them: ${computed.join(", ")}`);
 
     if (requires.length) throw new Error(`${file} reaches for CommonJS loading; install-free workflow jobs must use literal static imports so the dependency-free guard can traverse them: ${requires.join(", ")}`);
+
+    if (builtins.length) throw new Error(`${file} reaches for a builtin module accessor; install-free workflow jobs must use literal static imports: ${builtins.join(", ")}`);
 
     if (resolvers.length) throw new Error(`${file} reaches for the dynamic resolve loader; install-free workflow jobs must use literal static imports so the dependency-free guard can traverse them: ${resolvers.join(", ")}`);
 
@@ -996,14 +1005,13 @@ function rejectNodeOptions(environment) {
   }
 }
 
-function helperReferences(text, environment = {}, substitutionsOnly = false) {
-  const list = words(text);
+function commandIndex(list) {
   let executable = 0;
 
   while (executable < list.length) {
     const word = list[executable];
 
-    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value) || ["env", "command", "exec", "--", "if", "elif", "while", "until", "then", "do", "!"].includes(word.value)) {
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value) || ["env", "command", "builtin", "exec", "--", "if", "elif", "while", "until", "then", "do", "!"].includes(word.value)) {
       executable++;
     } else if (executable > 0 && word.value.startsWith("-")) {
       executable++;
@@ -1011,6 +1019,13 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
       break;
     }
   }
+
+  return executable;
+}
+
+function helperReferences(text, environment = {}, substitutionsOnly = false) {
+  const list = words(text);
+  const executable = commandIndex(list);
 
   if (!substitutionsOnly && list[executable]?.hasExpansion && !["[", "[["].includes(list[executable].value)) throw new Error(`unprovable shell interpreter: ${list[executable].value}; use a literal executable`);
 
@@ -1032,6 +1047,14 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
     // Nested execution cannot establish install proof for its parent or sibling commands.
     for (const reference of standAloneHelpers({ env: commandEnvironment, jobs: { nested: { steps: [{ run: script, shell: "bash {0}" }] } } })) references.add(reference);
   };
+
+  if (!substitutionsOnly && list[executable]?.value === "eval") {
+    const args = list.slice(executable + 1);
+
+    if (args.some(word => word.hasExpansion)) throw new Error("unprovable shell payload; use literal eval arguments");
+
+    recordScript(args.map(word => word.value).join(" "));
+  }
 
   if (!substitutionsOnly && ["bash", "sh"].includes(path.posix.basename(list[executable]?.value ?? ""))) {
     const commandOption = list.findIndex((word, index) => index > executable && /^-[A-Za-z]*c[A-Za-z]*$/.test(word.value));
@@ -1149,6 +1172,8 @@ function githubScriptHelpers(script) {
   if (source.parseDiagnostics.length) throw new Error("github-script cannot be parsed to verify its workspace imports");
 
   const visit = node => {
+    if (accessedName(node) === "getBuiltinModule") throw new Error("github-script reaches for a builtin module accessor; use literal static imports");
+
     if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
       const target = node.arguments[0];
       let file;
@@ -1252,9 +1277,13 @@ export function standAloneHelpers(lock) {
 
         const parsedWords = words(text);
         const argv = parsedWords.map(word => word.value);
+        const commandPosition = commandIndex(parsedWords);
+        const commandName = parsedWords[commandPosition]?.value;
         const firstCommand = parsedWords.findIndex(word => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value));
-        const declaration = ENVIRONMENT_DECLARATIONS.has(argv[0]);
-        const environmentWords = declaration ? parsedWords.slice(1) : parsedWords.slice(0, firstCommand === -1 ? parsedWords.length : firstCommand);
+        const declaration = ENVIRONMENT_DECLARATIONS.has(commandName);
+        const environmentWords = declaration ? parsedWords.slice(commandPosition + 1) : parsedWords.slice(0, firstCommand === -1 ? parsedWords.length : firstCommand);
+
+        if (commandName === "eval") environmentMutated = true;
 
         for (const word of environmentWords) {
           const assignment = /^(NODE_OPTIONS|NODE_ENV|npm_config_[A-Za-z0-9_]+)=(.*)$/i.exec(word.value);

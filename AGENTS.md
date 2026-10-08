@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 210 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 212 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -69,6 +69,8 @@ loader, and require option modules are validated too: local literal modules join
 closure, while bare and computed preloads are rejected. Worker loaders and
 `node:module` registration are refused because they can start module graphs
 outside the verified static import closure.
+`process.getBuiltinModule` references are refused too, including aliases;
+load builtins through literal static imports.
 ANSI-C and localized shell quotes cannot establish install proof. Computed
 executables and nonempty `NODE_OPTIONS` are refused in install-free commands;
 put Node options on the literal command line instead. Inherited npm global,
@@ -79,6 +81,8 @@ invalidate subsequent install proof within that step.
 Computed declaration names are refused. Parenthesized blocks cannot establish
 install proof; literal nested `bash`/`sh -c` scripts are scanned recursively,
 without crediting nested installs. Computed shell payloads fail closed.
+Literal shell `eval` payloads are scanned through the same guard, and invalidate
+later install proof because they can mutate the calling shell's environment.
 It parses each module with the TypeScript compiler rather than matching regexes,
 so trivia between tokens (`import /* c */ "pkg"`) counts
 and a package name inside a comment or string does not. Every target lands in one of
