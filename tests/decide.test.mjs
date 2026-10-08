@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
@@ -492,4 +492,14 @@ test("a null optional error field does not override a valid decision", async () 
   const result = await invoke(["run", "--model", "clef-flash-4bit", "--input", file]);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), response);
+});
+
+
+test("the documented base64 filter removes line feeds without corrupting payload characters", async () => {
+  const reference = await readFile(new URL("../plugins/decide/skills/decide/references/decision-model-api.md", import.meta.url), "utf8");
+  const argument = reference.match(/tr -d '([^']*)'/);
+  assert.ok(argument, "The image curl example must include its line-feed filter.");
+  const result = spawnSync("tr", ["-d", argument[1]], { input: "nG9v\nbnJ5\n", encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "nG9vbnJ5");
 });

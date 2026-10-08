@@ -129,7 +129,7 @@ node scripts/decide.mjs run --model clef-flash-4bit --input photo-decision.json
 ```sh
 curl http://127.0.0.1:8000/v1/systemone \
   -H 'Content-Type: application/json' \
-  -d "{\"model\":\"clef-flash-4bit\",\"state\":\"Classify the attached food.\",\"images\":[\"data:image/png;base64,$(base64 < photo.png | tr -d '\\n')\"],\"questions\":{\"food\":{\"type\":\"choice\",\"instructions\":\"Is this a hotdog or taco?\",\"criteria\":{\"hotdog\":\"Sausage in a bun\",\"taco\":null}}}}"
+  -d "{\"model\":\"clef-flash-4bit\",\"state\":\"Classify the attached food.\",\"images\":[\"data:image/png;base64,$(base64 < photo.png | tr -d '\n')\"],\"questions\":{\"food\":{\"type\":\"choice\",\"instructions\":\"Is this a hotdog or taco?\",\"criteria\":{\"hotdog\":\"Sausage in a bun\",\"taco\":null}}}}"
 ```
 
 ## Direct request
