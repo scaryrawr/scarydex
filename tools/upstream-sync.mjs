@@ -24,7 +24,7 @@ const DISPOSITIONS = new Set([...FINAL, "deferred", "unresolved"]);
 const SHA = /^[0-9a-f]{40}$/;
 
 // eslint-disable-next-line no-control-regex -- control characters are rejected in upstream paths by design
-const SAFE_PATH = /^[^\x00-\x1f\x7f\\]+$/;
+const UNSAFE_PATH = /[\x00-\x1f\x7f\\]/;
 
 const PR_BRANCH = /^upstream-sync\/[a-zA-Z0-9][a-zA-Z0-9._/-]*$/;
 
@@ -61,7 +61,7 @@ function sha(value) {
 }
 
 function safePath(value) {
-  requireThat(isText(value) && SAFE_PATH.test(value) &&
+  requireThat(isText(value) && !UNSAFE_PATH.test(value) &&
     !path.posix.isAbsolute(value) && value.split("/").every(p => p && p !== "." && p !== ".."), `Invalid path: ${value}`);
 
   return value;

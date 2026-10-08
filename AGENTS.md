@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 226 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 229 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -107,6 +107,11 @@ fail closed; data/lookup commands and scanned substitutions remain supported.
 Trusted process/environment and native path objects cannot escape to aliases or
 mutators; compound/delete writes invalidate their proof, and all native path
 bindings share one mutation boundary.
+Install-free Node commands need an explicit module entrypoint: eval/print and
+implicit stdin are refused, while help/version remain informational. PATH
+overrides and replacement/prepend assignments cannot prove installer identity;
+only literal absolute-directory appends to unchanged PATH preserve that proof.
+Upstream paths reject forbidden characters anywhere, including at the end.
 It parses each module with the TypeScript compiler rather than matching regexes,
 so trivia between tokens (`import /* c */ "pkg"`) counts
 and a package name inside a comment or string does not. Every target lands in one of

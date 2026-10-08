@@ -723,6 +723,60 @@ test("unrecognized Node options cannot hide helper entrypoints", async () => {
   assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
+test("inline Node code and implicit stdin cannot bypass closure scanning", async () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const option of ["-e", "--eval", "-p", "--print"]) {
+    assert.throws(() => job(`node ${option} 'import("./tools/x.mjs")'`), /inline Node code/);
+  }
+
+  for (const option of ['--eval=import("./tools/x.mjs")', '-eimport("./tools/x.mjs")', '--print=import("./tools/x.mjs")', '-pimport("./tools/x.mjs")']) {
+    assert.throws(() => job(`node '${option}'`), /inline Node code/);
+  }
+
+  assert.throws(() => job('node <<EOF\nimport("./tools/x.mjs");\nEOF'), /unprovable Node entrypoint/);
+  assert.throws(() => job("node"), /Node.*explicit entrypoint/);
+  assert.deepEqual(job("node --version; node --help"), []);
+  assert.deepEqual(job(`bun install; node -e 'import("./tools/x.mjs")'`), []);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-inline-node-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/x.mjs"), 'import "@scope/missing-package";');
+  const loaded = spawnSync("node", ["-e", 'import("./tools/x.mjs")'], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
+test("PATH overrides cannot spoof a successful installer", async () => {
+  const helper = { run: "node tools/x.mjs" };
+  const job = (run, env, jobEnv, stepEnv) => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ run, env: stepEnv }, helper] } } })];
+
+  for (const installer of ["bun", "npm"]) {
+    assert.deepEqual(job(`${installer} install`, { PATH: "/tmp/fake" }), ["tools/x.mjs"]);
+    assert.deepEqual(job(`${installer} install`, undefined, { PATH: "/tmp/fake" }), ["tools/x.mjs"]);
+    assert.deepEqual(job(`${installer} install`, undefined, undefined, { PATH: "/tmp/fake" }), ["tools/x.mjs"]);
+    assert.deepEqual(job(`PATH=/tmp/fake:$PATH; ${installer} install`), ["tools/x.mjs"]);
+    assert.deepEqual(job(`export PATH="/tmp/fake:$PATH"; ${installer} install`), ["tools/x.mjs"]);
+    assert.deepEqual(job(`declare -x PATH="/tmp/fake:$PATH"; ${installer} install`), ["tools/x.mjs"]);
+    assert.deepEqual(job(`export PATH="$PATH:/tmp/bin"; ${installer} install`), []);
+  }
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-fake-installer-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "bin"));
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "bin/bun"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  await writeFile(path.join(dir, "tools/x.mjs"), 'import "@scope/missing-package";');
+  const loaded = spawnSync("bash", ["-e", "-c", 'export PATH="$PWD/bin:$PATH"; bun install; node tools/x.mjs'], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
 test("effective wrapped set commands control errexit proof", () => {
   const helper = "node tools/upstream-sync.mjs";
   const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];

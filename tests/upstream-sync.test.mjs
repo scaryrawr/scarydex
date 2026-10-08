@@ -167,6 +167,33 @@ test("large diffs fail rather than silently truncate", () => {
   assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /ENOBUFS|bound/);
 });
 
+test("trailing control characters fail at registry and upstream path boundaries", () => {
+  const f = fixture();
+  const data = registry(f);
+  const track = data.tracks.find(item => item.id === "cursor/pstack");
+
+  track.reviews.push({
+    commit: f.comparison, disposition: "excluded", reason: "Inspected the comparison changes.",
+    paths: ["pstack/comparison.md"], localPaths: [],
+    evidence: ["Inspected the portable capability boundary."],
+  });
+
+  for (const suffix of ["\n", "\r", "\r\n", "\u0000", "\u007f"]) {
+    for (const field of ["paths", "localPaths"]) {
+      track.reviews[0][field] = [field === "paths" ? `pstack/comparison.md${suffix}` : `plugins/pstack/comparison.md${suffix}`];
+      writeJson(f.local, "upstream-sync.json", data);
+      assert.match(cli(f, "check", [], 1), /Invalid path/);
+      track.reviews[0][field] = field === "paths" ? ["pstack/comparison.md"] : [];
+    }
+  }
+
+  writeJson(f.local, "upstream-sync.json", data);
+  cli(f, "check");
+  write(f.scarypilot, "plugins/anti-slop/trailing\n", "invalid upstream name");
+  commit(f.scarypilot, "Trailing newline path");
+  assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /Invalid path/);
+});
+
 test("invalid command-specific flags, base mismatches, and malformed registry fail at the CLI boundary", () => {
   const f = fixture(), p = plan(f), file = savePlan(f, p);
   assert.match(cli(f, "check", ["--head", f.base], 1), /Unsupported option/);

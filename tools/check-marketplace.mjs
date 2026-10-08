@@ -987,8 +987,8 @@ function words(text) {
 // `node --no-warnings tools/x.mjs` and `node --import node:fs tools/x.mjs` put the entrypoint
 // after a space, which one greedy pattern either misses or captures only the last of several
 // paths, so every word after the interpreter is asked instead. A leading `${GITHUB_WORKSPACE}`
-// or a relocated checkout directory names the same helper, and `node -e`/`--eval` inline code
-// cannot name an entrypoint word, so it stays a known boundary.
+// or a relocated checkout directory names the same helper. Inline code and implicit
+// stdin are refused because neither provides an entrypoint the closure can verify.
 // The command bodies a string hands to the shell to run: balanced `$(...)` groups and the
 // process substitutions `<(...)` and `>(...)`, and the text between backticks. Bash
 // executes these alongside or before the outer command, so whatever a
@@ -1176,6 +1176,8 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
     const args = list.slice(start + 1);
     let consumeValue = null;
     let endOptions = false;
+    let entrypointFound = false;
+    let informational = false;
 
     for (const word of args) {
       if (consumeValue) {
@@ -1187,7 +1189,13 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
         continue;
       }
 
-      if (!endOptions && ["-e", "--eval", "-p", "--print", "--version", "-v", "--help", "-h"].includes(word.value)) break;
+      if (!endOptions && (/^-[ep]/.test(word.value) || /^(?:--eval|--print)(?:=|$)/.test(word.value))) throw new Error("inline Node code cannot be verified; use an explicit .mjs helper");
+
+      if (!endOptions && ["--version", "-v", "--help", "-h"].includes(word.value)) {
+        informational = true;
+
+        break;
+      }
 
       if (word.value === "--" && !endOptions) {
         endOptions = true;
@@ -1219,11 +1227,14 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
       if (!entrypoint.endsWith(".mjs")) throw new Error(`unprovable Node entrypoint: ${entrypoint}; install-free helpers need explicit .mjs paths`);
 
       references.add(entrypoint);
+      entrypointFound = true;
 
       break;
     }
 
     if (consumeValue) throw new Error(`Node option ${consumeValue} has no value to verify`);
+
+    if (!entrypointFound && !informational) throw new Error("Node execution has no explicit entrypoint; implicit stdin code cannot be verified");
 
     for (const word of args) {
       if (word.hasExpansion && !/^\$(?:\{GITHUB_WORKSPACE\}|GITHUB_WORKSPACE)\/[^$`*?[]+$/.test(word.value)) continue;
@@ -1493,7 +1504,7 @@ export function standAloneHelpers(lock) {
       const mayContinueOnError = step["continue-on-error"] !== undefined && step["continue-on-error"] !== false;
       const environment = { ...lock.env, ...job.env, ...step.env };
       let environmentMutated = false;
-      let installerShadowed = Object.entries(environment).some(([name, value]) => (/^(?:BASH_ENV|ENV)$/.test(name) && String(value).trim() !== "") || /^BASH_FUNC_(?:bun|npm)%%$/.test(name));
+      let installerShadowed = Object.hasOwn(environment, "PATH") || Object.entries(environment).some(([name, value]) => (/^(?:BASH_ENV|ENV)$/.test(name) && String(value).trim() !== "") || /^BASH_FUNC_(?:bun|npm)%%$/.test(name));
 
       if (step.uses?.startsWith("github/gh-aw-actions/setup@") && step.with?.destination === "${{ runner.temp }}/gh-aw/actions" && step.if === undefined) actionsDirectoryAvailable = true;
 
@@ -1531,6 +1542,8 @@ export function standAloneHelpers(lock) {
         if (["source", ".", "alias"].includes(commandName) || /^(?:(?:bun|npm)\s*\(\s*\)|function\s+(?:bun|npm)(?:\s|\())/.test(text)) installerShadowed = true;
 
         for (const word of environmentWords) {
+          if (word.value.startsWith("PATH=") && !(word.hasExpansion && /^PATH=\$(?:PATH|\{PATH\})(?::\/[A-Za-z0-9_./-]+)+$/.test(word.value))) installerShadowed = true;
+
           const assignment = /^(NODE_OPTIONS|NODE_ENV|BASH_ENV|ENV|npm_config_[A-Za-z0-9_]+)=(.*)$/i.exec(word.value);
 
           if (!assignment) continue;
