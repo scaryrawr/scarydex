@@ -448,9 +448,9 @@ test("FastAPI validation arrays preserve messages without dumping input values",
   assert.equal(requests.length, 1);
 });
 
-for (const phase of ["headers", "body"]) {
-  test(`discovery reports ${phase} timeouts without connectivity guidance`, { timeout: 20_000 }, async () => {
-    const { invoke, requests } = await fixture({ stall: phase, commandTimeout: 15_000 });
+for (const [phase, status] of [["headers", 200], ["body", 200], ["body", 500]]) {
+  test(`discovery reports ${phase} timeouts (HTTP ${status}) without connectivity guidance`, { timeout: 20_000 }, async () => {
+    const { invoke, requests } = await fixture({ stall: phase, status, commandTimeout: 15_000 });
     const result = await invoke(["models"]);
     assert.equal(result.status, 1);
     assert.match(result.stderr, phase === "headers" ? /OMLX request timed out/ : /OMLX response timed out/);
@@ -460,3 +460,13 @@ for (const phase of ["headers", "body"]) {
     assert.equal(requests.length, 1);
   });
 }
+
+test("malformed HTTP error bodies preserve the server status", async () => {
+  const { invoke, requests } = await fixture({ status: 500, raw: "not JSON" });
+  const result = await invoke(["models"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /OMLX API error: 500/);
+  assert.ok(!result.stderr.includes("invalid JSON"));
+  assert.equal(result.stdout, "");
+  assert.equal(requests.length, 1);
+});

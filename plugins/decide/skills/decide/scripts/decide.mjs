@@ -155,10 +155,16 @@ async function request(base, endpoint, body) {
     const cause = error instanceof Error && error.cause instanceof Error ? error.cause.code ?? error.cause.message : undefined;
     throw new Error(`OMLX request failed${cause ? ` (${cause})` : ""}. Start OMLX or set OMLX_BASE_URL. If the agent runs commands in a sandbox, the sandbox may block local HTTP even when OMLX is running; rerun this command outside the sandbox.`);
   }
+  let data;
+  try { data = await response.json(); }
+  catch (error) {
+    if (error.name === "TimeoutError" || error.name === "AbortError") throw new Error("OMLX response timed out.");
+    if (response.ok) throw new Error("OMLX returned invalid JSON.");
+    data = null;
+  }
   if (!response.ok) {
     const hint = endpoint === "/v1/systemone" && response.status === 404 ? " Check that this OMLX server supports /v1/systemone and that the requested decision model is available." : "";
-    const errorBody = await response.json().catch(() => null);
-    const message = object(errorBody) ? errorBody.detail ?? errorBody.error : undefined;
+    const message = object(data) ? data.detail ?? data.error : undefined;
     let detail = "";
     if (Array.isArray(message)) {
       const messages = [];
@@ -170,11 +176,7 @@ async function request(base, endpoint, body) {
     else if (object(message) && nonempty(message.message)) detail = ` ${message.message}`;
     throw new Error(`OMLX API error: ${response.status} ${response.statusText}.${detail}${hint}`);
   }
-  try { return await response.json(); }
-  catch (error) {
-    if (error.name === "TimeoutError" || error.name === "AbortError") throw new Error("OMLX response timed out.");
-    throw new Error("OMLX returned invalid JSON.");
-  }
+  return data;
 }
 
 async function listModels(base) {
