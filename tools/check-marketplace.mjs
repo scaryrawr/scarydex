@@ -194,6 +194,29 @@ const INSTALL_COMMANDS = new Set(["install", "ci"]);
 
 const INSTALLS_ELSEWHERE = new Set(["-g", "-G", "--global", "--global-style", "--link", "--location", "--prefix", "--no-install"]);
 
+function installsElsewhere(argv, environment) {
+  if (argv.slice(2).some(word => INSTALLS_ELSEWHERE.has(word.split("=")[0]))) return true;
+
+  if (argv[0] !== "npm") return false;
+
+  for (const [name, rawValue] of Object.entries(environment)) {
+    const key = name.toLowerCase();
+    const value = String(rawValue).trim().toLowerCase();
+
+    if (!["npm_config_global", "npm_config_global_style", "npm_config_location", "npm_config_prefix"].includes(key)) continue;
+
+    if (value.includes("$")) return true;
+
+    if (key === "npm_config_location" && value !== "" && value !== "project") return true;
+
+    if (key === "npm_config_prefix" && value !== "") return true;
+
+    if (["npm_config_global", "npm_config_global_style"].includes(key) && value !== "" && value !== "false") return true;
+  }
+
+  return false;
+}
+
 // An install that leaves devDependencies out never supplies the tooling a helper imports,
 // and the TypeBox and TypeScript that the code in this repository loads are devDependencies,
 // so it is no more proof than an install that did not run. `--production`, `--prod`,
@@ -284,7 +307,9 @@ function splitCommands(script) {
 
   let command = "";
   let quote = null;
+  let ansiQuote = false;
   let substitutions = 0;
+  let conditional = false;
   let heredocs = [];
   let pendingHeredocs = [];
 
@@ -301,7 +326,7 @@ function splitCommands(script) {
     if (quote) {
       command += character;
 
-      if (character === "\\" && quote === '"') command += script[++index] ?? "";
+      if (character === "\\" && (quote === '"' || ansiQuote)) command += script[++index] ?? "";
       else if (character === quote) quote = null;
 
       continue;
@@ -318,8 +343,25 @@ function splitCommands(script) {
     }
 
     if (character === "'" || character === '"' || character === "`") {
+      ansiQuote = character === "'" && command.endsWith("$");
       quote = character;
       command += character;
+
+      continue;
+    }
+
+    const tokenPair = script.slice(index, index + 2);
+
+    if (tokenPair === "[[" && (command === "" || /\s$/.test(command))) conditional = true;
+
+    if (conditional) {
+      command += character;
+
+      if (tokenPair === "]]") {
+        command += "]";
+        index++;
+        conditional = false;
+      }
 
       continue;
     }
@@ -821,6 +863,7 @@ function words(text) {
 
   let value = "";
   let quote = null;
+  let ansiQuote = false;
   let hasExpansion = false;
   let started = false;
 
@@ -835,10 +878,10 @@ function words(text) {
   for (let index = 0; index < text.length; index++) {
     const character = text[index];
 
-    if (character === "\\" && quote !== "'") {
+    if (character === "\\" && (quote !== "'" || ansiQuote)) {
       const next = text[index + 1];
 
-      if (!quote || /[$`"\\\n]/.test(next ?? "")) {
+      if (!quote || ansiQuote || /[$`"\\\n]/.test(next ?? "")) {
         if (next !== "\n") value += next ?? "";
 
         index++;
@@ -867,7 +910,19 @@ function words(text) {
       continue;
     }
 
+    // These Bash quote prefixes change the effective word beyond ordinary quote removal.
+    if (!quote && character === "$" && ["'", '"'].includes(text[index + 1])) {
+      hasExpansion = true;
+      ansiQuote = text[index + 1] === "'";
+      quote = text[++index];
+      value += "$";
+      started = true;
+
+      continue;
+    }
+
     if (!quote && (character === "'" || character === '"')) {
+      ansiQuote = false;
       quote = character;
       started = true;
 
@@ -934,13 +989,35 @@ function commandSubstitutions(text) {
   return found;
 }
 
-function helperReferences(text) {
+function rejectNodeOptions(environment) {
+  if (String(environment.NODE_OPTIONS ?? "").trim() !== "") {
+    throw new Error("unprovable NODE_OPTIONS; install-free workflow helpers must put Node options on the command line");
+  }
+}
+
+function helperReferences(text, environment = {}, substitutionsOnly = false) {
   const list = words(text);
-  const start = list.findIndex(word => !word.hasExpansion && path.posix.basename(word.value) === "node");
+  let executable = 0;
+
+  while (executable < list.length) {
+    const word = list[executable];
+
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value) || ["env", "command", "exec", "--", "if", "elif", "while", "until", "then", "do", "!"].includes(word.value)) {
+      executable++;
+    } else if (executable > 0 && word.value.startsWith("-")) {
+      executable++;
+    } else {
+      break;
+    }
+  }
+
+  if (!substitutionsOnly && list[executable]?.hasExpansion && !["[", "[["].includes(list[executable].value)) throw new Error(`unprovable shell interpreter: ${list[executable].value}; use a literal executable`);
+
+  const start = !substitutionsOnly && list[executable] && !list[executable].hasExpansion && path.posix.basename(list[executable].value) === "node" ? executable : -1;
   const prefix = list.slice(0, start);
   const wrapper = prefix[0]?.value;
   const introspection = wrapper === "command" && prefix.some(word => word.value === "-v" || word.value === "-V");
-  const executesNode = start !== -1 && !introspection && (start === 0 || prefix.every(word => /^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value)) || ["env", "command", "exec"].includes(wrapper));
+  const executesNode = start !== -1 && !introspection;
   const references = new Set();
 
   // A reserved GitHub workspace prefix has a known base. No other expansion may choose
@@ -978,6 +1055,16 @@ function helperReferences(text) {
   };
 
   if (executesNode) {
+    const commandEnvironment = { ...environment };
+
+    for (const word of prefix) {
+      const assignment = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(word.value);
+
+      if (assignment) commandEnvironment[assignment[1]] = word.hasExpansion ? "${unprovable}" : assignment[2];
+    }
+
+    rejectNodeOptions(commandEnvironment);
+
     const args = list.slice(start + 1);
     let consumeValue = null;
 
@@ -1031,7 +1118,7 @@ function helperReferences(text) {
 
   for (const inner of commandSubstitutions(text)) {
     for (const { command } of splitCommands(inner)) {
-      for (const reference of helperReferences(command)) references.add(reference);
+      for (const reference of helperReferences(command, environment)) references.add(reference);
     }
   }
 
@@ -1127,8 +1214,11 @@ export function standAloneHelpers(lock) {
       const canCreditInstall = modeledShell && step.if === undefined && ROOT_WORKING_DIRECTORIES.has(workingDirectory);
       const mayContinueOnError = step["continue-on-error"] !== undefined && step["continue-on-error"] !== false;
       const environment = { ...lock.env, ...job.env, ...step.env };
+      let environmentMutated = false;
 
       if (step.uses?.startsWith("actions/github-script@") && (!installed || runsAfterEarlierFailure)) {
+        rejectNodeOptions(environment);
+
         for (const file of githubScriptHelpers(step.with?.script ?? "")) files.add(file);
       }
 
@@ -1147,6 +1237,16 @@ export function standAloneHelpers(lock) {
 
         const parsedWords = words(text);
         const argv = parsedWords.map(word => word.value);
+        const firstCommand = parsedWords.findIndex(word => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value));
+        const environmentWords = argv[0] === "export" ? parsedWords.slice(1) : parsedWords.slice(0, firstCommand === -1 ? parsedWords.length : firstCommand);
+
+        for (const word of environmentWords) {
+          const assignment = /^(NODE_OPTIONS|NODE_ENV|npm_config_[A-Za-z0-9_]+)=(.*)$/i.exec(word.value);
+
+          if (!assignment) continue;
+
+          environmentMutated = true;
+        }
 
         if (argv[0] === "set" && argv.length === 2 && /^[+-]e$/.test(argv[1])) errexit = argv[1] === "-e";
 
@@ -1167,8 +1267,12 @@ export function standAloneHelpers(lock) {
         // An unquoted heredoc body is not a command, but bash does expand `$(...)` written
         // there, so a helper named inside one still runs and must be flagged.
         if (executing.some(key => !installedIn(key))) {
-          for (const scan of [text].concat(heredocs)) {
-            for (const reference of helperReferences(scan)) files.add(reference.replace(/^upstream-sync-policy\//, ""));
+          for (const word of environmentWords) {
+            if (word.value.startsWith("NODE_OPTIONS=") && (word.hasExpansion || word.value.slice("NODE_OPTIONS=".length).trim() !== "")) rejectNodeOptions({ NODE_OPTIONS: word.value });
+          }
+
+          for (const [index, scan] of [text].concat(heredocs).entries()) {
+            for (const reference of helperReferences(scan, environment, index > 0)) files.add(reference.replace(/^upstream-sync-policy\//, ""));
           }
         }
 
@@ -1179,7 +1283,7 @@ export function standAloneHelpers(lock) {
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
         const installs = canCreditInstall && parsedWords.every(word => !word.hasExpansion) && INSTALLERS.has(argv[0]) && INSTALL_COMMANDS.has(argv[1]) &&
-          !argv.slice(2).some(word => INSTALLS_ELSEWHERE.has(word.split("=")[0])) && !omitsDevDependencies(argv, environment) &&
+          !installsElsewhere(argv, environment) && !omitsDevDependencies(argv, environment) && !environmentMutated &&
           !installsNothing(argv, environment) && !relocated && !insideBlock && !PIPELINE.has(operator);
 
         // A command with a certain exit status opens only the worlds it can reach.

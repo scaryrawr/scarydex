@@ -420,6 +420,105 @@ test("computed install arguments cannot establish dependency availability", () =
   assert.deepEqual(job('"cd" sub; npm install'), ["tools/upstream-sync.mjs"]);
 });
 
+test("Bash special quotes cannot disguise install flags or interpreters", () => {
+  const helper = "node tools/upstream-sync.mjs";
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const argument of ["$'--dry-run'", '$"--dry-run"', "$'--dry\\x2drun'", "$'--production'", '$"--package-lock-only"']) {
+    assert.deepEqual(job(`npm install ${argument}\n${helper}`), ["tools/upstream-sync.mjs"]);
+  }
+
+  for (const interpreter of ["$'node'", '$"node"', "$'no\\x64e'"]) {
+    assert.throws(() => job(`${interpreter} tools/x.mjs`), /unprovable shell interpreter/);
+  }
+
+  assert.deepEqual(job("npm install --cache '/tmp/$literal'\n" + helper), []);
+  assert.deepEqual(job('echo "$literal"\n' + helper), ["tools/upstream-sync.mjs"]);
+  assert.deepEqual(job("printf $'text\\'; npm install; ignored'\n" + helper), ["tools/upstream-sync.mjs"]);
+
+  const bash = spawnSync("bash", ["-c", "npm() { printf '%s\\n' \"$@\"; }; npm install $'--dry\\x2drun'"], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(bash.status, 0, bash.stderr);
+  assert.equal(bash.stdout, "install\n--dry-run\n");
+});
+
+test("computed interpreters and implicit Node options fail closed", async () => {
+  const helper = "node tools/main.mjs";
+  const job = (run, env, jobEnv, stepEnv) => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ run, env: stepEnv }] } } })];
+
+  for (const run of [
+    'RUNTIME=node; "$RUNTIME" tools/main.mjs',
+    '"${RUNTIME}" tools/main.mjs',
+    'env "$RUNTIME" tools/main.mjs',
+    'command "$RUNTIME" tools/main.mjs',
+    'exec "$RUNTIME" tools/main.mjs',
+    'if "$RUNTIME" tools/main.mjs; then echo done; fi',
+    '! "$RUNTIME" tools/main.mjs',
+  ]) assert.throws(() => job(run, { RUNTIME: "node" }), /unprovable shell interpreter/);
+
+  for (const value of ["--import ./bootstrap.mjs", "--require tsx", "${{ inputs.node_options }}"]) {
+    const env = { NODE_OPTIONS: value };
+
+    assert.throws(() => job(helper, env), /unprovable NODE_OPTIONS/);
+    assert.throws(() => job(helper, undefined, env), /unprovable NODE_OPTIONS/);
+    assert.throws(() => job(helper, undefined, undefined, env), /unprovable NODE_OPTIONS/);
+    assert.throws(() => job(`NODE_OPTIONS='${value}' ${helper}`), /unprovable NODE_OPTIONS/);
+    assert.throws(() => job(`export NODE_OPTIONS='${value}'\n${helper}`), /unprovable NODE_OPTIONS/);
+    assert.throws(() => job(`NODE_OPTIONS='${value}'; ${helper}`), /unprovable NODE_OPTIONS/);
+    assert.deepEqual(job(helper, env, { NODE_OPTIONS: "" }), ["tools/main.mjs"]);
+    assert.deepEqual(job(helper, env, undefined, { NODE_OPTIONS: "" }), ["tools/main.mjs"]);
+  }
+
+  assert.deepEqual(job("NODE_OPTIONS='' " + helper), ["tools/main.mjs"]);
+  assert.deepEqual(job('echo "NODE_OPTIONS=--import ./bootstrap.mjs"\n' + helper), ["tools/main.mjs"]);
+  assert.deepEqual(job('if [[ -n "$OUTPUT" || "$HAS_PATCH" == true ]]; then\necho ready\nfi\n' + helper), ["tools/main.mjs"]);
+  assert.deepEqual(job('[ -n "$OUTPUT" ]\n' + helper), ["tools/main.mjs"]);
+  assert.deepEqual(job("if node tools/main.mjs; then echo done; fi"), ["tools/main.mjs"]);
+  assert.deepEqual(job('cat <<EOF\n$RUNTIME tools/unexecuted.mjs\n$(node tools/main.mjs)\nEOF'), ["tools/main.mjs"]);
+  assert.deepEqual(job("bun install\n" + helper, { NODE_OPTIONS: "--import tsx" }), []);
+  assert.throws(() => standAloneHelpers({ env: { NODE_OPTIONS: "--import tsx" }, jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script: "" } }] } } }), /unprovable NODE_OPTIONS/);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-node-options-"));
+
+  roots.push(dir);
+  await writeFile(path.join(dir, "main.mjs"), "export const clean = true;");
+  await writeFile(path.join(dir, "bootstrap.mjs"), 'import "@scope/missing-package";');
+  const loaded = spawnSync("node", ["main.mjs"], { cwd: dir, env: { ...process.env, NODE_OPTIONS: "--import ./bootstrap.mjs" }, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  assert.throws(() => job("node main.mjs", { NODE_OPTIONS: "--import ./bootstrap.mjs" }), /unprovable NODE_OPTIONS/);
+});
+
+test("inherited npm relocation settings cannot prove checkout dependencies", () => {
+  const helper = { run: "node tools/upstream-sync.mjs" };
+  const job = (env, jobEnv, stepEnv, run = "npm install") => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ run, env: stepEnv }, helper] } } })];
+
+  for (const [key, value, safe] of [
+    ["NPM_CONFIG_GLOBAL", "true", "false"],
+    ["npm_config_global", true, false],
+    ["NPM_CONFIG_GLOBAL_STYLE", "true", "false"],
+    ["NPM_CONFIG_LOCATION", "global", "project"],
+    ["npm_config_prefix", "/tmp/elsewhere", ""],
+    ["NPM_CONFIG_PREFIX", "${{ inputs.prefix }}", ""],
+    ["NPM_CONFIG_GLOBAL", "${{ inputs.global }}", "false"],
+    ["NPM_CONFIG_LOCATION", "${{ inputs.location }}", "project"],
+  ]) {
+    const env = { [key]: value };
+
+    assert.deepEqual(job(env), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job(undefined, env), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job(undefined, undefined, env), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job(env, { [key]: safe }), []);
+    assert.deepEqual(job(env, undefined, { [key]: safe }), []);
+    assert.deepEqual(job(env, undefined, undefined, "bun install"), []);
+    assert.deepEqual(job(undefined, undefined, undefined, `export ${key}='${value}'\nnpm install`), ["tools/upstream-sync.mjs"]);
+  }
+
+  assert.deepEqual(job(undefined, undefined, undefined, "export NPM_CONFIG_DRY_RUN=true\nnpm install"), ["tools/upstream-sync.mjs"]);
+  assert.deepEqual(job({ NPM_CONFIG_GLOBAL: "", NPM_CONFIG_LOCATION: "project", NPM_CONFIG_PREFIX: "" }), []);
+});
+
 test("inherited npm no-op settings cannot prove an installation", () => {
   const helper = { run: "node tools/upstream-sync.mjs" };
   const job = (env, jobEnv, stepEnv, run = "npm install") => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ run, env: stepEnv }, helper] } } })];
