@@ -195,7 +195,7 @@ const INSTALL_COMMANDS = new Set(["install", "ci"]);
 
 const ENVIRONMENT_DECLARATIONS = new Set(["export", "declare", "typeset", "readonly", "local"]);
 
-const INSTALLS_ELSEWHERE = new Set(["-g", "-G", "--global", "--global-style", "--link", "--location", "--prefix", "--no-install"]);
+const INSTALLS_ELSEWHERE = new Set(["-g", "-G", "--global", "--global-style", "--link", "--location", "--prefix", "--cwd", "--no-install"]);
 
 function installsElsewhere(argv, environment) {
   if (argv.slice(2).some(word => INSTALLS_ELSEWHERE.has(word.split("=")[0]))) return true;
@@ -605,24 +605,56 @@ export function scanImports(source, file = "module.mjs") {
   // nothing dangerous and its name must stay callable.
   const unprovableNames = new Set();
   const unprovableAggregates = new Set();
+  // Call results can carry global code references, not just direct aliases. Keep
+  // their origins separate from data lookups such as repositories[track.source].
+  const codeNames = new Set();
 
-  const isUnprovableValue = value => {
-    while (value && ts.isParenthesizedExpression(value)) value = value.expression;
+  const valueHasTaint = (value, names, codeOnly) => {
+    while (value && (ts.isParenthesizedExpression(value) || ts.isAwaitExpression(value))) value = value.expression;
 
     if (!value) return false;
 
-    if (ts.isElementAccessExpression(value)) return !ts.isStringLiteral(value.argumentExpression) || isUnprovableValue(value.expression);
+    if (ts.isElementAccessExpression(value)) {
+      return (!codeOnly && !ts.isStringLiteral(value.argumentExpression)) ||
+        valueHasTaint(value.expression, names, codeOnly) ||
+        (codeOnly && !ts.isStringLiteral(value.argumentExpression) && ts.isIdentifier(value.expression) && value.expression.text === "process");
+    }
 
-    if (ts.isArrayLiteralExpression(value)) return value.elements.some(isUnprovableValue);
+    if (ts.isArrayLiteralExpression(value)) return value.elements.some(element => valueHasTaint(element, names, codeOnly));
 
-    if (ts.isObjectLiteralExpression(value)) return value.properties.some(property => isUnprovableValue(ts.isPropertyAssignment(property) ? property.initializer : ts.isShorthandPropertyAssignment(property) ? property.name : ts.isSpreadAssignment(property) ? property.expression : undefined));
+    if (ts.isObjectLiteralExpression(value)) return value.properties.some(property => valueHasTaint(ts.isPropertyAssignment(property) ? property.initializer : ts.isShorthandPropertyAssignment(property) ? property.name : ts.isSpreadAssignment(property) ? property.expression : undefined, names, codeOnly));
 
-    if (ts.isSpreadElement(value)) return isUnprovableValue(value.expression);
+    if (ts.isSpreadElement(value) || ts.isPropertyAccessExpression(value)) return valueHasTaint(value.expression, names, codeOnly);
 
-    if (ts.isPropertyAccessExpression(value)) return isUnprovableValue(value.expression);
+    if (ts.isCallExpression(value) || ts.isNewExpression(value)) return (value.arguments ?? []).some(isCodeValue) || isCodeValue(value.expression);
 
-    return ts.isIdentifier(value) && unprovableNames.has(value.text);
+    if (ts.isConditionalExpression(value)) return valueHasTaint(value.whenTrue, names, codeOnly) || valueHasTaint(value.whenFalse, names, codeOnly);
+
+    if (ts.isBinaryExpression(value) && value.operatorToken.kind === ts.SyntaxKind.CommaToken) return valueHasTaint(value.right, names, codeOnly);
+
+    if (ts.isBinaryExpression(value) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(value.operatorToken.kind)) return valueHasTaint(value.left, names, codeOnly) || valueHasTaint(value.right, names, codeOnly);
+
+    if (codeOnly && (ts.isArrowFunction(value) || ts.isFunctionExpression(value) || ts.isFunctionDeclaration(value))) {
+      if (!value.body) return false;
+
+      if (!ts.isBlock(value.body)) return isCodeValue(value.body);
+
+      const returnedCode = node => {
+        if (ts.isReturnStatement(node) || ts.isYieldExpression(node)) return isCodeValue(node.expression);
+
+        if (ts.isFunctionLike(node)) return false;
+
+        return ts.forEachChild(node, returnedCode) ?? false;
+      };
+
+      return ts.forEachChild(value.body, returnedCode) ?? false;
+    }
+
+    return ts.isIdentifier(value) && (names.has(value.text) || (codeOnly && ["globalThis", "global", "window", "self"].includes(value.text)));
   };
+
+  const isUnprovableValue = value => valueHasTaint(value, unprovableNames, false);
+  const isCodeValue = value => valueHasTaint(value, codeNames, true);
 
   const taintPattern = (pattern, names = unprovableNames) => {
     if (ts.isIdentifier(pattern)) names.add(pattern.text);
@@ -637,13 +669,21 @@ export function scanImports(source, file = "module.mjs") {
   };
 
   const isUnprovableAggregate = value => {
-    while (value && ts.isParenthesizedExpression(value)) value = value.expression;
+    while (value && (ts.isParenthesizedExpression(value) || ts.isAwaitExpression(value))) value = value.expression;
 
     if (!value) return false;
 
     if (ts.isIdentifier(value)) return unprovableAggregates.has(value.text);
 
     if (ts.isPropertyAccessExpression(value) || ts.isElementAccessExpression(value)) return isUnprovableAggregate(value.expression);
+
+    if (ts.isCallExpression(value) || ts.isNewExpression(value)) return (value.arguments ?? []).some(isCodeValue) || isCodeValue(value.expression);
+
+    if (ts.isConditionalExpression(value)) return isUnprovableAggregate(value.whenTrue) || isUnprovableAggregate(value.whenFalse);
+
+    if (ts.isBinaryExpression(value) && value.operatorToken.kind === ts.SyntaxKind.CommaToken) return isUnprovableAggregate(value.right);
+
+    if (ts.isBinaryExpression(value) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(value.operatorToken.kind)) return isUnprovableAggregate(value.left) || isUnprovableAggregate(value.right);
 
     return (ts.isObjectLiteralExpression(value) || ts.isArrayLiteralExpression(value)) && isUnprovableValue(value);
   };
@@ -664,16 +704,25 @@ export function scanImports(source, file = "module.mjs") {
   let grew = true;
 
   while (grew) {
-    const before = unprovableNames.size + unprovableAggregates.size;
+    const before = unprovableNames.size + unprovableAggregates.size + codeNames.size;
 
     const collect = node => {
+      if (ts.isFunctionDeclaration(node) && node.name && isCodeValue(node)) taintPattern(node.name, codeNames);
+
       if ((ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isParameter(node)) && isUnprovableValue(node.initializer)) taintPattern(node.name);
+
+      if ((ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isParameter(node)) && isCodeValue(node.initializer)) taintPattern(node.name, codeNames);
 
       if ((ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isParameter(node)) && isUnprovableAggregate(node.initializer)) taintPattern(node.name, unprovableAggregates);
 
-      if (ts.isBindingElement(node) && node.propertyName && ts.isComputedPropertyName(node.propertyName)) taintPattern(node.name);
+      if (ts.isBindingElement(node) && node.propertyName && ts.isComputedPropertyName(node.propertyName)) {
+        taintPattern(node.name);
+        taintPattern(node.name, codeNames);
+      }
 
       if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && (isUnprovableValue(node.right) || hasComputedPattern(node.left))) taintPattern(node.left);
+
+      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && (isCodeValue(node.right) || hasComputedPattern(node.left))) taintPattern(node.left, codeNames);
 
       if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && isUnprovableAggregate(node.right)) taintPattern(node.left, unprovableAggregates);
 
@@ -682,7 +731,7 @@ export function scanImports(source, file = "module.mjs") {
 
     collect(sourceFile);
 
-    grew = unprovableNames.size + unprovableAggregates.size !== before;
+    grew = unprovableNames.size + unprovableAggregates.size + codeNames.size !== before;
   }
 
   const record = node => {
@@ -738,7 +787,11 @@ export function scanImports(source, file = "module.mjs") {
       return;
     }
 
-    if (isConstruction && (isUnprovableAggregate(callee) || (ts.isIdentifier(callee) && isUnprovableValue(callee)) ||
+    let target = callee;
+
+    while (ts.isParenthesizedExpression(target)) target = target.expression;
+
+    if (isConstruction && (isUnprovableAggregate(callee) || (!ts.isPropertyAccessExpression(target) && !ts.isElementAccessExpression(target) && isUnprovableValue(target)) ||
         (/^(?:call|apply|bind)$/.test(calleeName) && isUnprovableValue(callee)))) {
       dynamic.add(text(node));
 
@@ -749,10 +802,6 @@ export function scanImports(source, file = "module.mjs") {
     // is refused: `globalThis["ev" + "al"]('import("@scope/pkg")')` passes `node --check`
     // and then attempts the load. Scoping this to call and construction targets matters —
     // an ordinary `track[key]` or `match[1]` read names nothing at all and must stay clean.
-    let target = callee;
-
-    while (ts.isParenthesizedExpression(target)) target = target.expression;
-
     if (isConstruction && ts.isElementAccessExpression(target) && !ts.isStringLiteral(target.argumentExpression)) {
       dynamic.add(text(node));
 
@@ -1069,6 +1118,7 @@ function commandContext(list, environment) {
   let introspection = false;
   let launchesExternal = true;
   let externalOnly = false;
+  let negated = false;
 
   while (executable < list.length) {
     const word = list[executable];
@@ -1079,6 +1129,8 @@ function commandContext(list, environment) {
       effectiveEnvironment[assignment[1]] = word.hasExpansion ? "${unprovable}" : assignment[2];
       executable++;
     } else if (["--", "if", "elif", "while", "until", "then", "do", "!"].includes(word.value)) {
+      if (word.value === "!") negated = true;
+
       executable++;
     } else if (!word.hasExpansion && ["env", "command", "builtin", "exec"].includes(wrapper)) {
       if (wrapper === "builtin" || (externalOnly && wrapper !== "env")) launchesExternal = false;
@@ -1130,7 +1182,7 @@ function commandContext(list, environment) {
     }
   }
 
-  return { index: executable, environment: effectiveEnvironment, introspection, launchesExternal };
+  return { index: executable, environment: effectiveEnvironment, introspection, launchesExternal, negated };
 }
 
 function helperReferences(text, environment = {}, substitutionsOnly = false) {
@@ -1665,7 +1717,7 @@ export function standAloneHelpers(lock) {
 
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
-        const installs = canCreditInstall && context.launchesExternal && !context.introspection && parsedWords.every(word => !word.hasExpansion) && INSTALLERS.has(effectiveArgv[0]) && INSTALL_COMMANDS.has(effectiveArgv[1]) &&
+        const installs = canCreditInstall && context.launchesExternal && !context.introspection && !context.negated && parsedWords.every(word => !word.hasExpansion) && INSTALLERS.has(effectiveArgv[0]) && INSTALL_COMMANDS.has(effectiveArgv[1]) &&
           !installsElsewhere(effectiveArgv, context.environment) && !omitsDevDependencies(effectiveArgv, context.environment) && !environmentMutated && !installerShadowed &&
           !installsNothing(effectiveArgv, context.environment) && !relocated && !insideBlock && !PIPELINE.has(operator);
 

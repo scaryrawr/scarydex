@@ -1294,6 +1294,89 @@ test("wrapped installations use the effective executable and environment", () =>
   assert.match(builtin.stderr, /not a shell builtin/);
 });
 
+test("call sequence and conditional results preserve computed loader taint", async () => {
+  const job = script => [...standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script } }] } } })];
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-result-taint-"));
+
+  roots.push(dir);
+
+  for (const source of [
+    `const load = (value => value)(globalThis["ev" + "al"]); await load('import("@scope/missing-package")');`,
+    `const load = (0, globalThis["ev" + "al"]); await load('import("@scope/missing-package")');`,
+    `const load = true ? globalThis["ev" + "al"] : () => {}; await load('import("@scope/missing-package")');`,
+    `const load = null ?? globalThis["ev" + "al"]; await load('import("@scope/missing-package")');`,
+    `const load = true && globalThis["ev" + "al"]; await load('import("@scope/missing-package")');`,
+    `const load = false || globalThis["ev" + "al"]; await load('import("@scope/missing-package")');`,
+    `const box = (value => ({ load: value }))(globalThis["ev" + "al"]); await box.load('import("@scope/missing-package")');`,
+    `await (value => value)(globalThis["ev" + "al"])('import("@scope/missing-package")');`,
+    `const root = globalThis; const load = (value => value)(root["ev" + "al"]); await load('import("@scope/missing-package")');`,
+    `const values = [globalThis["ev" + "al"]]; const load = (value => value)(values[0]); await load('import("@scope/missing-package")');`,
+    `function get() { return globalThis["ev" + "al"]; } const load = get(); await load('import("@scope/missing-package")');`,
+    `const get = () => globalThis["ev" + "al"]; const load = get(); await load('import("@scope/missing-package")');`,
+    `const load = await Promise.resolve(globalThis["ev" + "al"]); await load('import("@scope/missing-package")');`,
+    `function* get() { yield globalThis["ev" + "al"]; } const load = get().next().value; await load('import("@scope/missing-package")');`,
+    `await (0, globalThis["ev" + "al"])('import("@scope/missing-package")');`,
+    `await (true ? globalThis["ev" + "al"] : () => {})('import("@scope/missing-package")');`,
+  ]) {
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    assert.ok(scanImports(source).dynamic.length, source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /evaluates code at runtime/);
+    assert.throws(() => job(source), /github-script.*evaluates code at runtime/);
+    const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.notEqual(loaded.status, 0);
+    assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
+
+  assert.deepEqual(scanImports('const load = (globalThis[key], () => 1); load();').dynamic, []);
+  assert.deepEqual(scanImports('const parts = ["abc"]; let index = 0; const text = String(parts[index++]); text.trim();').dynamic, []);
+  assert.deepEqual(scanImports('const directories = { source: "/tmp" }; const key = "source"; const text = String(directories[key]); text.trim();').dynamic, []);
+});
+
+test("Bun cwd options never establish checkout dependency availability", async () => {
+  const helper = { run: "node tools/x.mjs" };
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }, helper] } } })];
+
+  for (const option of ["--cwd /tmp/other", "--cwd=/tmp/other", '"--cwd" "/tmp/other"']) {
+    assert.deepEqual(job(`bun install ${option}`), ["tools/x.mjs"]);
+    assert.deepEqual(job(`env bun install ${option}`), ["tools/x.mjs"]);
+  }
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-bun-cwd-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "here/tools"), { recursive: true });
+  await mkdir(path.join(dir, "other"));
+  await mkdir(path.join(dir, "fixture"));
+  await writeFile(path.join(dir, "fixture/package.json"), '{"name":"fixture-dependency","version":"1.0.0","type":"module","exports":"./index.mjs"}');
+  await writeFile(path.join(dir, "fixture/index.mjs"), "export const value = true;");
+  await writeFile(path.join(dir, "other/package.json"), '{"dependencies":{"fixture-dependency":"file:../fixture"}}');
+  await writeFile(path.join(dir, "here/tools/x.mjs"), 'import "fixture-dependency";');
+  const installed = spawnSync("bun", ["install", "--cwd", path.join(dir, "other"), "--ignore-scripts"], { cwd: path.join(dir, "here"), encoding: "utf8", timeout: 5000 });
+
+  assert.equal(installed.status, 0, installed.stderr);
+  assert.equal(existsSync(path.join(dir, "other/node_modules/fixture-dependency")), true);
+  assert.equal(existsSync(path.join(dir, "here/node_modules")), false);
+  const loaded = spawnSync("node", ["tools/x.mjs"], { cwd: path.join(dir, "here"), encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
+test("negated installer failures cannot establish dependencies", () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const installer of ["bun install", "npm ci", "env bun install", "command npm ci"]) {
+    assert.deepEqual(job(`! ${installer}; node tools/x.mjs`), ["tools/x.mjs"]);
+    assert.deepEqual(job(`! ${installer} && node tools/x.mjs`), ["tools/x.mjs"]);
+  }
+
+  const result = spawnSync("bash", ["-e", "-c", "bun() { return 1; }; ! bun install; printf 'HELPER_REACHED\\n'"], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "HELPER_REACHED\n");
+});
+
 const SINGLE = String.fromCharCode(10);
 
 test("workflow helpers executed without dependency install stay dependency-free", async () => {
