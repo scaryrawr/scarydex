@@ -499,6 +499,8 @@ const NODE_MODULE_OPTIONS = new Set(["--import", "--loader", "--experimental-loa
 
 const NODE_VALUE_OPTIONS = new Set([...NODE_MODULE_OPTIONS, "--input-type", "--title", "--conditions", "-C", "--inspect-port", "--max-old-space-size"]);
 
+const NODE_BOOLEAN_OPTIONS = new Set(["--no-warnings", "--trace-warnings", "--check", "-c"]);
+
 const isRelativeSpecifier = specifier => specifier.startsWith("./") || specifier.startsWith("../");
 
 // `import.meta.resolve(...)` and `import.meta["resolve"](...)` are the loader; anything
@@ -1147,23 +1149,33 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
 
     const args = list.slice(start + 1);
     let consumeValue = null;
+    let endOptions = false;
 
     for (const word of args) {
       if (consumeValue) {
         if (NODE_MODULE_OPTIONS.has(consumeValue)) recordPreload(word, consumeValue);
+        else if (word.hasExpansion) throw new Error(`unprovable Node option value: ${word.value}`);
 
         consumeValue = null;
 
         continue;
       }
 
-      if (["-e", "--eval", "-p", "--print", "--version", "-v", "--help", "-h"].includes(word.value)) break;
+      if (!endOptions && ["-e", "--eval", "-p", "--print", "--version", "-v", "--help", "-h"].includes(word.value)) break;
 
-      if (word.value.startsWith("-")) {
+      if (word.value === "--" && !endOptions) {
+        endOptions = true;
+
+        continue;
+      }
+
+      if (!endOptions && word.value.startsWith("-")) {
         const separator = word.value.indexOf("=");
         const option = separator === -1 ? word.value : word.value.slice(0, separator);
 
         if ((option.startsWith("-r") && option !== "-r") || (option === "-r" && separator !== -1)) throw new Error(`unsupported Node preload option: ${word.value}; use -r followed by its module`);
+
+        if (!NODE_VALUE_OPTIONS.has(option) && !NODE_BOOLEAN_OPTIONS.has(option)) throw new Error(`unsupported Node option: ${word.value}; use explicitly modeled options`);
 
         if (NODE_MODULE_OPTIONS.has(option) && separator !== -1) {
           recordPreload({ value: word.value.slice(separator + 1), hasExpansion: word.hasExpansion }, option);
@@ -1211,6 +1223,10 @@ function githubScriptHelpers(script, environment, actionsDirectoryAvailable) {
   const bindings = new Map();
 
   if (source.parseDiagnostics.length) throw new Error("github-script cannot be parsed to verify its workspace imports");
+
+  const { dynamic } = scanImports(script, "github-script.js");
+
+  if (dynamic.length) throw new Error(`github-script builds or evaluates code at runtime: ${dynamic.join(", ")}`);
 
   const collect = node => {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {

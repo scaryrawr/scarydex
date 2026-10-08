@@ -668,6 +668,31 @@ test("env wrapper options preserve executable and environment identity", () => {
   assert.deepEqual(job("command -v node"), []);
 });
 
+test("unrecognized Node options cannot hide helper entrypoints", async () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const option of ["--env-file", "--env-file-if-exists", "--unknown-option"]) {
+    assert.throws(() => job(`node ${option} clean.mjs policy/unsafe.mjs`), /unsupported Node option/);
+    assert.throws(() => job(`node ${option}=clean.mjs policy/unsafe.mjs`), /unsupported Node option/);
+  }
+
+  assert.deepEqual(job("node --no-warnings policy/unsafe.mjs"), ["policy/unsafe.mjs"]);
+  assert.deepEqual(job("node --max-old-space-size 128 policy/unsafe.mjs"), ["policy/unsafe.mjs"]);
+  assert.deepEqual(job("node -- policy/unsafe.mjs"), ["policy/unsafe.mjs"]);
+  assert.throws(() => job('node --conditions $FLAGS policy/unsafe.mjs'), /unprovable Node option value/);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-node-env-file-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "policy"));
+  await writeFile(path.join(dir, "clean.mjs"), "# empty environment file\n");
+  await writeFile(path.join(dir, "policy/unsafe.mjs"), 'import "@scope/missing-package";');
+  const loaded = spawnSync("node", ["--env-file", "clean.mjs", "policy/unsafe.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
 test("effective wrapped set commands control errexit proof", () => {
   const helper = "node tools/upstream-sync.mjs";
   const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
@@ -894,6 +919,21 @@ test("github-script require targets join the verified workspace closure", async 
 
   assert.notEqual(loaded.status, 0);
   assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
+test("github-script dynamic evaluation follows the module scanner boundary", () => {
+  const job = script => [...standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script } }] } } })];
+
+  for (const script of [
+    `eval('require(process.env.GITHUB_WORKSPACE + "/tools/unsafe.mjs")');`,
+    `const evaluate = eval; evaluate('require("./tools/unsafe.mjs")');`,
+    `const load = Function('return import("./tools/unsafe.mjs")'); load();`,
+    `const evaluate = globalThis["ev" + "al"]; evaluate('require("./tools/unsafe.mjs")');`,
+    `globalThis["eval"]('require("./tools/unsafe.mjs")');`,
+  ]) assert.throws(() => job(script), /github-script.*evaluates code at runtime/);
+
+  assert.deepEqual(job(`const text = 'eval("require(unsafe)")'; core.info(text);`), []);
+  assert.deepEqual(job('const callback = () => core.info("done"); callback();'), []);
 });
 
 const SINGLE = String.fromCharCode(10);
