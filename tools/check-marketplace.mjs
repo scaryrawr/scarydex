@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parse } from "yaml";
 import { Type } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
@@ -451,6 +451,10 @@ const UNSUPPORTED_MODULE_LOADERS = new Set(["node:worker_threads"]);
 
 const ROOT_WORKING_DIRECTORIES = new Set([".", "./", "${{ github.workspace }}"]);
 
+const NODE_MODULE_OPTIONS = new Set(["--import", "--loader", "--experimental-loader", "--require", "-r"]);
+
+const NODE_VALUE_OPTIONS = new Set([...NODE_MODULE_OPTIONS, "--input-type", "--title", "--conditions", "-C", "--inspect-port", "--max-old-space-size"]);
+
 const isRelativeSpecifier = specifier => specifier.startsWith("./") || specifier.startsWith("../");
 
 // `import.meta.resolve(...)` and `import.meta["resolve"](...)` are the loader; anything
@@ -764,7 +768,9 @@ export async function dependencyFreeClosure(root, entrypoints) {
     if (dynamic.length) throw new Error(`${file} builds or evaluates code at runtime, which no scanner can see through and a syntax check cannot catch; install-free workflow jobs must use literal static imports: ${dynamic.join(", ")}`);
 
     for (const relative of literals.filter(isRelativeSpecifier)) {
-      queue.push({ file: path.posix.normalize(path.posix.join(path.posix.dirname(file), relative)), specifier: relative });
+      const target = fileURLToPath(new URL(relative, pathToFileURL(path.resolve(root, file))));
+
+      queue.push({ file: path.relative(root, target), specifier: relative });
     }
   }
 
@@ -890,7 +896,7 @@ function words(text) {
 }
 
 // The helpers a `node` invocation names. Word boundaries, not a single regex, decide this:
-// `node --no-warnings tools/x.mjs` and `node --import tsx tools/x.mjs` put the entrypoint
+// `node --no-warnings tools/x.mjs` and `node --import node:fs tools/x.mjs` put the entrypoint
 // after a space, which one greedy pattern either misses or captures only the last of several
 // paths, so every word after the interpreter is asked instead. A leading `${GITHUB_WORKSPACE}`
 // or a relocated checkout directory names the same helper, and `node -e`/`--eval` inline code
@@ -949,13 +955,37 @@ function helperReferences(text) {
     return word.value;
   };
 
+  const recordPreload = (word, option) => {
+    const specifier = literalPath(word);
+
+    if (UNSUPPORTED_MODULE_LOADERS.has(specifier)) throw new Error(`Node imports an unsupported module loader: ${specifier}`);
+
+    if (specifier.startsWith("node:")) return;
+
+    const requireOption = option === "--require" || option === "-r";
+    const local = isRelativeSpecifier(specifier) || path.isAbsolute(specifier) || word.hasExpansion;
+
+    if (!local && !(specifier.startsWith("file:") && !requireOption)) throw new Error(`bare preload module ${specifier} cannot run without installed dependencies`);
+
+    if (requireOption) {
+      references.add(path.normalize(specifier));
+    } else {
+      const base = pathToFileURL(path.join(process.cwd(), "_entrypoint.mjs"));
+      const file = fileURLToPath(new URL(word.hasExpansion ? `./${specifier}` : specifier, base));
+
+      references.add(isRelativeSpecifier(specifier) || word.hasExpansion ? path.relative(process.cwd(), file) : file);
+    }
+  };
+
   if (executesNode) {
     const args = list.slice(start + 1);
-    let consumeValue = false;
+    let consumeValue = null;
 
     for (const word of args) {
       if (consumeValue) {
-        consumeValue = false;
+        if (NODE_MODULE_OPTIONS.has(consumeValue)) recordPreload(word, consumeValue);
+
+        consumeValue = null;
 
         continue;
       }
@@ -963,9 +993,18 @@ function helperReferences(text) {
       if (["-e", "--eval", "-p", "--print", "--version", "-v", "--help", "-h"].includes(word.value)) break;
 
       if (word.value.startsWith("-")) {
-        if (word.hasExpansion) throw new Error(`unprovable Node entrypoint options: ${word.value}`);
+        const separator = word.value.indexOf("=");
+        const option = separator === -1 ? word.value : word.value.slice(0, separator);
 
-        consumeValue = ["--import", "--require", "-r", "--loader", "--experimental-loader", "--input-type", "--title", "--conditions", "-C", "--inspect-port"].includes(word.value);
+        if ((option.startsWith("-r") && option !== "-r") || (option === "-r" && separator !== -1)) throw new Error(`unsupported Node preload option: ${word.value}; use -r followed by its module`);
+
+        if (NODE_MODULE_OPTIONS.has(option) && separator !== -1) {
+          recordPreload({ value: word.value.slice(separator + 1), hasExpansion: word.hasExpansion }, option);
+        } else {
+          if (word.hasExpansion) throw new Error(`unprovable Node entrypoint options: ${word.value}`);
+
+          consumeValue = NODE_VALUE_OPTIONS.has(option) && separator === -1 ? option : null;
+        }
 
         continue;
       }
@@ -978,6 +1017,8 @@ function helperReferences(text) {
 
       break;
     }
+
+    if (consumeValue) throw new Error(`Node option ${consumeValue} has no value to verify`);
 
     for (const word of args) {
       if (word.hasExpansion && !/^\$(?:\{GITHUB_WORKSPACE\}|GITHUB_WORKSPACE)\/[^$`*?[]+$/.test(word.value)) continue;

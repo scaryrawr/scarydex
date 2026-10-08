@@ -224,7 +224,8 @@ test("dependency availability is tracked per step, not per job", () => {
   // Runtime flags sit between the interpreter and its entrypoint, so word boundaries decide
   // what a `node` invocation names rather than one pattern that cannot cross the space.
   assert.deepEqual([...job([{ run: "node --no-warnings tools/upstream-sync.mjs" }])], ["tools/upstream-sync.mjs"]);
-  assert.deepEqual([...job([{ run: "node --import tsx tools/upstream-sync.mjs" }])], ["tools/upstream-sync.mjs"]);
+  assert.throws(() => job([{ run: "node --import tsx tools/upstream-sync.mjs" }]), /bare preload module/);
+  assert.deepEqual([...job([{ run: "node --import node:fs tools/upstream-sync.mjs" }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: 'node "${GITHUB_WORKSPACE}/tools/upstream-sync.mjs"' }])], ["tools/upstream-sync.mjs"]);
 
   // Two entrypoints are two helpers, and neither may collapse into the last one the way a
@@ -344,6 +345,46 @@ test("executable substitutions and path-qualified Node commands expose their hel
 
   assert.equal(bash.status, 0, bash.stderr);
   assert.equal(bash.stdout.trim(), "HELPER_EXECUTED");
+});
+
+test("Node preload, loader, and require modules join the dependency-free closure", async () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })].sort();
+
+  for (const option of ["--import", "--loader", "--experimental-loader", "--require", "-r"]) {
+    assert.throws(() => job(`node ${option} tsx tools/main.mjs`), /bare preload module/);
+    assert.throws(() => job(`node ${option} "$PRELOAD" tools/main.mjs`), /unprovable Node entrypoint/);
+    assert.deepEqual(job(`node ${option} ./bootstrap.mjs tools/main.mjs`), ["bootstrap.mjs", "tools/main.mjs"]);
+
+    if (option !== "-r") assert.deepEqual(job(`node ${option}=./bootstrap.mjs tools/main.mjs`), ["bootstrap.mjs", "tools/main.mjs"]);
+  }
+
+  assert.throws(() => job("node -r./bootstrap.mjs tools/main.mjs"), /unsupported Node preload option/);
+  assert.throws(() => job("node -r=./bootstrap.mjs tools/main.mjs"), /unsupported Node preload option/);
+  assert.deepEqual(job("node --import=./first.mjs --import ./second.mjs tools/main.mjs"), ["first.mjs", "second.mjs", "tools/main.mjs"]);
+  assert.deepEqual(job('node --import="${GITHUB_WORKSPACE}/bootstrap.mjs" tools/main.mjs'), ["bootstrap.mjs", "tools/main.mjs"]);
+  assert.deepEqual(job("node --import node:fs tools/main.mjs"), ["tools/main.mjs"]);
+  assert.deepEqual(job('node --import "./bootstrap.mjs?mode=check" tools/main.mjs'), ["bootstrap.mjs", "tools/main.mjs"]);
+  assert.deepEqual(job("node --import ./boot%20strap.mjs tools/main.mjs"), ["boot strap.mjs", "tools/main.mjs"]);
+  assert.throws(() => job("node --import tools/bootstrap.mjs tools/main.mjs"), /bare preload module/);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-node-preload-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/main.mjs"), 'export const clean = true;');
+  await writeFile(path.join(dir, "bootstrap.mjs"), 'import "@scope/missing-package";');
+  await assert.rejects(dependencyFreeClosure(dir, job("node --import ./bootstrap.mjs tools/main.mjs")), /bootstrap\.mjs.*bare imports: @scope\/missing-package/);
+
+  const loaded = spawnSync("node", ["--import", "./bootstrap.mjs", "tools/main.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  await writeFile(path.join(dir, "bootstrap.mjs"), 'export const clean = true;');
+  assert.deepEqual(await dependencyFreeClosure(dir, job("node --import=./bootstrap.mjs tools/main.mjs")), ["bootstrap.mjs", "tools/main.mjs"]);
+  await writeFile(path.join(dir, "boot strap.mjs"), 'import "./dep%20file.mjs?mode=check";');
+  await writeFile(path.join(dir, "dep file.mjs"), 'import "@scope/missing-package";');
+  await assert.rejects(dependencyFreeClosure(dir, job("node --import ./boot%20strap.mjs tools/main.mjs")), /dep file\.mjs.*bare imports: @scope\/missing-package/);
+
 });
 
 test("computed shell entrypoints fail closed before their helpers can be omitted", () => {
