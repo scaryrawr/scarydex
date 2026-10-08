@@ -432,6 +432,8 @@ const UNSUPPORTED_MODULE_LOADERS = new Set(["node:worker_threads"]);
 
 const ROOT_WORKING_DIRECTORIES = new Set([".", "./", "${{ github.workspace }}"]);
 
+const isRelativeSpecifier = specifier => specifier.startsWith("./") || specifier.startsWith("../");
+
 // `import.meta.resolve(...)` and `import.meta["resolve"](...)` are the loader; anything
 // else — `new.target.resolve(...)`, or an object with a `resolve` method named `meta` —
 // is not. A non-literal element (`import.meta["re" + "solve"]`) is still a loader whose
@@ -657,7 +659,7 @@ export function findImports(source, file = "module.mjs") {
 }
 
 export function findBareImports(source, file = "module.mjs") {
-  return findImports(source, file).filter(specifier => !specifier.startsWith("node:") && !specifier.startsWith("."));
+  return findImports(source, file).filter(specifier => !specifier.startsWith("node:") && !isRelativeSpecifier(specifier));
 }
 
 export function findComputedImports(source, file = "module.mjs") {
@@ -719,7 +721,7 @@ export async function dependencyFreeClosure(root, entrypoints) {
     const { literals, computed, requires, resolvers, dynamic } = scanImports(source, file);
 
     checkModuleSyntax(path.join(root, file));
-    const bare = literals.filter(specifier => !specifier.startsWith("node:") && !specifier.startsWith("."));
+    const bare = literals.filter(specifier => !specifier.startsWith("node:") && !isRelativeSpecifier(specifier));
 
     const unsupported = literals.filter(specifier => UNSUPPORTED_MODULE_LOADERS.has(specifier));
 
@@ -735,7 +737,7 @@ export async function dependencyFreeClosure(root, entrypoints) {
 
     if (dynamic.length) throw new Error(`${file} builds or evaluates code at runtime, which no scanner can see through and a syntax check cannot catch; install-free workflow jobs must use literal static imports: ${dynamic.join(", ")}`);
 
-    for (const relative of literals.filter(specifier => specifier.startsWith("."))) {
+    for (const relative of literals.filter(isRelativeSpecifier)) {
       queue.push({ file: path.posix.normalize(path.posix.join(path.posix.dirname(file), relative)), specifier: relative });
     }
   }
@@ -880,7 +882,7 @@ function githubScriptHelpers(script) {
 
         if (UNSUPPORTED_MODULE_LOADERS.has(specifier)) throw new Error(`github-script imports an unsupported module loader: ${specifier}`);
 
-        if (specifier.startsWith("./") || specifier.startsWith("../")) file = specifier;
+        if (isRelativeSpecifier(specifier)) file = specifier;
         else if (!specifier.startsWith("node:")) throw new Error(`github-script has a bare import without proven dependencies: ${specifier}`);
       } else if (target && ts.isTemplateExpression(target) && target.head.text === "" && target.templateSpans.length === 1) {
         const span = target.templateSpans[0];
@@ -944,7 +946,12 @@ export function standAloneHelpers(lock) {
       const script = step.run ?? "";
       const runsAfterEarlierFailure = /(?:always|failure|cancelled)\(\)/.test(String(step.if ?? ""));
       const workingDirectory = step["working-directory"] ?? job.defaults?.run?.["working-directory"] ?? lock.defaults?.run?.["working-directory"] ?? ".";
-      const canCreditInstall = step.if === undefined && ROOT_WORKING_DIRECTORIES.has(workingDirectory);
+      const shell = step.shell ?? job.defaults?.run?.shell ?? lock.defaults?.run?.shell;
+      const runner = job["runs-on"];
+      const defaultIsPosix = runner === undefined || /^(?:ubuntu|macos)-(?:latest|slim|[0-9]+(?:\.[0-9]+)?)(?:-(?:large|xlarge))?$/.test(String(runner));
+      const modeledShell = shell === "bash" || shell === "sh" || (shell === undefined && defaultIsPosix);
+      const canCreditInstall = modeledShell && step.if === undefined && ROOT_WORKING_DIRECTORIES.has(workingDirectory);
+      const mayContinueOnError = step["continue-on-error"] !== undefined && step["continue-on-error"] !== false;
       const environment = { ...lock.env, ...job.env, ...step.env };
 
       if (step.uses?.startsWith("actions/github-script@") && (!installed || runsAfterEarlierFailure)) {
@@ -954,7 +961,7 @@ export function standAloneHelpers(lock) {
       let group = [world(installed, true), ...(runsAfterEarlierFailure ? [world(false, true)] : [])];
       let nextOn = "always";
       let dead = [];
-      let errexit = true;
+      let errexit = modeledShell;
       let relocated = false;
       let shortCircuited = false;
       let blockDepth = 0;
@@ -1035,7 +1042,7 @@ export function standAloneHelpers(lock) {
       }
 
       // With no world left alive, `every` would vacuously credit an install, so require one.
-      const survivors = group.concat(dead).filter(key => exitedOk(key) || step["continue-on-error"] === true);
+      const survivors = group.concat(dead).filter(key => exitedOk(key) || mayContinueOnError);
 
       installed = survivors.length > 0 && survivors.every(installedIn);
     }

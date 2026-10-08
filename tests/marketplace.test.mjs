@@ -364,6 +364,36 @@ test("install credit requires unconditional steps in the checkout root", () => {
   assert.deepEqual(job([{ "working-directory": "${{ github.workspace }}", run: "bun install" }, helper]), []);
 });
 
+test("unmodelled shells and unresolved failure tolerance never prove an install", () => {
+  const install = { run: "bun install" };
+  const helper = { run: "node tools/upstream-sync.mjs" };
+  const job = (steps, defaults, workflowDefaults, runner) => [...standAloneHelpers({ defaults: workflowDefaults, jobs: { build: { "runs-on": runner, steps, defaults } } })];
+
+  for (const shell of ["bash {0}", "bash -e {0}", "pwsh", "${{ inputs.shell }}"]) {
+    assert.deepEqual(job([{ ...install, shell }, helper]), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job([install, helper], { run: { shell } }), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job([install, helper], undefined, { run: { shell } }), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job([{ ...install, shell: "bash" }, helper], { run: { shell } }), []);
+    assert.deepEqual(job([install, { run: "echo done", shell }, helper]), []);
+  }
+
+  for (const tolerance of [true, "${{ inputs.allow_failure }}", "${{ false }}", "false"]) {
+    assert.deepEqual(job([{ ...install, "continue-on-error": tolerance }, helper]), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job([install, { run: "echo done", "continue-on-error": tolerance }, helper]), []);
+  }
+
+  assert.deepEqual(job([{ ...install, "continue-on-error": false }, helper]), []);
+  assert.deepEqual(job([{ ...install, shell: "sh" }, helper]), []);
+  assert.deepEqual(job([install, helper], undefined, undefined, "ubuntu-latest"), []);
+  assert.deepEqual(job([install, helper], undefined, undefined, "windows-latest"), ["tools/upstream-sync.mjs"]);
+  assert.deepEqual(job([install, helper], undefined, undefined, "${{ inputs.runner }}"), ["tools/upstream-sync.mjs"]);
+
+  const bash = spawnSync("bash", ["-c", "bun() { return 1; }; node() { printf 'HELPER_EXECUTED\\n'; }; bun install; node tools/x.mjs"], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(bash.status, 0, bash.stderr);
+  assert.equal(bash.stdout.trim(), "HELPER_EXECUTED");
+});
+
 test("github-script workspace imports are independent dependency-free entrypoints", async () => {
   const lock = parse(await readFile(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
   const preActivation = lock.jobs.pre_activation;
@@ -716,6 +746,25 @@ test("the dependency-free guard follows relative imports transitively", async ()
 
   await write("entry.mjs", 'import { dep } from "./dep.mjs";\nexport const go = dep;\n');
   assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), ["dep.mjs", "entry.mjs"]);
+});
+
+test("dot-prefixed bare specifiers are not traversed as relative files", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-dot-import-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, ".local"));
+  await writeFile(path.join(dir, ".local/dep.mjs"), 'export const clean = true;');
+  await writeFile(path.join(dir, "entry.mjs"), 'import ".local/dep.mjs";');
+
+  assert.deepEqual(findBareImports('import ".local/dep.mjs";'), [".local/dep.mjs"]);
+  await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /bare imports: \.local\/dep\.mjs/);
+
+  const loaded = spawnSync("node", [path.join(dir, "entry.mjs")], { encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_INVALID_MODULE_SPECIFIER|ERR_MODULE_NOT_FOUND/);
+  await writeFile(path.join(dir, "entry.mjs"), 'import "./.local/dep.mjs";');
+  assert.deepEqual(await dependencyFreeClosure(dir, ["entry.mjs"]), [".local/dep.mjs", "entry.mjs"]);
 });
 
 test("worker loaders cannot bypass the install-free import closure", async () => {
