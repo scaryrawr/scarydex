@@ -189,6 +189,17 @@ test("dependency availability is tracked per step, not per job", () => {
   // marker absent while writing the text to the file, so the helper after it is still flagged.
   assert.deepEqual([...job([{ run: "cat <<'EOF'\nbun install\nEOF\n" + helper }])], ["tools/upstream-sync.mjs"]);
 
+  // Bash consumes all bodies in declaration order, including redirections on commands
+  // separated by operators on the same line. None of those bodies can install dependencies.
+  assert.deepEqual([...job([{ run: "cat <<A <<B\nfirst\nA\nbun install\nB\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "cat <<A <<'B'\nbun install\nA\nbun install\nB\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "cat <<A; cat <<B\nfirst\nA\nbun install\nB\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "cat <<A <<-B\nfirst\nA\n\tbun install\n\tB\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "cat <<A <<B\nfirst\nA\n$(" + helper + ")\nB" }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "cat <<A <<'B'\nfirst\nA\n$(" + helper + ")\nB" }])], []);
+  assert.deepEqual([...job([{ run: "cat <<A <<B\nfirst\nA\nsecond\nB\n" + install + "\n" + helper }])], []);
+  assert.throws(() => job([{ run: "cat <<A <<B\nfirst\nA\nbun install" }]), /heredoc B is never terminated/);
+
   // The delimiter may be unquoted and named after whitespace, which is what the shipped
   // workflow does with `cat > "$FILE" << GH_AW_MCP_CONFIG_..._EOF`; it is still a heredoc.
   assert.deepEqual([...job([{ run: "cat > /tmp/cfg.toml << GH_AW_EOF\nbun install\nGH_AW_EOF\n" + helper }])], ["tools/upstream-sync.mjs"]);
@@ -272,6 +283,34 @@ test("dependency availability is tracked per step, not per job", () => {
   // a full install, while a relocated install is still refused for its own separate reason.
   assert.deepEqual([...job([{ run: "npm install --cache=/tmp/--dry-run\n" + helper }])], []);
   assert.deepEqual([...job([{ run: "npm install --prefix=/tmp/dry-running\n" + helper }])], ["tools/upstream-sync.mjs"]);
+});
+
+test("github-script workspace imports are independent dependency-free entrypoints", async () => {
+  const lock = parse(await readFile(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
+  const preActivation = lock.jobs.pre_activation;
+
+  // This job has no node invocation. Its import must be found without safe_outputs.
+  assert.deepEqual([...standAloneHelpers({ jobs: { pre_activation: preActivation } })], ["tools/upstream-sync.mjs"]);
+
+  const scriptStep = script => ({ uses: "actions/github-script@pinned", with: { script } });
+  const job = steps => [...standAloneHelpers({ jobs: { build: { steps } } })].sort();
+  const script = 'const helper = await import(`${process.env.GITHUB_WORKSPACE}/tools/duplicate-check.mjs`);';
+
+  assert.deepEqual(job([scriptStep(script), { run: "bun install" }]), ["tools/duplicate-check.mjs"]);
+  assert.deepEqual(job([{ run: "bun install" }, scriptStep(script)]), []);
+  assert.deepEqual(job([{ run: "bun install" }, { ...scriptStep(script), if: "always()" }]), ["tools/duplicate-check.mjs"]);
+  assert.deepEqual(job([scriptStep('await import("./tools/duplicate-check.mjs");')]), ["tools/duplicate-check.mjs"]);
+  assert.deepEqual(job([scriptStep(`// await import("./tools/not-run.mjs");\nconst text = 'import("./tools/not-run.mjs")';`)]), []);
+  assert.deepEqual(job([scriptStep('await import("node:fs");')]), []);
+  assert.deepEqual(job([scriptStep('const text = `\nbun install\n`;'), scriptStep(script)]), ["tools/duplicate-check.mjs"]);
+  assert.throws(() => job([scriptStep('await import(')]), /github-script cannot be parsed/);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-github-script-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/duplicate-check.mjs"), 'import "@scope/missing-package";');
+  await assert.rejects(dependencyFreeClosure(dir, job([scriptStep(script), { run: "bun install" }])), /duplicate-check\.mjs.*bare imports: @scope\/missing-package/);
 });
 
 const SINGLE = String.fromCharCode(10);

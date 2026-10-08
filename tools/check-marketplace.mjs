@@ -246,9 +246,10 @@ function splitCommands(script) {
   let quote = null;
   let substitutions = 0;
   let heredocs = [];
+  let pendingHeredocs = [];
 
   const flush = operator => {
-    commands.push({ command, operator, heredocs: heredocs.slice(0) });
+    commands.push({ command, operator, heredocs });
 
     command = "";
     heredocs = [];
@@ -316,60 +317,58 @@ function splitCommands(script) {
       continue;
     }
 
-    // A heredoc feeds its body to the command's standard input as data, so the body is read
-    // through its terminating line instead of being split into commands: a `bun install`
-    // written there never ran, and crediting it would hide a helper that follows. A third `<`
-    // makes this a `<<<` herestring, which has no terminating line and is not a heredoc. An
-    // unquoted delimiter lets bash expand `$(...)` within the body, so that body is kept and
-    // scanned for helper references even though its own lines are never commands; a quoted one
-    // runs nothing and is dropped. An unterminated heredoc is a shell syntax error that proves
-    // nothing, so it fails loudly instead of leaving its body to be read as commands.
+    // Queue redirections until the command line ends. Bash then consumes every body in
+    // declaration order, even when several commands share the line.
     if (character === "<" && script[index + 1] === "<" && script[index + 2] !== "<" && script[index - 1] !== "<") {
       const dash = script[index + 2] === "-";
       let cursor = index + 2 + (dash ? 1 : 0);
 
-      // `<< WORD` names the delimiter after whitespace, so skip it before reading the word.
       while (/[ \t]/.test(script[cursor] ?? "")) cursor++;
 
       const literal = /^(["']?)([A-Za-z_][A-Za-z0-9_]*)\1/.exec(script.slice(cursor));
 
       if (!literal) throw new Error(`heredoc at offset ${cursor} has no readable delimiter`);
 
-      const delimiter = literal[2];
-      const bodyStart = cursor + literal[0].length;
-      const expandable = literal[1] === "";
+      const delimiterEnd = cursor + literal[0].length;
 
-      command += script.slice(index, bodyStart);
-
-      let end = script.length;
-      let search = bodyStart;
-      let terminated = false;
-
-      while (search <= script.length) {
-        const lineEnd = script.indexOf('\n', search);
-        const stop = lineEnd === -1 ? script.length : lineEnd;
-        const line = dash ? script.slice(search, stop).replace(/^[ \t]+/, "") : script.slice(search, stop);
-
-        if (line === delimiter) {
-          terminated = true;
-          end = stop;
-
-          break;
-        }
-
-        if (lineEnd === -1) break;
-
-        search = lineEnd + 1;
-      }
-
-      if (!terminated) throw new Error(`heredoc ${delimiter} is never terminated`);
-
-      if (expandable) heredocs.push(script.slice(bodyStart, end));
-
-      // Land on the terminator's newline so the operator after the heredoc is still seen.
-      index = end - 1;
+      pendingHeredocs.push({ delimiter: literal[2], dash, expandable: literal[1] === "", bodies: heredocs });
+      command += script.slice(index, delimiterEnd);
+      index = delimiterEnd - 1;
 
       continue;
+    }
+
+    if (character === "\n" && pendingHeredocs.length) {
+      let bodyStart = index + 1;
+
+      for (const { delimiter, dash, expandable, bodies } of pendingHeredocs) {
+        let search = bodyStart;
+        let terminated = false;
+
+        while (search <= script.length) {
+          const lineEnd = script.indexOf("\n", search);
+          const stop = lineEnd === -1 ? script.length : lineEnd;
+          const line = dash ? script.slice(search, stop).replace(/^\t+/, "") : script.slice(search, stop);
+
+          if (line === delimiter) {
+            if (expandable) bodies.push(script.slice(bodyStart, search));
+
+            terminated = true;
+            index = stop;
+            bodyStart = stop + 1;
+
+            break;
+          }
+
+          if (lineEnd === -1) break;
+
+          search = lineEnd + 1;
+        }
+
+        if (!terminated) throw new Error(`heredoc ${delimiter} is never terminated`);
+      }
+
+      pendingHeredocs = [];
     }
 
     const pair = script.slice(index, index + 2);
@@ -396,6 +395,8 @@ function splitCommands(script) {
 
     command += character;
   }
+
+  if (pendingHeredocs.length) throw new Error(`heredoc ${pendingHeredocs[0].delimiter} is never terminated`);
 
   flush("");
 
@@ -829,6 +830,42 @@ function helperReferences(text) {
   return references.flat();
 }
 
+// GitHub Script runs JavaScript, not shell commands. Read its import arguments from the
+// AST so comments and strings cannot become entrypoints or dependency-install proof.
+function githubScriptHelpers(script) {
+  const source = ts.createSourceFile("github-script.js", script, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  const files = new Set();
+
+  if (source.parseDiagnostics.length) throw new Error("github-script cannot be parsed to verify its workspace imports");
+
+  const visit = node => {
+    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+      const target = node.arguments[0];
+      let file;
+
+      if (target && (ts.isStringLiteral(target) || ts.isNoSubstitutionTemplateLiteral(target)) && target.text.startsWith(".")) {
+        file = target.text;
+      } else if (target && ts.isTemplateExpression(target) && target.head.text === "" && target.templateSpans.length === 1) {
+        const span = target.templateSpans[0];
+        const workspace = span.expression;
+
+        if (ts.isPropertyAccessExpression(workspace) && workspace.name.text === "GITHUB_WORKSPACE" &&
+            ts.isPropertyAccessExpression(workspace.expression) && workspace.expression.name.text === "env" &&
+            ts.isIdentifier(workspace.expression.expression) && workspace.expression.expression.text === "process" &&
+            span.literal.text.startsWith("/")) file = span.literal.text.slice(1);
+      }
+
+      if (file?.endsWith(".mjs")) files.add(path.posix.normalize(file));
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return files;
+}
+
 const world = (deps, ok) => `${deps ? "1" : "0"}${ok ? "1" : "0"}`;
 
 const installedIn = key => key[0] === "1";
@@ -861,8 +898,13 @@ export function standAloneHelpers(lock) {
     let installed = false;
 
     for (const step of steps) {
-      const script = `${step.run ?? ""}\n${step.with?.script ?? ""}`;
+      const script = step.run ?? "";
       const runsAfterEarlierFailure = /(?:always|failure|cancelled)\(\)/.test(String(step.if ?? ""));
+
+      if (step.uses?.startsWith("actions/github-script@") && (!installed || runsAfterEarlierFailure)) {
+        for (const file of githubScriptHelpers(step.with?.script ?? "")) files.add(file);
+      }
+
       let group = [world(installed, true), ...(runsAfterEarlierFailure ? [world(false, true)] : [])];
       let nextOn = "always";
       let dead = [];
