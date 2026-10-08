@@ -266,6 +266,9 @@ test("dependency availability is tracked per step, not per job", () => {
   assert.deepEqual([...job([{ run: "npm install --dry-run=true\n" + helper }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: "npm install --package-lock-only --no-audit\n" + helper }])], ["tools/upstream-sync.mjs"]);
   assert.deepEqual([...job([{ run: "bun install --dry-run\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "bun install --lockfile-only\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "bun install --lockfile-only=true\n" + helper }])], ["tools/upstream-sync.mjs"]);
+  assert.deepEqual([...job([{ run: "bun install --cache=/tmp/--lockfile-only\n" + helper }])], []);
 
   // Refusing these must not smear into the flags that only skip bookkeeping: `--no-save`,
   // `--no-package-lock` and `--ignore-scripts` all still write node_modules, and a negated
@@ -284,6 +287,59 @@ test("dependency availability is tracked per step, not per job", () => {
   // a full install, while a relocated install is still refused for its own separate reason.
   assert.deepEqual([...job([{ run: "npm install --cache=/tmp/--dry-run\n" + helper }])], []);
   assert.deepEqual([...job([{ run: "npm install --prefix=/tmp/dry-running\n" + helper }])], ["tools/upstream-sync.mjs"]);
+});
+
+test("executable substitutions and path-qualified Node commands expose their helpers", () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })].sort();
+
+  for (const run of [
+    "cat < <(node tools/x.mjs)",
+    "cat > >(node tools/x.mjs)",
+    "cat < <(/usr/bin/node tools/x.mjs)",
+    "cat < <(echo ok; node tools/x.mjs)",
+    "cat < <(echo $(node tools/x.mjs))",
+    "/usr/bin/node tools/x.mjs",
+    "./runtime/node tools/x.mjs",
+  ]) assert.deepEqual(job(run), ["tools/x.mjs"]);
+
+  assert.deepEqual(job("cat < <(node tools/x.mjs) > >(node tools/y.mjs)"), ["tools/x.mjs", "tools/y.mjs"]);
+  assert.deepEqual(job("cat < <(echo done && bun install)\nnode tools/x.mjs"), ["tools/x.mjs"]);
+  assert.deepEqual(job("bun install\n/usr/bin/node tools/x.mjs"), []);
+  assert.deepEqual(job("/usr/bin/not-node tools/x.mjs"), []);
+  assert.deepEqual(job('echo "/usr/bin/node tools/x.mjs"'), []);
+
+  const bash = spawnSync("bash", ["-c", "node() { printf 'HELPER_EXECUTED\\n'; }; cat < <(node tools/x.mjs)"], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(bash.status, 0, bash.stderr);
+  assert.equal(bash.stdout.trim(), "HELPER_EXECUTED");
+});
+
+test("inherited production and omit-dev environments cannot prove npm dependencies", () => {
+  const install = { run: "npm install" };
+  const helper = { run: "node tools/upstream-sync.mjs" };
+  const job = (env, jobEnv, stepEnv) => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ ...install, env: stepEnv }, helper] } } })];
+
+  for (const env of [
+    { NODE_ENV: "production" },
+    { NPM_CONFIG_PRODUCTION: "true" },
+    { npm_config_production: "true" },
+    { NPM_CONFIG_OMIT: "dev" },
+    { npm_config_omit: "optional dev" },
+    { NPM_CONFIG_OMIT: "dev,optional" },
+    { NPM_CONFIG_ONLY: "production" },
+    { NODE_ENV: "${{ inputs.node_env }}" },
+    { NPM_CONFIG_OMIT: "${{ inputs.omit }}" },
+  ]) {
+    assert.deepEqual(job(env), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job(undefined, env), ["tools/upstream-sync.mjs"]);
+    assert.deepEqual(job(undefined, undefined, env), ["tools/upstream-sync.mjs"]);
+  }
+
+  assert.deepEqual(job({ NODE_ENV: "production" }, { NODE_ENV: "development" }), []);
+  assert.deepEqual(job({ NODE_ENV: "production" }, undefined, { NODE_ENV: "test" }), []);
+  assert.deepEqual(job({ NPM_CONFIG_OMIT: "dev" }, undefined, { NPM_CONFIG_OMIT: "optional" }), []);
+  assert.deepEqual(job({ NPM_CONFIG_PRODUCTION: "false", NODE_ENV: "development" }), []);
+  assert.deepEqual(job({ npm_config_omit: "optional" }), []);
 });
 
 test("install credit requires unconditional steps in the checkout root", () => {

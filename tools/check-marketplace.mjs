@@ -199,7 +199,28 @@ const INSTALLS_ELSEWHERE = /(?:^|[ \t])(?:-g|-G|--global|--global-style|--link|-
 // so it is no more proof than an install that did not run. `--production`, `--prod`,
 // `--only=production`, `--no-dev`, and every `--omit=dev` spelling disqualify it, including
 // comma lists such as `--omit=dev,optional` and the space-separated `--omit dev`.
-function omitsDevDependencies(text) {
+function omitsDevDependencies(text, environment) {
+  if (/^npm[ \t]/.test(text)) {
+    for (const [name, rawValue] of Object.entries(environment)) {
+      const key = name.toLowerCase();
+      const value = String(rawValue).trim().toLowerCase();
+
+      if (!["node_env", "npm_config_production", "npm_config_omit", "npm_config_only"].includes(key)) continue;
+
+      // Workflow expressions are not resolved locally, so they cannot prove that dev
+      // dependencies survive. Environment from narrower scopes has already overridden it.
+      if (value.includes("$")) return true;
+
+      if (key === "node_env" && value === "production") return true;
+
+      if (key === "npm_config_production" && value !== "" && value !== "false") return true;
+
+      if (key === "npm_config_omit" && value.split(/[\s,]+/).some(part => part === "dev" || part === "development")) return true;
+
+      if (key === "npm_config_only" && (value === "prod" || value === "production")) return true;
+    }
+  }
+
   const omit = /--omit[ \t]*=[ \t]*(\S+)|--omit[ \t]+(\S+)/.exec(text);
 
   if (omit && /(?:^|,)(?:dev|development)(?:,|$)/.test(omit[1] ?? omit[2] ?? "")) return true;
@@ -212,13 +233,13 @@ function omitsDevDependencies(text) {
 
 // An install that only reports, or only restages a lockfile, never populates `node_modules`,
 // so it is no more proof that a helper can load its imports than an install that did not run.
-// `--dry-run` writes nothing and `--package-lock-only` touches only the lockfile, so either
-// disqualifies the install. A negated `--dry-run=false` or `--package-lock-only=false` asks
+// `--dry-run` writes nothing; npm `--package-lock-only` and Bun `--lockfile-only`
+// touch only the lockfile, so each disqualifies the install. A negated `--dry-run=false` or `--package-lock-only=false` asks
 // for the real install and stays proof, and the flags that merely skip bookkeeping —
 // `--no-save`, `--no-package-lock`, `--no-audit`, `--ignore-scripts`, `--frozen-lockfile` —
 // all still write `node_modules` and are deliberately not refused here.
 function installsNothing(text) {
-  return /(?:^|[ \t])(?:--dry-run|--package-lock-only)(?![ \t]*=[ \t]*false)(?:[ \t=]|$)/.test(text);
+  return /(?:^|[ \t])(?:--dry-run|--package-lock-only|--lockfile-only)(?![ \t]*=[ \t]*false)(?:[ \t=]|$)/.test(text);
 }
 
 // Operators that run their right-hand side beside or after the left without waiting for it
@@ -284,9 +305,9 @@ function splitCommands(script) {
       continue;
     }
 
-    if (character === "$" && script[index + 1] === "(") {
+    if ("$<>".includes(character) && script[index + 1] === "(") {
       substitutions++;
-      command += "$(";
+      command += `${character}(`;
       index++;
 
       continue;
@@ -776,13 +797,14 @@ function words(text) {
 // or a relocated checkout directory names the same helper, and `node -e`/`--eval` inline code
 // cannot name an entrypoint word, so it stays a known boundary.
 // The command bodies a string hands to the shell to run: balanced `$(...)` groups and the
-// text between backticks. Bash expands these before the outer command runs, so whatever a
+// process substitutions `<(...)` and `>(...)`, and the text between backticks. Bash
+// executes these alongside or before the outer command, so whatever a
 // `node` names inside one really executes.
 function commandSubstitutions(text) {
   const found = [];
 
   for (let index = 0; index < text.length - 1; index++) {
-    if (text[index] !== "$" || text[index + 1] !== "(") continue;
+    if (!"$<>".includes(text[index]) || text[index + 1] !== "(") continue;
 
     let cursor = index + 2;
     let depth = 1;
@@ -829,7 +851,7 @@ function commandSubstitutions(text) {
 
 function helperReferences(text) {
   const list = words(text);
-  const start = list.indexOf("node");
+  const start = list.findIndex(word => path.posix.basename(word) === "node");
 
   const references = start === -1 ? [] : [list.slice(start + 1)
     .filter(word => /^\S*tools\/[^ "']+\.mjs$/.test(word))
@@ -923,6 +945,7 @@ export function standAloneHelpers(lock) {
       const runsAfterEarlierFailure = /(?:always|failure|cancelled)\(\)/.test(String(step.if ?? ""));
       const workingDirectory = step["working-directory"] ?? job.defaults?.run?.["working-directory"] ?? lock.defaults?.run?.["working-directory"] ?? ".";
       const canCreditInstall = step.if === undefined && ROOT_WORKING_DIRECTORIES.has(workingDirectory);
+      const environment = { ...lock.env, ...job.env, ...step.env };
 
       if (step.uses?.startsWith("actions/github-script@") && (!installed || runsAfterEarlierFailure)) {
         for (const file of githubScriptHelpers(step.with?.script ?? "")) files.add(file);
@@ -969,7 +992,7 @@ export function standAloneHelpers(lock) {
 
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
-        const installs = canCreditInstall && INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !omitsDevDependencies(text) &&
+        const installs = canCreditInstall && INSTALLS_DEPENDENCIES.test(text) && !INSTALLS_ELSEWHERE.test(text) && !omitsDevDependencies(text, environment) &&
           !installsNothing(text) && !relocated && !insideBlock && !PIPELINE.has(operator);
 
         // A command with a certain exit status opens only the worlds it can reach.
