@@ -568,8 +568,16 @@ export function checkModuleSyntax(absoluteFile) {
 // This walks parsed module syntax rather than matching regexes, so trivia such as
 // `import /* c */ "pkg"` counts while a package name inside a comment or string does
 // not. Everything the guard cannot prove is a finding, never a pass.
+function parseModule(source, file) {
+  // Force module context so `await (...)` is not parsed as a call to an identifier.
+  return ts.createSourceFile(file, source, {
+    languageVersion: ts.ScriptTarget.Latest,
+    setExternalModuleIndicator: node => { node.externalModuleIndicator = true; },
+  }, true, ts.ScriptKind.JS);
+}
+
 export function scanImports(source, file = "module.mjs") {
-  const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  const sourceFile = parseModule(source, file);
 
   // Parse as the JavaScript Node will load, then fail closed on anything the parser could
   // not place: where it errors, the traversal below cannot be trusted to find every
@@ -596,13 +604,14 @@ export function scanImports(source, file = "module.mjs") {
   // unprovable values are tracked: an ordinary `const status = parts[index++]` names
   // nothing dangerous and its name must stay callable.
   const unprovableNames = new Set();
+  const unprovableAggregates = new Set();
 
   const isUnprovableValue = value => {
     while (value && ts.isParenthesizedExpression(value)) value = value.expression;
 
     if (!value) return false;
 
-    if (ts.isElementAccessExpression(value) && !ts.isStringLiteral(value.argumentExpression)) return true;
+    if (ts.isElementAccessExpression(value)) return !ts.isStringLiteral(value.argumentExpression) || isUnprovableValue(value.expression);
 
     if (ts.isArrayLiteralExpression(value)) return value.elements.some(isUnprovableValue);
 
@@ -615,16 +624,28 @@ export function scanImports(source, file = "module.mjs") {
     return ts.isIdentifier(value) && unprovableNames.has(value.text);
   };
 
-  const taintPattern = pattern => {
-    if (ts.isIdentifier(pattern)) unprovableNames.add(pattern.text);
+  const taintPattern = (pattern, names = unprovableNames) => {
+    if (ts.isIdentifier(pattern)) names.add(pattern.text);
     else if (ts.isObjectBindingPattern(pattern) || ts.isArrayBindingPattern(pattern) || ts.isArrayLiteralExpression(pattern)) {
-      for (const element of pattern.elements) taintPattern(element);
+      for (const element of pattern.elements) taintPattern(element, names);
     } else if (ts.isObjectLiteralExpression(pattern)) {
-      for (const property of pattern.properties) taintPattern(property);
-    } else if (ts.isBindingElement(pattern) || ts.isShorthandPropertyAssignment(pattern)) taintPattern(pattern.name);
-    else if (ts.isPropertyAssignment(pattern)) taintPattern(pattern.initializer);
-    else if (ts.isSpreadAssignment(pattern) || ts.isSpreadElement(pattern) || ts.isParenthesizedExpression(pattern)) taintPattern(pattern.expression);
-    else if (ts.isBinaryExpression(pattern) && pattern.operatorToken.kind === ts.SyntaxKind.EqualsToken) taintPattern(pattern.left);
+      for (const property of pattern.properties) taintPattern(property, names);
+    } else if (ts.isBindingElement(pattern) || ts.isShorthandPropertyAssignment(pattern)) taintPattern(pattern.name, names);
+    else if (ts.isPropertyAssignment(pattern)) taintPattern(pattern.initializer, names);
+    else if (ts.isSpreadAssignment(pattern) || ts.isSpreadElement(pattern) || ts.isParenthesizedExpression(pattern)) taintPattern(pattern.expression, names);
+    else if (ts.isBinaryExpression(pattern) && pattern.operatorToken.kind === ts.SyntaxKind.EqualsToken) taintPattern(pattern.left, names);
+  };
+
+  const isUnprovableAggregate = value => {
+    while (value && ts.isParenthesizedExpression(value)) value = value.expression;
+
+    if (!value) return false;
+
+    if (ts.isIdentifier(value)) return unprovableAggregates.has(value.text);
+
+    if (ts.isPropertyAccessExpression(value) || ts.isElementAccessExpression(value)) return isUnprovableAggregate(value.expression);
+
+    return (ts.isObjectLiteralExpression(value) || ts.isArrayLiteralExpression(value)) && isUnprovableValue(value);
   };
 
   const hasComputedPattern = pattern => {
@@ -643,21 +664,25 @@ export function scanImports(source, file = "module.mjs") {
   let grew = true;
 
   while (grew) {
-    const before = unprovableNames.size;
+    const before = unprovableNames.size + unprovableAggregates.size;
 
     const collect = node => {
       if ((ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isParameter(node)) && isUnprovableValue(node.initializer)) taintPattern(node.name);
 
+      if ((ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isParameter(node)) && isUnprovableAggregate(node.initializer)) taintPattern(node.name, unprovableAggregates);
+
       if (ts.isBindingElement(node) && node.propertyName && ts.isComputedPropertyName(node.propertyName)) taintPattern(node.name);
 
       if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && (isUnprovableValue(node.right) || hasComputedPattern(node.left))) taintPattern(node.left);
+
+      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && isUnprovableAggregate(node.right)) taintPattern(node.left, unprovableAggregates);
 
       ts.forEachChild(node, collect);
     };
 
     collect(sourceFile);
 
-    grew = unprovableNames.size !== before;
+    grew = unprovableNames.size + unprovableAggregates.size !== before;
   }
 
   const record = node => {
@@ -713,7 +738,8 @@ export function scanImports(source, file = "module.mjs") {
       return;
     }
 
-    if (isConstruction && ts.isIdentifier(callee) && unprovableNames.has(callee.text)) {
+    if (isConstruction && (isUnprovableAggregate(callee) || (ts.isIdentifier(callee) && isUnprovableValue(callee)) ||
+        (/^(?:call|apply|bind)$/.test(calleeName) && isUnprovableValue(callee)))) {
       dynamic.add(text(node));
 
       return;
@@ -1266,7 +1292,7 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
 // GitHub Script runs JavaScript, not shell commands. Read its import arguments from the
 // AST so comments and strings cannot become entrypoints or dependency-install proof.
 function githubScriptHelpers(script, environment, actionsDirectoryAvailable) {
-  const source = ts.createSourceFile("github-script.js", script, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  const source = parseModule(script, "github-script.js");
   const files = new Set();
   const bindings = new Map();
   const pathBindings = new Set();
@@ -1408,6 +1434,8 @@ function githubScriptHelpers(script, environment, actionsDirectoryAvailable) {
 
       if (!resolved) throw new Error(`github-script has an unprovable require target: ${target?.getText(source) ?? "<missing>"}`);
 
+      if (resolved.kind === "external" && (!actionsDirectoryAvailable || !resolved.value.startsWith("gh-aw/actions/"))) throw new Error(`github-script has an unprovable require target outside the observed compiler setup directory: ${target.getText(source)}`);
+
       if (resolved.kind === "workspace") files.add(resolved.value);
       else if (resolved.kind === "literal") {
         const specifier = resolved.value;
@@ -1490,6 +1518,35 @@ function shellRelocates(script, environment) {
   return false;
 }
 
+function dependencyTreeChanged(list, context, checkoutRoot) {
+  const argv = list.slice(context.index).map(word => word.value);
+  const executable = path.posix.basename(argv[0] ?? "");
+
+  if (context.introspection) return false;
+
+  if (executable === "eval") {
+    if (list.slice(context.index + 1).some(word => word.hasExpansion)) return true;
+
+    for (const { command } of splitCommands(argv.slice(1).join(" "))) {
+      const nested = words(command);
+
+      if (dependencyTreeChanged(nested, commandContext(nested, context.environment), checkoutRoot)) return true;
+    }
+  }
+
+  if (checkoutRoot && INSTALLERS.has(executable) && ["install", "ci", "add", "remove", "uninstall", "update", "prune", "link", "unlink"].includes(argv[1]) &&
+      !installsElsewhere(argv, context.environment) && !installsNothing(argv, context.environment)) return true;
+
+  if (["echo", "printf", "cat", "ls", "test", "[", "[[", "true", "false", "exit"].includes(executable)) return false;
+
+  if (argv.slice(1).some(word => /(?:^|\/)node_modules(?:\/|$)/.test(word))) return true;
+
+  if (["rm", "rmdir", "mv", "rsync", "tar", "ln", "truncate"].includes(executable) &&
+      list.slice(context.index + 1).some(word => word.hasExpansion || [".", "./", "..", "../"].includes(word.value))) return true;
+
+  return false;
+}
+
 export function standAloneHelpers(lock) {
   const files = new Set();
 
@@ -1511,13 +1568,13 @@ export function standAloneHelpers(lock) {
       const runner = job["runs-on"];
       const defaultIsPosix = runner === undefined || /^(?:ubuntu|macos)-(?:latest|slim|[0-9]+(?:\.[0-9]+)?)(?:-(?:large|xlarge))?$/.test(String(runner));
       const modeledShell = shell === "bash" || shell === "sh" || (shell === undefined && defaultIsPosix);
-      const canCreditInstall = modeledShell && step.if === undefined && ROOT_WORKING_DIRECTORIES.has(workingDirectory);
+      const canCreditInstall = modeledShell && ROOT_WORKING_DIRECTORIES.has(workingDirectory);
       const mayContinueOnError = step["continue-on-error"] !== undefined && step["continue-on-error"] !== false;
       const environment = { ...lock.env, ...job.env, ...step.env };
       let environmentMutated = false;
       let installerShadowed = Object.hasOwn(environment, "PATH") || Object.entries(environment).some(([name, value]) => (/^(?:BASH_ENV|ENV)$/.test(name) && String(value).trim() !== "") || /^BASH_FUNC_(?:bun|npm)%%$/.test(name));
 
-      if (step.uses?.startsWith("github/gh-aw-actions/setup@") && step.with?.destination === "${{ runner.temp }}/gh-aw/actions" && step.if === undefined) actionsDirectoryAvailable = true;
+      if (step.uses?.startsWith("github/gh-aw-actions/setup@") && step.with?.destination === "${{ runner.temp }}/gh-aw/actions" && step.if === undefined && !mayContinueOnError) actionsDirectoryAvailable = true;
 
       if (step.uses?.startsWith("actions/github-script@") && (!installed || runsAfterEarlierFailure)) {
         rejectNodeOptions(environment);
@@ -1608,12 +1665,13 @@ export function standAloneHelpers(lock) {
 
         // A command with a certain exit status opens only the worlds it can reach.
         const constantOk = constantStatus(text);
+        const invalidatesDependencies = dependencyTreeChanged(parsedWords, context, ROOT_WORKING_DIRECTORIES.has(workingDirectory) && !relocated);
 
         const outcomes = executing.flatMap(key => {
           // An install lands only where the command exits 0, so the failing world keeps the
           // dependency tree exactly as it found it.
-          const succeeded = world(installedIn(key) || installs, true);
-          const failed = world(installedIn(key), false);
+          const succeeded = world((installedIn(key) && (!invalidatesDependencies || installs)) || (installs && step.if === undefined), true);
+          const failed = world(installedIn(key) && !invalidatesDependencies, false);
 
           return constantOk === null ? [succeeded, failed] : [constantOk ? succeeded : failed];
         });

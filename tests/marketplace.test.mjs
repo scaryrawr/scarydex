@@ -993,7 +993,8 @@ test("github-script workspace imports are independent dependency-free entrypoint
 });
 
 test("github-script require targets join the verified workspace closure", async () => {
-  const job = (script, env) => [...standAloneHelpers({ env, jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script } }] } } })];
+  const setup = { uses: "github/gh-aw-actions/setup@pinned", with: { destination: "${{ runner.temp }}/gh-aw/actions" } };
+  const job = (script, env, setupObserved = false) => [...standAloneHelpers({ env, jobs: { build: { steps: [...(setupObserved ? [setup] : []), { uses: "actions/github-script@pinned", with: { script } }] } } })];
 
   for (const script of [
     'require("./tools/helper.mjs");',
@@ -1015,9 +1016,9 @@ test("github-script require targets join the verified workspace closure", async 
   assert.deepEqual(job('require("fs"); require("node:path");'), []);
   const external = 'const path = require("path"); const actionsDir = path.join(process.env.RUNNER_TEMP, "gh-aw", "actions"); require(path.join(actionsDir, "setup_globals.cjs"));';
 
-  assert.deepEqual(job(external), []);
+  assert.deepEqual(job(external, undefined, true), []);
   assert.throws(() => job(external, { RUNNER_TEMP: "${{ github.workspace }}" }), /unprovable require target/);
-  assert.deepEqual(job('require(process.env.GH_AW_ACTIONS_DIR + "/setup_globals.cjs");', { GH_AW_ACTIONS_DIR: "${{ runner.temp }}/gh-aw/actions" }), []);
+  assert.deepEqual(job('require(process.env.GH_AW_ACTIONS_DIR + "/setup_globals.cjs");', { GH_AW_ACTIONS_DIR: "${{ runner.temp }}/gh-aw/actions" }, true), []);
   assert.throws(() => job('require(process.env.GH_AW_ACTIONS_DIR + "/helper.mjs");', { GH_AW_ACTIONS_DIR: "${{ github.workspace }}" }), /unprovable require target/);
 
   const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-github-script-require-"));
@@ -1200,6 +1201,75 @@ test("install-free alias definitions cannot hide or inject helpers", async () =>
 
   assert.notEqual(loaded.status, 0);
   assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
+test("tainted aggregate member calls cannot evaluate hidden imports", async () => {
+  const job = script => [...standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script } }] } } })];
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-aggregate-call-"));
+
+  roots.push(dir);
+
+  for (const source of [
+    `const box = { load: globalThis["ev" + "al"] }; await box.load('import("@scope/missing-package")');`,
+    `const box = { nested: { load: globalThis["ev" + "al"] } }; await box.nested.load('import("@scope/missing-package")');`,
+    `const box = { load: globalThis["ev" + "al"] }; const other = box; await other["load"]('import("@scope/missing-package")');`,
+    `await ({ load: globalThis["ev" + "al"] }).load('import("@scope/missing-package")');`,
+  ]) {
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    assert.ok(scanImports(source).dynamic.length, source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /evaluates code at runtime/);
+    assert.throws(() => job(source), /github-script.*evaluates code at runtime/);
+    const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.notEqual(loaded.status, 0);
+    assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
+});
+
+test("runner temp requires need the observed compiler setup directory", () => {
+  const setup = { uses: "github/gh-aw-actions/setup@pinned", with: { destination: "${{ runner.temp }}/gh-aw/actions" } };
+  const job = (script, setupStep) => [...standAloneHelpers({ jobs: { build: { steps: [...(setupStep ? [setupStep] : []), { uses: "actions/github-script@pinned", with: { script } }] } } })];
+  const script = 'const path = require("path"); require(path.join(process.env.RUNNER_TEMP, "gh-aw/actions/helper.cjs"));';
+
+  assert.throws(() => job(script), /unprovable require target/);
+  assert.throws(() => job(script, { ...setup, if: "${{ inputs.setup }}" }), /unprovable require target/);
+  assert.throws(() => job(script, { ...setup, "continue-on-error": true }), /unprovable require target/);
+  assert.deepEqual(job(script, setup), []);
+
+  for (const target of ["arbitrary/helper.mjs", "gh-aw/actions-other/helper.cjs", "gh-aw/actions/../helper.cjs"]) {
+    assert.throws(() => job(`const path = require("path"); require(path.join(process.env.RUNNER_TEMP, "${target}"));`, setup), /unprovable require target/);
+  }
+});
+
+test("dependency tree changes invalidate prior successful installation", async () => {
+  const helper = { run: "node tools/x.mjs" };
+  const install = { run: "bun install" };
+  const job = steps => [...standAloneHelpers({ jobs: { build: { steps } } })];
+
+  for (const mutation of ["rm -rf node_modules", "mv node_modules saved", "npm prune --omit=dev", "npm install --omit=dev", "cleanup node_modules"]) {
+    assert.deepEqual(job([install, { run: mutation }, helper]), ["tools/x.mjs"]);
+    assert.deepEqual(job([{ run: `bun install; ${mutation}; node tools/x.mjs` }]), ["tools/x.mjs"]);
+    assert.deepEqual(job([install, { run: mutation }, install, helper]), []);
+  }
+
+  assert.deepEqual(job([install, { run: "echo node_modules" }, helper]), []);
+  assert.deepEqual(job([install, { run: "rm -f /tmp/unrelated-file" }, helper]), []);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-dependency-removal-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await mkdir(path.join(dir, "node_modules/fixture-dependency"), { recursive: true });
+  await writeFile(path.join(dir, "node_modules/fixture-dependency/package.json"), '{"type":"module","exports":"./index.mjs"}');
+  await writeFile(path.join(dir, "node_modules/fixture-dependency/index.mjs"), "export const value = true;");
+  await writeFile(path.join(dir, "tools/x.mjs"), 'import { value } from "fixture-dependency"; console.log(value);');
+  const before = spawnSync("node", ["tools/x.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.equal(before.status, 0, before.stderr);
+  const after = spawnSync("bash", ["-e", "-c", "rm -rf node_modules; node tools/x.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(after.status, 0);
+  assert.match(after.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
 const SINGLE = String.fromCharCode(10);
