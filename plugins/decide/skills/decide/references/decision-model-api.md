@@ -150,6 +150,8 @@ curl http://127.0.0.1:8000/v1/systemone \
   to the configured endpoint. Image paths must be readable, non-empty files of
   at most 20 MiB, with at most 10 images per request.
 - Discovery times out after 10 seconds. Decisions time out after 300 seconds.
+  Timeouts before headers or during body reads are reported as timeouts, not
+  connectivity failures.
 - HTTP failures, invalid JSON, and incomplete or invalid answers exit nonzero.
 - A SystemOne 404 includes a reminder to check endpoint support and the model ID.
 - OMLX error text is preserved from FastAPI `detail` or JSON `error` messages.

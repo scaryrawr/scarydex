@@ -42,7 +42,7 @@ const inventory = { models: [
   { id: "clef-looking-chat", model_type: "vlm" },
 ] };
 
-async function fixture({ models = inventory, response = answer, status = 200, raw } = {}) {
+async function fixture({ models = inventory, response = answer, status = 200, raw, stall, commandTimeout = 10_000 } = {}) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-decide-"));
   cleanups.push(() => rm(dir, { recursive: true, force: true }));
   const file = path.join(dir, "input.json");
@@ -52,7 +52,9 @@ async function fixture({ models = inventory, response = answer, status = 200, ra
     let body = "";
     for await (const chunk of req) body += chunk;
     requests.push({ path: req.url, method: req.method, contentType: req.headers["content-type"], authorization: req.headers.authorization, body: body ? JSON.parse(body) : undefined });
+    if (stall === "headers") return;
     res.writeHead(status, { "Content-Type": "application/json" });
+    if (stall === "body") { res.write(" "); return; }
     res.end(raw ?? JSON.stringify(req.url.endsWith("/v1/models/status") ? models : response));
   });
   await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
@@ -60,7 +62,7 @@ async function fixture({ models = inventory, response = answer, status = 200, ra
   const base = `http://127.0.0.1:${server.address().port}`;
   async function invoke(args, extraEnv = {}) {
     try {
-      const result = await exec(process.execPath, [helper, ...args], { cwd: dir, env: { ...process.env, OMLX_BASE_URL: base + "/", OMLX_API_KEY: "", ...extraEnv }, timeout: 10_000 });
+      const result = await exec(process.execPath, [helper, ...args], { cwd: dir, env: { ...process.env, OMLX_BASE_URL: base + "/", OMLX_API_KEY: "", ...extraEnv }, timeout: commandTimeout });
       return { ...result, status: 0 };
     } catch (error) { return { stdout: error.stdout, stderr: error.stderr, status: error.code }; }
   }
@@ -445,3 +447,16 @@ test("FastAPI validation arrays preserve messages without dumping input values",
   assert.equal(result.stdout, "");
   assert.equal(requests.length, 1);
 });
+
+for (const phase of ["headers", "body"]) {
+  test(`discovery reports ${phase} timeouts without connectivity guidance`, { timeout: 20_000 }, async () => {
+    const { invoke, requests } = await fixture({ stall: phase, commandTimeout: 15_000 });
+    const result = await invoke(["models"]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, phase === "headers" ? /OMLX request timed out/ : /OMLX response timed out/);
+    assert.ok(!result.stderr.includes("Start OMLX"));
+    assert.ok(!result.stderr.includes("sandbox"));
+    assert.equal(result.stdout, "");
+    assert.equal(requests.length, 1);
+  });
+}

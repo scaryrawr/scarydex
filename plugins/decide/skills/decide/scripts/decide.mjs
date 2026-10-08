@@ -151,6 +151,7 @@ async function request(base, endpoint, body) {
       signal: AbortSignal.timeout(body === undefined ? LIST_TIMEOUT_MS : DECISION_TIMEOUT_MS),
     });
   } catch (error) {
+    if (error.name === "TimeoutError" || error.name === "AbortError") throw new Error("OMLX request timed out.");
     const cause = error instanceof Error && error.cause instanceof Error ? error.cause.code ?? error.cause.message : undefined;
     throw new Error(`OMLX request failed${cause ? ` (${cause})` : ""}. Start OMLX or set OMLX_BASE_URL. If the agent runs commands in a sandbox, the sandbox may block local HTTP even when OMLX is running; rerun this command outside the sandbox.`);
   }
