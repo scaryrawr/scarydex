@@ -1,8 +1,9 @@
 # decide
 
-Run typed decisions through Ollama's Jev-style SystemOne API. The plugin supports
-choices over text or images, yes-or-no probabilities, and scores. It does not generate a reasoning
-trace or use a chat prompt framework.
+Run typed decisions through OMLX's SystemOne endpoint. The plugin supports
+choices over text or images, yes-or-no probabilities, and ordered scores with
+Clef and OpenJev models. It does not generate a reasoning trace or use chat
+prompts as a fallback.
 
 ## Install
 
@@ -13,19 +14,22 @@ codex plugin add decide@scarydex
 ## Prerequisites
 
 - Node.js 22.18 or newer. No npm dependencies or Bun are required at runtime.
-- Ollama 0.35 or newer, running at `http://localhost:11434` or `OLLAMA_BASE_URL`.
-- A compatible decision model. Pull one explicitly with `ollama pull nimble`,
-  `ollama pull tev1`, `ollama pull tev1:0.8b`, or `ollama pull clef-flash` for
-  image decisions. The helper never downloads models.
+- OMLX running at `http://127.0.0.1:8000` or `OMLX_BASE_URL`, with
+  `POST /v1/systemone` and `GET /v1/models/status` support.
+- A completed Clef or OpenJev model download in OMLX. Use the exact model ID
+  returned by discovery, such as `clef-flash-4bit`. The helper never downloads
+  or installs models.
+- Set `OMLX_API_KEY` if the server requires bearer authentication. Both
+  discovery and decisions use it.
 
 ## Use
 
 Ask Codex to use `$decide:decide`:
 
 - "Use decide to route this support ticket to billing, technical, or other."
-- "Use Ollama's decision model to score the urgency of these reports."
-- "Use the vision decision model to classify this photo as a hotdog or taco."
-- "What decision models do I have available via Ollama?"
+- "Use OMLX's decision model to score the urgency of these reports."
+- "Use Clef Flash to classify this photo as a hotdog or taco."
+- "What decision models do I have available via OMLX?"
 
 ## Run the helper
 
@@ -33,26 +37,29 @@ From the plugin directory:
 
 ```sh
 node skills/decide/scripts/decide.mjs models
-node skills/decide/scripts/decide.mjs run --model nimble \
+node skills/decide/scripts/decide.mjs run --model clef-flash-4bit \
   --input skills/decide/examples/ticket.json
 ```
 
-The `models` command highlights the `nimble`, `tev1`, and `clef` families by
-name, including tags and hyphen-suffixed names such as `clef-flash`. This is a
-heuristic, not a capability check. Custom compatible models can
-be selected explicitly with `--model`.
+Discovery uses OMLX's `model_type: "decision"` metadata rather than guessing
+from model names. It includes custom IDs and aliases, and shows whether models
+are loaded. A downloaded but unloaded model can load on its first request.
+A model still downloading may not appear yet; wait for it to finish.
 
-The `run` command reads a JSON file containing named `questions` plus `state`
-and/or `images` — `state` may be omitted or empty only when `images` (local
-image file paths for vision models such as `clef-flash`) carry the context —
-then prints the full SystemOne response as JSON. It preserves probabilities,
-confidence, score legends, and usage. Invalid inputs, HTTP failures, and malformed
-answers produce a nonzero exit status.
+The `run` command reads JSON containing named `questions` plus `state` and/or
+`images`, then prints the full SystemOne response. State can be text, an object,
+or an array. It may be omitted or empty when images supply the context. Images
+are local PNG, JPEG, GIF, or WebP paths, converted to base64 data URIs.
+Clef supports images when its checkpoint has a vision backbone. OpenJev accepts
+at most one image and also requires a vision backbone for image requests.
+Optional `truncate: false` makes Clef reject oversized context instead of
+silently trimming state; OpenJev never truncates.
 
-Review predictions before acting. A model probability is not a verified fact or
-authorization to execute an action. `OLLAMA_BASE_URL` changes where the helper
-sends your input, so use a trusted endpoint.
+Predictions are not verified facts or authorization to act. Use a trusted
+`OMLX_BASE_URL`, especially for private input. Invalid input, HTTP failures,
+and malformed answers produce a nonzero exit status. There is no alternate
+provider or chat fallback.
 
 See the [API reference](skills/decide/references/decision-model-api.md) for the
-request and response contracts. The bundled ticket example is adapted from
-[Ollama's announcement](https://ollama.com/blog/ollama-now-supports-jev-style-decision-models).
+request and response contracts. Historical source attribution remains in the
+repository's `port-provenance.json`; it does not describe the current runtime.
