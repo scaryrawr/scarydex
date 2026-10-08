@@ -346,6 +346,39 @@ test("executable substitutions and path-qualified Node commands expose their hel
   assert.equal(bash.stdout.trim(), "HELPER_EXECUTED");
 });
 
+test("computed shell entrypoints fail closed before their helpers can be omitted", () => {
+  const job = (run, env) => [...standAloneHelpers({ env, jobs: { build: { steps: [{ run }] } } })];
+
+  for (const run of ['node "$HELPER"', 'node "${HELPER}"', 'node tools/${NAME}.mjs', 'node tools/*.mjs', 'node "$(printf tools/x.mjs)"', 'env node "$HELPER"', 'PROBE="$VALUE" node "$HELPER"']) {
+    assert.throws(() => job(run, { HELPER: "tools/upstream-sync.mjs" }), /unprovable Node entrypoint/);
+  }
+
+  assert.deepEqual(job('node tools/x.mjs "$PAYLOAD"'), ["tools/x.mjs"]);
+  assert.deepEqual(job('node "${GITHUB_WORKSPACE}/tools/x.mjs"'), ["tools/x.mjs"]);
+  assert.deepEqual(job('node "$GITHUB_WORKSPACE/tools/x.mjs"'), ["tools/x.mjs"]);
+  assert.deepEqual(job('node --version'), []);
+  assert.throws(() => job('node --max-old-space-size 128 "$HELPER"'), /unprovable Node entrypoint/);
+  assert.deepEqual(job('echo node "$HELPER"'), []);
+  assert.deepEqual(job('which node'), []);
+  assert.deepEqual(job('VALUE=$(which node); node tools/x.mjs'), ["tools/x.mjs"]);
+  assert.deepEqual(job('command -v node'), []);
+});
+
+test("computed install arguments cannot establish dependency availability", () => {
+  const helper = "node tools/upstream-sync.mjs";
+  const job = (install, env) => [...standAloneHelpers({ env, jobs: { build: { steps: [{ run: install + "\n" + helper }] } } })];
+
+  for (const install of ['bun install $FLAGS', 'npm install "$FLAGS"', 'npm install ${FLAGS}', 'bun install $(printf -- --production)', 'bun install `printf -- --production`', 'bun install --prod*', 'bun install --{production,ignore-scripts}']) {
+    assert.deepEqual(job(install, { FLAGS: "--production" }), ["tools/upstream-sync.mjs"]);
+  }
+
+  assert.deepEqual(job("npm install --cache '/tmp/$literal'"), []);
+  assert.deepEqual(job('npm install --cache "/tmp/*literal"'), []);
+  assert.deepEqual(job('npm install --cache "/tmp/\\$literal"'), []);
+  assert.deepEqual(job('set "+e"; npm install\n' + helper), ["tools/upstream-sync.mjs"]);
+  assert.deepEqual(job('"cd" sub; npm install'), ["tools/upstream-sync.mjs"]);
+});
+
 test("inherited npm no-op settings cannot prove an installation", () => {
   const helper = { run: "node tools/upstream-sync.mjs" };
   const job = (env, jobEnv, stepEnv, run = "npm install") => [...standAloneHelpers({ env, jobs: { build: { env: jobEnv, steps: [{ run, env: stepEnv }, helper] } } })];

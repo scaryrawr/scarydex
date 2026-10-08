@@ -301,7 +301,7 @@ function splitCommands(script) {
     if (quote) {
       command += character;
 
-      if (character === "\\" && quote !== "`") command += script[++index] ?? "";
+      if (character === "\\" && quote === '"') command += script[++index] ?? "";
       else if (character === quote) quote = null;
 
       continue;
@@ -350,7 +350,7 @@ function splitCommands(script) {
       const escaped = script[index + 1];
 
       if (escaped === undefined) command += character;
-      else if (escaped !== "\n") command += escaped;
+      else if (escaped !== "\n") command += character + escaped;
 
       index++;
 
@@ -783,37 +783,108 @@ export async function dependencyFreeClosure(root, entrypoints) {
 // the worlds where earlier steps failed, so it starts with nothing installed.
 // Split a command into words the way the shell groups them, so a flag's own value and a
 // quoted path stay one word and a space inside quotes does not look like a word boundary.
+function parenthesizedEnd(text, opening) {
+  let cursor = opening + 1;
+  let depth = 1;
+  let quote = null;
+
+  while (cursor < text.length) {
+    const character = text[cursor];
+
+    if (quote) {
+      if (character === "\\" && quote !== "'") cursor++;
+      else if (character === quote) quote = null;
+    } else if (character === "'" || character === '"') {
+      quote = character;
+    } else if (character === "(") {
+      depth++;
+    } else if (character === ")") {
+      depth--;
+
+      if (depth === 0) break;
+    }
+
+    cursor++;
+  }
+
+  return depth === 0 ? cursor : -1;
+}
+
 function words(text) {
   const list = [];
 
-  let word = "";
+  let value = "";
   let quote = null;
+  let hasExpansion = false;
+  let started = false;
+
+  const flush = () => {
+    if (started) list.push({ value, hasExpansion });
+
+    value = "";
+    hasExpansion = false;
+    started = false;
+  };
 
   for (let index = 0; index < text.length; index++) {
     const character = text[index];
 
-    if (quote) {
-      if (character === "\\" && quote !== "'") word += text[++index] ?? "";
-      else if (character === quote) quote = null;
-      else word += character;
+    if (character === "\\" && quote !== "'") {
+      const next = text[index + 1];
+
+      if (!quote || /[$`"\\\n]/.test(next ?? "")) {
+        if (next !== "\n") value += next ?? "";
+
+        index++;
+        started = true;
+
+        continue;
+      }
+    }
+
+    if (quote !== "'" && (character === "$" || (!quote && "<>".includes(character))) && text[index + 1] === "(") {
+      const close = parenthesizedEnd(text, index + 1);
+
+      if (close === -1) throw new Error("Unterminated shell substitution cannot be verified");
+
+      value += text.slice(index, close + 1);
+      hasExpansion = true;
+      started = true;
+      index = close;
 
       continue;
     }
 
-    if (character === "'" || character === '"') {
-      quote = character;
-    } else if (character === "\\") {
-      word += text[++index] ?? "";
-    } else if (/[ \t\n]/.test(character)) {
-      if (word) list.push(word);
+    if (character === quote) {
+      quote = null;
 
-      word = "";
-    } else {
-      word += character;
+      continue;
     }
+
+    if (!quote && (character === "'" || character === '"')) {
+      quote = character;
+      started = true;
+
+      continue;
+    }
+
+    if (!quote && /[ \t\n]/.test(character)) {
+      flush();
+
+      continue;
+    }
+
+    if (quote !== "'") {
+      if (character === "`" || (character === "$" && /[A-Za-z_0-9{(@*#?$!-]/.test(text[index + 1] ?? ""))) hasExpansion = true;
+
+      if (!quote && (/[*?[]/.test(character) || (character === "~" && !started) || /^[<>]\(/.test(text.slice(index)) || /^\{[^{}]*(?:,|\.\.)[^{}]*\}/.test(text.slice(index)))) hasExpansion = true;
+    }
+
+    value += character;
+    started = true;
   }
 
-  if (word) list.push(word);
+  flush();
 
   return list;
 }
@@ -834,32 +905,12 @@ function commandSubstitutions(text) {
   for (let index = 0; index < text.length - 1; index++) {
     if (!"$<>".includes(text[index]) || text[index + 1] !== "(") continue;
 
-    let cursor = index + 2;
-    let depth = 1;
-    let quote = null;
+    const close = parenthesizedEnd(text, index + 1);
 
-    while (cursor < text.length) {
-      const character = text[cursor];
+    if (close === -1) throw new Error("Unterminated shell substitution cannot be verified");
 
-      if (quote) {
-        if (character === "\\" && quote !== "'") cursor++;
-        else if (character === quote) quote = null;
-      } else if (character === "'" || character === '"') {
-        quote = character;
-      } else if (character === "(") {
-        depth++;
-      } else if (character === ")") {
-        depth--;
-
-        if (depth === 0) break;
-      }
-
-      cursor++;
-    }
-
-    if (depth === 0) found.push(text.slice(index + 2, cursor));
-
-    index = cursor;
+    found.push(text.slice(index + 2, close));
+    index = close;
   }
 
   for (let cursor = 0; cursor < text.length; cursor++) {
@@ -879,15 +930,71 @@ function commandSubstitutions(text) {
 
 function helperReferences(text) {
   const list = words(text);
-  const start = list.findIndex(word => path.posix.basename(word) === "node");
+  const start = list.findIndex(word => !word.hasExpansion && path.posix.basename(word.value) === "node");
+  const prefix = list.slice(0, start);
+  const wrapper = prefix[0]?.value;
+  const introspection = wrapper === "command" && prefix.some(word => word.value === "-v" || word.value === "-V");
+  const executesNode = start !== -1 && !introspection && (start === 0 || prefix.every(word => /^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value)) || ["env", "command", "exec"].includes(wrapper));
+  const references = new Set();
 
-  const references = start === -1 ? [] : [list.slice(start + 1)
-    .filter(word => /^\S*tools\/[^ "']+\.mjs$/.test(word))
-    .map(word => word.replace(/^\$\{GITHUB_WORKSPACE\}\//, ""))];
+  // A reserved GitHub workspace prefix has a known base. No other expansion may choose
+  // an entrypoint, even when another literal helper happens to appear in the arguments.
+  const literalPath = word => {
+    const workspace = /^\$(?:\{GITHUB_WORKSPACE\}|GITHUB_WORKSPACE)\/([^$`*?[]+)$/.exec(word.value);
 
-  for (const inner of commandSubstitutions(text)) references.push(helperReferences(inner));
+    if (word.hasExpansion && workspace) return workspace[1];
 
-  return references.flat();
+    if (word.hasExpansion) throw new Error(`unprovable Node entrypoint: ${word.value}; use a literal workspace path`);
+
+    return word.value;
+  };
+
+  if (executesNode) {
+    const args = list.slice(start + 1);
+    let consumeValue = false;
+
+    for (const word of args) {
+      if (consumeValue) {
+        consumeValue = false;
+
+        continue;
+      }
+
+      if (["-e", "--eval", "-p", "--print", "--version", "-v", "--help", "-h"].includes(word.value)) break;
+
+      if (word.value.startsWith("-")) {
+        if (word.hasExpansion) throw new Error(`unprovable Node entrypoint options: ${word.value}`);
+
+        consumeValue = ["--import", "--require", "-r", "--loader", "--experimental-loader", "--input-type", "--title", "--conditions", "-C", "--inspect-port"].includes(word.value);
+
+        continue;
+      }
+
+      const entrypoint = literalPath(word);
+
+      if (!entrypoint.endsWith(".mjs")) throw new Error(`unprovable Node entrypoint: ${entrypoint}; install-free helpers need explicit .mjs paths`);
+
+      references.add(entrypoint);
+
+      break;
+    }
+
+    for (const word of args) {
+      if (word.hasExpansion && !/^\$(?:\{GITHUB_WORKSPACE\}|GITHUB_WORKSPACE)\/[^$`*?[]+$/.test(word.value)) continue;
+
+      const reference = literalPath(word);
+
+      if (/^\S*tools\/[^ "']+\.mjs$/.test(reference)) references.add(reference);
+    }
+  }
+
+  for (const inner of commandSubstitutions(text)) {
+    for (const { command } of splitCommands(inner)) {
+      for (const reference of helperReferences(command)) references.add(reference);
+    }
+  }
+
+  return [...references];
 }
 
 // GitHub Script runs JavaScript, not shell commands. Read its import arguments from the
@@ -997,7 +1104,12 @@ export function standAloneHelpers(lock) {
 
         if (!text) continue;
 
-        if (/^set[ \t]+(?:[+-]e|[+-]o[ \t]+errexit)$/.test(text)) errexit = !text.startsWith("set +");
+        const parsedWords = words(text);
+        const argv = parsedWords.map(word => word.value);
+
+        if (argv[0] === "set" && argv.length === 2 && /^[+-]e$/.test(argv[1])) errexit = argv[1] === "-e";
+
+        if (argv[0] === "set" && argv.length === 3 && /^[+-]o$/.test(argv[1]) && argv[2] === "errexit") errexit = argv[1] === "-o";
 
         // Move the depth for any delimiter written on this line, then ask whether what
         // follows is inside a block. The order is not a judgement call: an install is only
@@ -1021,13 +1133,11 @@ export function standAloneHelpers(lock) {
 
         // A `cd` moves the working directory, so no later install can be credited with
         // populating the checkout's `node_modules`: the runtime may load a different tree.
-        if (/^[ \t]*cd(?:[ \t]|$)/.test(text)) relocated = true;
+        if (argv[0] === "cd") relocated = true;
 
         // Any command can fail, and an install installs only in the worlds where it exits 0 —
         // except in a pipeline or background job, where what follows sees the tree as it was.
-        const argv = words(text);
-
-        const installs = canCreditInstall && INSTALLERS.has(argv[0]) && INSTALL_COMMANDS.has(argv[1]) &&
+        const installs = canCreditInstall && parsedWords.every(word => !word.hasExpansion) && INSTALLERS.has(argv[0]) && INSTALL_COMMANDS.has(argv[1]) &&
           !argv.slice(2).some(word => INSTALLS_ELSEWHERE.has(word.split("=")[0])) && !omitsDevDependencies(argv, environment) &&
           !installsNothing(argv, environment) && !relocated && !insideBlock && !PIPELINE.has(operator);
 
