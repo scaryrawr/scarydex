@@ -610,6 +610,10 @@ function invocation(node) {
   return undefined;
 }
 
+function isAssignment(node) {
+  return ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment;
+}
+
 // The workflow runs these helpers with bare `node`, so ask that exact runtime whether the
 // module parses. `--check` compiles without executing and honours the `.mjs` module goal.
 // This is the *validity* oracle and it closes the hole the TypeScript parser leaves open:
@@ -710,7 +714,9 @@ export function scanImports(source, file = "module.mjs") {
 
     if (ts.isConditionalExpression(value)) return valueHasTaint(value.whenTrue, names, codeOnly) || valueHasTaint(value.whenFalse, names, codeOnly);
 
-    if (ts.isBinaryExpression(value) && [ts.SyntaxKind.CommaToken, ts.SyntaxKind.EqualsToken].includes(value.operatorToken.kind)) return valueHasTaint(value.right, names, codeOnly);
+    if (isAssignment(value)) return valueHasTaint(value.right, names, codeOnly) || (value.operatorToken.kind !== ts.SyntaxKind.EqualsToken && valueHasTaint(value.left, names, codeOnly));
+
+    if (ts.isBinaryExpression(value) && value.operatorToken.kind === ts.SyntaxKind.CommaToken) return valueHasTaint(value.right, names, codeOnly);
 
     if (ts.isBinaryExpression(value) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(value.operatorToken.kind)) return valueHasTaint(value.left, names, codeOnly) || valueHasTaint(value.right, names, codeOnly);
 
@@ -722,7 +728,7 @@ export function scanImports(source, file = "module.mjs") {
       const returnedCode = node => {
         if (ts.isReturnStatement(node) || ts.isYieldExpression(node)) return isCodeValue(node.expression);
 
-        if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && isCodeValue(node.right)) return true;
+        if (isAssignment(node) && isCodeValue(node.right)) return true;
 
         if (ts.isFunctionLike(node)) return false;
 
@@ -748,7 +754,7 @@ export function scanImports(source, file = "module.mjs") {
     else if (ts.isPropertyAssignment(pattern)) taintPattern(pattern.initializer, names);
     else if (ts.isSpreadAssignment(pattern) || ts.isSpreadElement(pattern) || ts.isParenthesizedExpression(pattern)) taintPattern(pattern.expression, names);
     else if (names === codeNames && (ts.isPropertyAccessExpression(pattern) || ts.isElementAccessExpression(pattern))) taintPattern(pattern.expression, names);
-    else if (ts.isBinaryExpression(pattern) && pattern.operatorToken.kind === ts.SyntaxKind.EqualsToken) taintPattern(pattern.left, names);
+    else if (isAssignment(pattern)) taintPattern(pattern.left, names);
   };
 
   const isUnprovableAggregate = value => {
@@ -766,7 +772,9 @@ export function scanImports(source, file = "module.mjs") {
 
     if (ts.isConditionalExpression(value)) return isUnprovableAggregate(value.whenTrue) || isUnprovableAggregate(value.whenFalse);
 
-    if (ts.isBinaryExpression(value) && [ts.SyntaxKind.CommaToken, ts.SyntaxKind.EqualsToken].includes(value.operatorToken.kind)) return isUnprovableAggregate(value.right);
+    if (isAssignment(value)) return isUnprovableAggregate(value.right) || (value.operatorToken.kind !== ts.SyntaxKind.EqualsToken && isUnprovableAggregate(value.left));
+
+    if (ts.isBinaryExpression(value) && value.operatorToken.kind === ts.SyntaxKind.CommaToken) return isUnprovableAggregate(value.right);
 
     if (ts.isBinaryExpression(value) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(value.operatorToken.kind)) return isUnprovableAggregate(value.left) || isUnprovableAggregate(value.right);
 
@@ -805,11 +813,11 @@ export function scanImports(source, file = "module.mjs") {
         taintPattern(node.name, codeNames);
       }
 
-      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && (isUnprovableValue(node.right) || hasComputedPattern(node.left))) taintPattern(node.left);
+      if (isAssignment(node) && (isUnprovableValue(node.right) || hasComputedPattern(node.left))) taintPattern(node.left);
 
-      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && (isCodeValue(node.right) || hasComputedPattern(node.left))) taintPattern(node.left, codeNames);
+      if (isAssignment(node) && (isCodeValue(node.right) || hasComputedPattern(node.left))) taintPattern(node.left, codeNames);
 
-      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && isUnprovableAggregate(node.right)) taintPattern(node.left, unprovableAggregates);
+      if (isAssignment(node) && isUnprovableAggregate(node.right)) taintPattern(node.left, unprovableAggregates);
 
       ts.forEachChild(node, collect);
     };
@@ -859,7 +867,7 @@ export function scanImports(source, file = "module.mjs") {
     const callee = invoked?.callee ?? node;
     const calleeName = accessedName(callee);
 
-    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+    if (isAssignment(node) &&
         (ts.isPropertyAccessExpression(node.left) || ts.isElementAccessExpression(node.left)) && isCodeValue(node.right)) {
       dynamic.add(text(node));
 
@@ -1545,7 +1553,7 @@ function githubScriptHelpers(script, environment, actionsDirectoryAvailable) {
 
     if ((ts.isParameter(node) || ts.isBindingElement(node) || ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) && node.name && ts.isIdentifier(node.name)) bindings.set(node.name.text, undefined);
 
-    const mutation = ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment ? node.left :
+    const mutation = isAssignment(node) ? node.left :
       ts.isDeleteExpression(node) ? node.expression :
         (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) && [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(node.operator) ? node.operand : undefined;
 
@@ -2021,7 +2029,7 @@ function githubScriptEnvironmentEffects(script) {
         if (ts.isShorthandPropertyAssignment(property)) bindPattern(property.name, project(value, ts.factory.createStringLiteral(property.name.text)));
         else if (ts.isPropertyAssignment(property)) bindPattern(property.initializer, project(value, ts.isComputedPropertyName(property.name) ? property.name.expression : ts.factory.createStringLiteral(accessedName(property.name))));
       }
-    } else if (ts.isBinaryExpression(pattern) && pattern.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+    } else if (isAssignment(pattern)) {
       bindPattern(pattern.left, value);
       bindPattern(pattern.left, pattern.right);
     }
@@ -2032,7 +2040,7 @@ function githubScriptEnvironmentEffects(script) {
 
     if (ts.isVariableDeclaration(node) && node.initializer) bindPattern(node.name, node.initializer);
 
-    if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) bindPattern(node.left, node.right);
+    if (isAssignment(node)) bindPattern(node.left, node.right);
 
     ts.forEachChild(node, collect);
   };

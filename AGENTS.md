@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 248 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 249 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -127,6 +127,9 @@ Tagged templates are invocations too; their tags, interpolations and results
 share the call/constructor code-origin checks.
 Plain assignments return their right-hand value and retain its code origins
 when nested in another binding, container or function result.
+All assignment tokens share one classification for collection, returns and
+property writes. Compound assignment results conservatively retain origins
+from both operands, including logical assignment short-circuit paths.
 Runner-temp require exemptions are restricted to the compiler actions directory
 after its unconditional setup step. Dependency-tree removals, moves and local
 package mutations invalidate install credit; a later valid install restores it.

@@ -1690,6 +1690,32 @@ test("opaque install-free executables cannot hide runner-file mutations", async 
   assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
+test("compound assignments retain code origins across every assignment surface", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-compound-origins-"));
+
+  roots.push(dir);
+
+  for (const [operator, initial] of [["||=", "undefined"], ["&&=", "true"], ["??=", "null"]]) {
+    for (const source of [
+      `const key = "eval"; let load = ${initial}; const run = (load ${operator} globalThis[key]); await run('import("@scope/missing-package")');`,
+      `const key = "eval"; let load = ${initial}; load ${operator} globalThis[key]; await load('import("@scope/missing-package")');`,
+      `const key = "eval"; const box = { load: ${initial} }; const run = (box.load ${operator} globalThis[key]); await run('import("@scope/missing-package")');`,
+      `const key = "eval"; let load = ${initial}; const get = () => (load ${operator} globalThis[key]); await get()('import("@scope/missing-package")');`,
+    ]) {
+      assert.ok(scanImports(source).dynamic.length, source);
+      await writeFile(path.join(dir, "entry.mjs"), source);
+      await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /evaluates code at runtime/);
+      assert.throws(() => standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script: source } }] } } }), /evaluates code at runtime/);
+      const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+      assert.notEqual(loaded.status, 0);
+      assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+    }
+  }
+
+  assert.deepEqual(scanImports('let value; value ??= "data"; let other = true; other &&= value; let count = 0; count += 1; other.trim();').dynamic, []);
+});
+
 const SINGLE = String.fromCharCode(10);
 
 test("workflow helpers executed without dependency install stay dependency-free", async () => {
