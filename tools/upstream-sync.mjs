@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync, appendFileSync, mkdirSync, readdirSync, lstatSync, realpathSync, mkdtempSync, rmSync } from "node:fs";
+import { constants, openSync, closeSync, fstatSync, readFileSync, writeFileSync, mkdirSync, readdirSync, lstatSync, realpathSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -771,6 +771,34 @@ function externalOutput(file) {
   return resolved;
 }
 
+function writeExternalOutput(file, content, append = false) {
+  const output = externalOutput(file);
+
+  requireThat(Number.isInteger(constants.O_NOFOLLOW) && constants.O_NOFOLLOW > 0 &&
+    Number.isInteger(constants.O_NONBLOCK) && constants.O_NONBLOCK > 0, "Publication outputs require no-follow, nonblocking file opens");
+
+  if (append) mkdirSync(path.dirname(output), { recursive: true });
+
+  const flags = constants.O_WRONLY | constants.O_CREAT | constants.O_NOFOLLOW | constants.O_NONBLOCK |
+    (append ? constants.O_APPEND : constants.O_EXCL);
+
+  const descriptor = openSync(output, flags, 0o600);
+
+  try {
+    const stats = fstatSync(descriptor);
+
+    requireThat(stats.isFile() && stats.nlink === 1, "Publication output must be a regular single-link file");
+    const verified = externalOutput(output);
+    const current = lstatSync(verified);
+
+    requireThat(verified === output && current.isFile() && current.nlink === 1 && current.dev === stats.dev && current.ino === stats.ino,
+      "Output path changed while opening the publication file");
+    writeFileSync(descriptor, content);
+  } finally {
+    closeSync(descriptor);
+  }
+}
+
 export function skipEmptyPlan(plan, output) {
   requireThat(plainObject(plan) && plan.schemaVersion === 1 && plan.repository === "scaryrawr/scarydex" &&
     Array.isArray(plan.tracks) && plan.tracks.length === TRACKS.length &&
@@ -778,9 +806,7 @@ export function skipEmptyPlan(plan, output) {
 
   if (plan.tracks.some(track => track.commits.length)) return { skipped: false };
   requireThat(isText(output) && path.isAbsolute(output), "GH_AW_SAFE_OUTPUTS must be an absolute output path");
-  output = externalOutput(output);
-  mkdirSync(path.dirname(output), { recursive: true });
-  appendFileSync(output, `${JSON.stringify({ type: "noop", message: "No upstream changes to review" })}\n`);
+  writeExternalOutput(output, `${JSON.stringify({ type: "noop", message: "No upstream changes to review" })}\n`, true);
 
   return { skipped: true };
 }
@@ -829,7 +855,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         verifyProposal({ root, plan, base: opts.base ?? plan.base, head: opts.head });
     } else throw new Error("Usage: upstream-sync.mjs plan --scarypilot DIR --cursor DIR [--output FILE] | check | skip-empty --plan FILE | verify --plan FILE [--base SHA] [--head SHA | --artifact-dir DIR]");
 
-    if (opts.output) writeFileSync(externalOutput(opts.output), `${JSON.stringify(result, null, 2)}\n`, { flag: "wx" });
+    if (opts.output) writeExternalOutput(opts.output, `${JSON.stringify(result, null, 2)}\n`);
     else console.log(JSON.stringify(result, null, 2));
   } catch (error) { console.error(`upstream-sync: ${error.message}`); process.exitCode = 1; }
 }

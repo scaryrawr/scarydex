@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, realpathSync, rmSync, renameSync, symlinkSync } from "node:fs";
+import { chmodSync, existsSync, linkSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, realpathSync, rmSync, renameSync, symlinkSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
@@ -161,6 +161,117 @@ test("dangling output symlinks cannot create files inside the policy checkout", 
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(readFileSync(output, "utf8"), /No upstream changes/);
+});
+
+test("safe-output append requires an unaliased regular file", () => {
+  const directory = realpathSync(mkdtempSync(path.join(os.tmpdir(), "scarydex-output-inode-")));
+
+  temporary.push(directory);
+  const checkout = path.join(directory, "checkout");
+  const copiedHelper = path.join(checkout, "tools/upstream-sync.mjs");
+  write(checkout, "tools/upstream-sync.mjs", readFileSync(helper));
+  const protectedFile = path.join(checkout, "tools/protected.mjs");
+  writeFileSync(protectedFile, "export const original = true;\n");
+  const plan = path.join(directory, "plan.json");
+  writeJson(directory, "plan.json", { schemaVersion: 1, repository: "scaryrawr/scarydex", tracks: TRACKS.map(track => ({ id: track.id, commits: [] })) });
+  const output = path.join(directory, "output.json");
+  linkSync(protectedFile, output);
+
+  const rejected = spawnSync("node", [copiedHelper, "skip-empty", "--plan", plan], { encoding: "utf8", timeout: 5000, env: { ...process.env, GH_AW_SAFE_OUTPUTS: output } });
+
+  assert.equal(rejected.status, 1, rejected.stderr);
+  assert.match(rejected.stderr, /regular single-link file/);
+  assert.equal(readFileSync(protectedFile, "utf8"), "export const original = true;\n");
+  rmSync(output);
+  const prior = '{"type":"noop","message":"earlier"}\n';
+  writeFileSync(output, prior);
+
+  for (let i = 0; i < 2; i++) {
+    const appended = spawnSync("node", [copiedHelper, "skip-empty", "--plan", plan], { encoding: "utf8", timeout: 5000, env: { ...process.env, GH_AW_SAFE_OUTPUTS: output } });
+
+    assert.equal(appended.status, 0, appended.stderr);
+  }
+
+  const records = readFileSync(output, "utf8").trim().split("\n").map(line => JSON.parse(line));
+
+  assert.equal(records.length, 3);
+  assert.deepEqual(records[0], JSON.parse(prior));
+  assert.equal(records[1].message, "No upstream changes to review");
+  assert.deepEqual(records[2], records[1]);
+
+  const special = spawnSync("node", [copiedHelper, "skip-empty", "--plan", plan], { encoding: "utf8", timeout: 5000, env: { ...process.env, GH_AW_SAFE_OUTPUTS: "/dev/null" } });
+
+  assert.equal(special.status, 1, special.stderr);
+  assert.match(special.stderr, /regular single-link file/);
+  const fifo = path.join(directory, "pipe");
+  run("mkfifo", [fifo]);
+  const pipe = spawnSync("node", [copiedHelper, "skip-empty", "--plan", plan], { encoding: "utf8", timeout: 5000, env: { ...process.env, GH_AW_SAFE_OUTPUTS: fifo } });
+
+  assert.equal(pipe.error, undefined);
+  assert.equal(pipe.status, 1, pipe.stderr);
+  assert.match(pipe.stderr, /ENXIO|regular single-link file/);
+});
+
+test("safe-output descriptor checks reject path replacements around open", () => {
+  const directory = realpathSync(mkdtempSync(path.join(os.tmpdir(), "scarydex-output-race-")));
+
+  temporary.push(directory);
+  const checkout = path.join(directory, "checkout");
+  const copiedHelper = path.join(checkout, "tools/upstream-sync.mjs");
+  write(checkout, "tools/upstream-sync.mjs", readFileSync(helper));
+  const protectedFile = path.join(checkout, "tools/protected.mjs");
+  writeFileSync(protectedFile, "export const original = true;\n");
+  const plan = { schemaVersion: 1, repository: "scaryrawr/scarydex", tracks: TRACKS.map(track => ({ id: track.id, commits: [] })) };
+  const f = fixture();
+
+  const cases = ["append", "plan"].flatMap(mode =>
+    [["before", "symlink"], ["before", "hardlink"], ["after", "symlink"], ["after", "hardlink"], ["before", "parent"], ["after", "parent"]].map(([phase, mutation]) => ({ mode, phase, mutation })));
+
+  for (const { mode, phase, mutation } of cases) {
+    const parent = path.join(directory, `${mode}-${phase}-${mutation}`);
+    mkdirSync(parent);
+    const output = path.join(parent, "protected.mjs");
+
+    if (mode === "append") writeFileSync(output, "earlier\n");
+    const script = path.join(directory, `${mode}-${phase}-${mutation}.mjs`);
+
+    writeFileSync(script, `import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
+const output = ${JSON.stringify(output)};
+const target = ${JSON.stringify(protectedFile)};
+const parent = ${JSON.stringify(parent)};
+const open = fs.openSync;
+function replace() {
+  console.log("race-triggered");
+  if (${JSON.stringify(mutation)} === "parent") {
+    fs.renameSync(parent, parent + "-moved");
+    fs.symlinkSync(${JSON.stringify(path.dirname(protectedFile))}, parent);
+  } else {
+    if (fs.existsSync(output)) fs.unlinkSync(output);
+    if (${JSON.stringify(mutation)} === "symlink") fs.symlinkSync(target, output);
+    else fs.linkSync(target, output);
+  }
+}
+fs.openSync = (...args) => {
+  if (args[0] !== output) return open(...args);
+  if (${JSON.stringify(phase)} === "before") replace();
+  const fd = open(...args);
+  if (${JSON.stringify(phase)} === "after") replace();
+  return fd;
+};
+syncBuiltinESMExports();
+if (${JSON.stringify(mode)} === "plan") process.argv = [process.execPath, ${JSON.stringify(copiedHelper)}, "plan", "--root", ${JSON.stringify(f.local)}, "--scarypilot", ${JSON.stringify(f.scarypilot)}, "--cursor", ${JSON.stringify(f.cursor)}, "--output", output];
+const { skipEmptyPlan } = await import(${JSON.stringify(copiedHelper)});
+try { if (${JSON.stringify(mode)} === "append") skipEmptyPlan(${JSON.stringify(plan)}, output); }
+catch (error) { console.error(error.message); process.exitCode = 1; }
+`);
+    const result = spawnSync("node", [script], { encoding: "utf8", timeout: 5000 });
+
+    assert.equal(result.status, 1, `${mode}/${phase}/${mutation}: ${result.stderr}`);
+    assert.match(result.stdout, /race-triggered/);
+    assert.match(result.stderr, /ELOOP|EEXIST|regular single-link file|outside the policy helper checkout|Output path changed/);
+    assert.equal(readFileSync(protectedFile, "utf8"), "export const original = true;\n");
+  }
 });
 
 function run(command, args, cwd) {

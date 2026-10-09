@@ -162,6 +162,9 @@ git diff --exit-code -- .github/workflows/upstream-sync.lock.yml
 stay outside the checkout containing the policy helper, including through symlinks;
 use a runner-temporary directory or `/tmp` so outputs cannot replace audited code.
 Dangling symlinks are refused even when their missing targets appear external.
+Writes use a no-follow open and require a regular file with exactly one hard link,
+checking the opened inode against the external path before writing. Safe-output
+records append to that descriptor; plan outputs retain exclusive-create semantics.
 `verify` checks the complete
 worktree/index and untracked paths. `--head SHA` checks a committed tree instead.
 `--root DIR` supports isolated fixture repositories.
