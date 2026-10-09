@@ -4,12 +4,12 @@
     {
       "id": 1,
       "name": "discover-decision-models",
-      "prompt": "What decision models do I have available via Ollama?",
-      "expected_output": "Installed models with nimble and tev1 candidates labeled as a name heuristic.",
+      "prompt": "What decision models do I have available via OMLX?",
+      "expected_output": "Installed models with Clef, OpenJev, and custom decision models selected by server metadata.",
       "files": [],
       "expectations": [
         "The helper models command is used.",
-        "Tagged nimble and tev1 models are recognized.",
+        "Models with model_type=decision are recognized, regardless of their IDs.",
         "General chat or reasoning models are not claimed to support SystemOne."
       ]
     },
@@ -41,13 +41,13 @@
     {
       "id": 4,
       "name": "direct-systemone-request",
-      "prompt": "Show me how to call Ollama's Jev-style decision API without the helper.",
+      "prompt": "Show me how to call OMLX's Jev-style decision API without the helper.",
       "expected_output": "A curl example using POST /v1/systemone with state and named typed questions.",
       "files": [],
       "expectations": [
         "The API reference is used.",
         "The request contains model, state, and questions, not chat messages.",
-        "The answer mentions Ollama 0.35 or newer and a compatible decision model."
+        "The answer mentions an OMLX server with /v1/systemone support and a Clef or OpenJev decision model."
       ]
     },
     {
@@ -69,7 +69,7 @@
       "expectations": [
         "No chat fallback is used.",
         "No model is downloaded without authorization.",
-        "The assistant suggests nimble or tev1 rather than claiming llama3.1 is compatible."
+        "The assistant suggests Clef or OpenJev rather than claiming llama3.1 is compatible."
       ]
     },
     {
@@ -88,11 +88,11 @@
       "id": 8,
       "name": "image-choice-decision",
       "prompt": "Use the vision decision model to classify this photo (/absolute/path/photo.png) as a hotdog or taco.",
-      "expected_output": "A clef-flash SystemOne choice answer over the attached image with probabilities and confidence.",
+      "expected_output": "A clef-flash-4bit SystemOne choice answer over the attached image with probabilities and confidence.",
       "files": [],
       "expectations": [
         "The input JSON passes the image as a local path in the images array and names hotdog and taco as choice criteria.",
-        "The run uses clef-flash or another vision decision model; no chat fallback is used.",
+        "The run uses clef-flash-4bit or another vision decision model; no chat fallback is used.",
         "A model that rejects image inputs is reported and rerun against a vision decision model rather than answered by guessing.",
         "Returned probabilities and confidence are preserved without inventing a reasoning trace."
       ]
