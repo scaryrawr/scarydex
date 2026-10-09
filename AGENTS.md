@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 242 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 245 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -123,9 +123,15 @@ Ordinary data lookups do not taint their transformation results as code.
 Class/object methods, accessors, fields, inheritance and static blocks also
 retain code origins. Passing those values into calls or property writes is
 refused because callbacks and setters can evaluate code before any return.
+Tagged templates are invocations too; their tags, interpolations and results
+share the call/constructor code-origin checks.
 Runner-temp require exemptions are restricted to the compiler actions directory
 after its unconditional setup step. Dependency-tree removals, moves and local
 package mutations invalidate install credit; a later valid install restores it.
+Package mutation classification parses leading global options and treats root
+prefix/cwd selectors as possible local mutations. Explicit global operations
+and proven no-ops preserve the installed tree; option values cannot masquerade
+as those flags, and CLI negations override inherited no-op settings.
 Install classification uses the same effective command/environment context as
 helper discovery. Supported env/command/exec launches can prove installation;
 builtin-only and introspection forms cannot launch an external installer.
@@ -142,6 +148,8 @@ already installed tree. Environment records must be provably single-line;
 unknown producers and startup hooks cannot preserve dependency proof.
 Grouped output, redirections, file aliases, tee, nested literal shells/eval,
 GitHub Script core APIs and direct file writers share this boundary.
+Writer/target aliases follow nested array/object containers, destructuring and
+assignments; unresolved writer flows touching runner environment files fail closed.
 Install-free module closures cannot hide dependency-related runner environment
 writes; expose those writes in workflow steps instead. Step environment values
 take precedence over persisted values, and ambiguous conditional writes remain

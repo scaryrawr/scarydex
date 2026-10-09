@@ -1552,6 +1552,78 @@ test("runner environment file effects persist into later install proof", async (
   assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
+test("tagged template invocations retain dynamic code origins", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-code-tag-"));
+
+  roots.push(dir);
+
+  for (const source of [
+    'const key = "Function"; const C = globalThis[key]; await C`return import("@scope/missing-package")`();',
+    'const key = "Function"; const box = { tag: globalThis[key] }; await box.tag`return import("@scope/missing-package")`();',
+    'const key = "Function"; const C = globalThis[key]; const build = () => C`return import("@scope/missing-package")`; await build()();',
+  ]) {
+    assert.ok(scanImports(source).dynamic.length, source);
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /evaluates code at runtime/);
+    assert.throws(() => standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script: source } }] } } }), /evaluates code at runtime/);
+    const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.notEqual(loaded.status, 0);
+    assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
+
+  assert.deepEqual(scanImports('const tag = parts => parts.join(""); const value = tag`plain data`; String.raw`also data`;').dynamic, []);
+});
+
+test("package manager mutations account for leading global options", async () => {
+  const job = steps => [...standAloneHelpers({ jobs: { build: { steps } } })];
+  const install = { run: "bun install" };
+  const helper = { run: "node tools/x.mjs" };
+
+  for (const mutation of ["npm --prefix . uninstall typescript", "npm --prefix=. prune --omit=dev", "npm uninstall --prefix . typescript", "bun --cwd . remove typescript", "bun --cwd=. install --production"]) {
+    assert.deepEqual(job([install, { run: mutation }, helper]), ["tools/x.mjs"]);
+    assert.deepEqual(job([{ run: `bun install; ${mutation}; node tools/x.mjs` }]), ["tools/x.mjs"]);
+    assert.deepEqual(job([install, { run: mutation }, install, helper]), []);
+  }
+
+  assert.deepEqual(job([install, { run: "npm --prefix . uninstall --dry-run typescript" }, helper]), []);
+  assert.deepEqual(job([install, { run: "npm install --ignore-scripts -g compiler-cli" }, helper]), []);
+  assert.deepEqual(job([install, { run: "npm --global=false uninstall typescript" }, helper]), ["tools/x.mjs"]);
+  assert.deepEqual(job([install, { run: 'npm uninstall --cache "--dry-run" typescript' }, helper]), ["tools/x.mjs"]);
+  assert.deepEqual(job([install, { run: "npm uninstall --dry-run=false typescript", env: { NPM_CONFIG_DRY_RUN: "true" } }, helper]), ["tools/x.mjs"]);
+  assert.deepEqual(job([install, { run: "npm --version; bun --version" }, helper]), []);
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-prefix-uninstall-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "node_modules/fixture-dependency"), { recursive: true });
+  await writeFile(path.join(dir, "package.json"), '{"name":"fixture","version":"1.0.0"}');
+  await writeFile(path.join(dir, "node_modules/fixture-dependency/package.json"), '{"type":"module","exports":"./index.mjs"}');
+  await writeFile(path.join(dir, "node_modules/fixture-dependency/index.mjs"), "export const loaded = true;");
+  await writeFile(path.join(dir, "entry.mjs"), 'import "fixture-dependency";');
+  const before = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+  const removed = spawnSync("npm", ["--prefix", ".", "uninstall", "--offline", "--ignore-scripts", "--no-audit", "--no-fund", "fixture-dependency"], { cwd: dir, encoding: "utf8", timeout: 10000 });
+  const after = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.equal(before.status, 0, before.stderr);
+  assert.equal(removed.status, 0, removed.stderr);
+  assert.notEqual(after.status, 0);
+  assert.match(after.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
+test("runner environment effects follow nested container bindings", () => {
+  const job = script => [...standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script } }, { run: "npm ci" }, { run: "node tools/x.mjs" }] } } })];
+
+  for (const script of [
+    'const fs = require("node:fs"); const [write, file] = [fs.appendFileSync, process.env.GITHUB_ENV]; write(file, "NODE_ENV=production\\n");',
+    'const fs = require("node:fs"); const box = [fs.appendFileSync, process.env.GITHUB_ENV]; const other = box; const [write, file] = other; write(file, "NODE_ENV=production\\n");',
+    'const fs = require("node:fs"); const [{ write, file }] = [{ write: fs.appendFileSync, file: process.env.GITHUB_ENV }]; write(file, "NODE_ENV=production\\n");',
+    'const fs = require("node:fs"); let write, file; [write, file] = [fs.appendFileSync, process.env.GITHUB_ENV]; write(file, "NODE_ENV=production\\n");',
+  ]) assert.deepEqual(job(script), ["tools/x.mjs"]);
+
+  assert.deepEqual(job('const [left, right] = ["plain", "data"]; console.log(left, right);'), []);
+  assert.throws(() => job('const fs = require("node:fs"); function emit(file) { fs.appendFileSync(file, "NODE_ENV=production\\n"); } emit(process.env.GITHUB_ENV);'), /unprovable.*environment/);
+});
+
 const SINGLE = String.fromCharCode(10);
 
 test("workflow helpers executed without dependency install stay dependency-free", async () => {

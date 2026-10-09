@@ -197,6 +197,73 @@ const ENVIRONMENT_DECLARATIONS = new Set(["export", "declare", "typeset", "reado
 
 const INSTALLS_ELSEWHERE = new Set(["-g", "-G", "--global", "--global-style", "--link", "--location", "--prefix", "--cwd", "--no-install"]);
 
+const PACKAGE_MUTATIONS = new Set(["install", "i", "in", "ins", "inst", "ci", "clean-install", "ic", "install-clean", "add", "remove", "uninstall", "un", "unlink", "uninst", "rm", "r", "update", "up", "upgrade", "ug", "prune", "link", "dedupe", "ddp", "rebuild", "rb"]);
+
+const PACKAGE_OPTION_VALUES = new Set(["--prefix", "--cwd", "--location", "--cache", "--registry", "--userconfig", "--omit", "--only", "--include"]);
+
+const PACKAGE_OPTION_BOOLEANS = new Set(["-g", "-G", "--global", "--no-global", "--global-style", "--production", "--prod", "--no-dev", "--dry-run", "--package-lock-only", "--lockfile-only", "--no-audit", "--no-fund", "--ignore-scripts", "--frozen-lockfile", "--no-save", "--no-package-lock", "--silent", "--force", "--verbose", "--version", "-v", "--help", "-h"]);
+
+function packageArguments(argv) {
+  const options = [];
+  let index = 1;
+
+  while (argv[index]?.startsWith("-")) {
+    const word = argv[index++];
+
+    if (word === "--") break;
+    const flag = word.split("=")[0];
+
+    if (!PACKAGE_OPTION_VALUES.has(flag) && !PACKAGE_OPTION_BOOLEANS.has(flag)) return undefined;
+    options.push(word);
+
+    if (PACKAGE_OPTION_VALUES.has(flag) && !word.includes("=")) {
+      if (argv[index] === undefined) return undefined;
+      options.push(argv[index++]);
+    } else if (PACKAGE_OPTION_BOOLEANS.has(flag) && !word.includes("=") && ["true", "false"].includes(argv[index])) {
+      options.push(argv[index++]);
+    }
+  }
+
+  return [path.posix.basename(argv[0]), argv[index] ?? "", ...options, ...argv.slice(index + 1)];
+}
+
+function packageMutationOptions(argv, environment) {
+  let global = false;
+  const noops = new Map(["--dry-run", "--package-lock-only", "--lockfile-only"].map(flag => [flag, false]));
+
+  if (argv[0] === "npm") {
+    for (const [name, value] of Object.entries(environment)) {
+      if (/^npm_config_(?:dry_run|package_lock_only)$/i.test(name)) noops.set(`--${name.toLowerCase().slice("npm_config_".length).replaceAll("_", "-")}`, String(value).toLowerCase() === "true");
+    }
+  }
+
+  for (let index = 2; index < argv.length; index++) {
+    const word = argv[index];
+    const flag = word.split("=")[0];
+
+    if (word === "--") break;
+
+    if (flag === "--no-global" || flag === "--location") global = false;
+
+    if (PACKAGE_OPTION_VALUES.has(flag)) {
+      if (!word.includes("=")) index++;
+
+      continue;
+    }
+
+    if (word.startsWith("-") && !PACKAGE_OPTION_BOOLEANS.has(flag)) return { global: false, noop: false };
+
+    if (!PACKAGE_OPTION_BOOLEANS.has(flag)) continue;
+    const value = word.includes("=") ? word.slice(word.indexOf("=") + 1) : ["true", "false"].includes(argv[index + 1]) ? argv[++index] : "true";
+
+    if (["--global", "-g", ...(argv[0] === "bun" ? ["-G"] : [])].includes(flag)) global = value === "true";
+
+    if (noops.has(flag)) noops.set(flag, value === "true");
+  }
+
+  return { global, noop: [...noops.values()].some(Boolean) };
+}
+
 function installsElsewhere(argv, environment) {
   if (argv.slice(2).some(word => INSTALLS_ELSEWHERE.has(word.split("=")[0]))) return true;
 
@@ -535,6 +602,14 @@ function accessedName(node) {
   return "";
 }
 
+function invocation(node) {
+  if (ts.isCallExpression(node) || ts.isNewExpression(node)) return { callee: node.expression, inputs: node.arguments ?? [] };
+
+  if (ts.isTaggedTemplateExpression(node)) return { callee: node.tag, inputs: ts.isTemplateExpression(node.template) ? node.template.templateSpans.map(span => span.expression) : [] };
+
+  return undefined;
+}
+
 // The workflow runs these helpers with bare `node`, so ask that exact runtime whether the
 // module parses. `--check` compiles without executing and honours the `.mjs` module goal.
 // This is the *validity* oracle and it closes the hole the TypeScript parser leaves open:
@@ -629,7 +704,9 @@ export function scanImports(source, file = "module.mjs") {
 
     if (ts.isSpreadElement(value) || ts.isPropertyAccessExpression(value)) return valueHasTaint(value.expression, names, codeOnly);
 
-    if (ts.isCallExpression(value) || ts.isNewExpression(value)) return (value.arguments ?? []).some(isCodeValue) || isCodeValue(value.expression);
+    const invoked = invocation(value);
+
+    if (invoked) return invoked.inputs.some(isCodeValue) || isCodeValue(invoked.callee);
 
     if (ts.isConditionalExpression(value)) return valueHasTaint(value.whenTrue, names, codeOnly) || valueHasTaint(value.whenFalse, names, codeOnly);
 
@@ -683,7 +760,9 @@ export function scanImports(source, file = "module.mjs") {
 
     if (ts.isPropertyAccessExpression(value) || ts.isElementAccessExpression(value)) return isUnprovableAggregate(value.expression);
 
-    if (ts.isCallExpression(value) || ts.isNewExpression(value)) return (value.arguments ?? []).some(isCodeValue) || isCodeValue(value.expression);
+    const invoked = invocation(value);
+
+    if (invoked) return invoked.inputs.some(isCodeValue) || isCodeValue(invoked.callee);
 
     if (ts.isConditionalExpression(value)) return isUnprovableAggregate(value.whenTrue) || isUnprovableAggregate(value.whenFalse);
 
@@ -775,8 +854,9 @@ export function scanImports(source, file = "module.mjs") {
     // see the package. Aliasing is closed the same way as `require` above — by refusing
     // every reference to the name, not just direct calls. A string handed to a timer is
     // evaluated by the host the same way, so a literal there counts too.
-    const isConstruction = ts.isCallExpression(node) || ts.isNewExpression(node);
-    const callee = isConstruction ? node.expression : node;
+    const invoked = invocation(node);
+    const isConstruction = invoked !== undefined;
+    const callee = invoked?.callee ?? node;
     const calleeName = accessedName(callee);
 
     if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
@@ -804,7 +884,7 @@ export function scanImports(source, file = "module.mjs") {
 
     while (ts.isParenthesizedExpression(target)) target = target.expression;
 
-    if (isConstruction && ((node.arguments ?? []).some(isCodeValue) || isUnprovableAggregate(callee) || (!ts.isPropertyAccessExpression(target) && !ts.isElementAccessExpression(target) && isUnprovableValue(target)) ||
+    if (isConstruction && (invoked.inputs.some(isCodeValue) || isUnprovableAggregate(callee) || (!ts.isPropertyAccessExpression(target) && !ts.isElementAccessExpression(target) && isUnprovableValue(target)) ||
         (/^(?:call|apply|bind)$/.test(calleeName) && isUnprovableValue(callee)))) {
       dynamic.add(text(node));
 
@@ -1651,8 +1731,20 @@ function dependencyTreeChanged(list, context, checkoutRoot) {
     }
   }
 
-  if (checkoutRoot && INSTALLERS.has(executable) && ["install", "ci", "add", "remove", "uninstall", "update", "prune", "link", "unlink"].includes(argv[1]) &&
-      !installsElsewhere(argv, context.environment) && !installsNothing(argv, context.environment)) return true;
+  if (checkoutRoot && INSTALLERS.has(executable)) {
+    const normalized = packageArguments(argv);
+
+    if (!normalized) return true;
+
+    if (PACKAGE_MUTATIONS.has(normalized[1])) {
+      const computed = list.slice(context.index + 1).some(word => word.hasExpansion) ||
+        Object.entries(context.environment).some(([name, value]) => /^npm_config_(?:dry_run|package_lock_only)$/i.test(name) && String(value).includes("$"));
+
+      const options = packageMutationOptions(normalized, context.environment);
+
+      return computed || (!options.global && !options.noop);
+    }
+  }
 
   if (["echo", "printf", "cat", "ls", "test", "[", "[[", "true", "false", "exit"].includes(executable)) return false;
 
@@ -1875,19 +1967,42 @@ function githubScriptEnvironmentEffects(script) {
     bindings.get(name).add(value);
   };
 
+  const project = (value, key) => value ? ts.factory.createElementAccessExpression(value, key) : undefined;
+
+  const bindPattern = (pattern, value) => {
+    if (ts.isIdentifier(pattern)) bind(pattern.text, value);
+    else if (ts.isParenthesizedExpression(pattern)) bindPattern(pattern.expression, value);
+    else if (ts.isBindingElement(pattern)) {
+      bindPattern(pattern.name, value);
+
+      if (pattern.initializer) bindPattern(pattern.name, pattern.initializer);
+    } else if (ts.isArrayBindingPattern(pattern) || ts.isArrayLiteralExpression(pattern)) {
+      pattern.elements.forEach((element, index) => {
+        if (!ts.isOmittedExpression(element)) bindPattern(element, project(value, ts.factory.createNumericLiteral(index)));
+      });
+    } else if (ts.isObjectBindingPattern(pattern)) {
+      for (const element of pattern.elements) {
+        const key = element.propertyName ?? element.name;
+
+        bindPattern(element, project(value, ts.isComputedPropertyName(key) ? key.expression : ts.factory.createStringLiteral(accessedName(key))));
+      }
+    } else if (ts.isObjectLiteralExpression(pattern)) {
+      for (const property of pattern.properties) {
+        if (ts.isShorthandPropertyAssignment(property)) bindPattern(property.name, project(value, ts.factory.createStringLiteral(property.name.text)));
+        else if (ts.isPropertyAssignment(property)) bindPattern(property.initializer, project(value, ts.isComputedPropertyName(property.name) ? property.name.expression : ts.factory.createStringLiteral(accessedName(property.name))));
+      }
+    } else if (ts.isBinaryExpression(pattern) && pattern.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+      bindPattern(pattern.left, value);
+      bindPattern(pattern.left, pattern.right);
+    }
+  };
+
   const collect = node => {
     if (ts.isImportSpecifier(node)) bind(node.name.text, ts.factory.createIdentifier(node.propertyName?.text ?? node.name.text));
 
-    if (ts.isVariableDeclaration(node)) {
-      if (ts.isIdentifier(node.name)) bind(node.name.text, node.initializer);
-      else if (ts.isObjectBindingPattern(node.name) && node.initializer) {
-        for (const element of node.name.elements) {
-          if (ts.isIdentifier(element.name) && !element.dotDotDotToken) bind(element.name.text, ts.factory.createElementAccessExpression(node.initializer, ts.factory.createStringLiteral(accessedName(element.propertyName ?? element.name))));
-        }
-      }
-    }
+    if (ts.isVariableDeclaration(node) && node.initializer) bindPattern(node.name, node.initializer);
 
-    if (ts.isBinaryExpression(node) && ts.isIdentifier(node.left) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) bind(node.left.text, node.right);
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) bindPattern(node.left, node.right);
 
     ts.forEachChild(node, collect);
   };
@@ -1907,6 +2022,26 @@ function githubScriptEnvironmentEffects(script) {
 
     if (ts.isConditionalExpression(node)) return possible(node.whenTrue, seen).concat(possible(node.whenFalse, seen));
 
+    if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
+      const keys = ts.isPropertyAccessExpression(node) ? [node.name.text] : possible(node.argumentExpression, seen).map(key => key && (ts.isStringLiteral(key) || ts.isNumericLiteral(key)) ? key.text : undefined);
+
+      return possible(node.expression, seen).flatMap(container => {
+        if (container && ts.isArrayLiteralExpression(container)) {
+          const candidates = keys.some(key => key === undefined) ? [...container.elements] : keys.map(key => container.elements[Number(key)]);
+
+          return candidates.length ? candidates.flatMap(value => possible(value, seen)) : [undefined];
+        }
+
+        if (container && ts.isObjectLiteralExpression(container)) {
+          const candidates = container.properties.filter(property => ts.isSpreadAssignment(property) || keys.some(key => key === undefined || accessedName(property.name) === key));
+
+          return candidates.length ? candidates.flatMap(property => possible(ts.isPropertyAssignment(property) ? property.initializer : ts.isShorthandPropertyAssignment(property) ? property.name : ts.isSpreadAssignment(property) ? property.expression : undefined, seen)) : [undefined];
+        }
+
+        return keys.map(key => key === undefined || accessedName(node) === key ? node : project(node.expression, ts.factory.createStringLiteral(key)));
+      });
+    }
+
     return [node];
   };
 
@@ -1915,8 +2050,17 @@ function githubScriptEnvironmentEffects(script) {
   const literal = node => node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : undefined;
   const exportedReferences = new Set();
   const calledExports = new Set();
+  const writers = new Set(["appendFile", "appendFileSync", "writeFile", "writeFileSync", "createWriteStream", "copyFile", "copyFileSync", "rename", "renameSync"]);
+  const writerReferences = new Set();
+  const calledWriters = new Set();
+  let referencesEnvironmentFile = false;
+  let unknownWriteTarget = false;
 
   const visit = node => {
+    if (/^GITHUB_(?:ENV|PATH)$/.test(accessedName(node)) || (ts.isStringLiteral(node) && /^GITHUB_(?:ENV|PATH)$/.test(node.text))) referencesEnvironmentFile = true;
+
+    if ((ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) && writers.has(accessedName(node))) writerReferences.add(node);
+
     if ((ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) && accessedName(node) === "addPath") effects.pathChanged = true;
 
     if ((ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) && accessedName(node) === "exportVariable") exportedReferences.add(node);
@@ -1941,13 +2085,17 @@ function githubScriptEnvironmentEffects(script) {
         }
       }
 
-      const writes = [...names].filter(name => ["appendFile", "appendFileSync", "writeFile", "writeFileSync", "createWriteStream", "copyFile", "copyFileSync", "rename", "renameSync"].includes(name));
+      const writes = [...names].filter(name => writers.has(name));
+
+      if (writes.length) for (const callee of callees) calledWriters.add(callee);
 
       for (const writer of writes) {
         const copied = /^(?:copyFile|rename)/.test(writer);
 
         for (const target of possible(node.arguments[copied ? 1 : 0])) {
           const file = target ? accessedName(target) : "";
+
+          if (file !== "GITHUB_ENV" && file !== "GITHUB_PATH" && literal(target) === undefined) unknownWriteTarget = true;
 
           if (file === "GITHUB_PATH") effects.pathChanged = true;
 
@@ -1976,6 +2124,8 @@ function githubScriptEnvironmentEffects(script) {
   visit(source);
 
   if ([...exportedReferences].some(node => !calledExports.has(node))) effects.unknown = true;
+
+  if (referencesEnvironmentFile && (unknownWriteTarget || [...writerReferences].some(node => !calledWriters.has(node)))) effects.unknown = true;
 
   return effects;
 }
