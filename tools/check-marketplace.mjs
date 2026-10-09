@@ -939,6 +939,10 @@ export async function dependencyFreeClosure(root, entrypoints) {
 
     if (dynamic.length) throw new Error(`${file} builds or evaluates code at runtime, which no scanner can see through and a syntax check cannot catch; install-free workflow jobs must use literal static imports: ${dynamic.join(", ")}`);
 
+    const runnerEffects = githubScriptEnvironmentEffects(source);
+
+    if (runnerEffects.unknown || runnerEffects.pathChanged || Object.keys(runnerEffects.environment).some(name => /^(?:PATH|NODE_OPTIONS|NODE_ENV|BASH_ENV|ENV|npm_config_.*)$/i.test(name))) throw new Error(`${file} mutates persistent runner environment; put dependency-related environment writes in explicit workflow steps so their effects can be verified`);
+
     for (const relative of literals.filter(isRelativeSpecifier)) {
       const target = fileURLToPath(new URL(relative, pathToFileURL(path.resolve(root, file))));
 
@@ -995,13 +999,17 @@ function words(text) {
   let quote = null;
   let ansiQuote = false;
   let hasExpansion = false;
+  let redirectionAt;
+  let redirections = [];
   let started = false;
 
   const flush = () => {
-    if (started) list.push({ value, hasExpansion });
+    if (started) list.push({ value, hasExpansion, redirectionAt, redirections });
 
     value = "";
     hasExpansion = false;
+    redirectionAt = undefined;
+    redirections = [];
     started = false;
   };
 
@@ -1069,6 +1077,21 @@ function words(text) {
       if (character === "`" || (character === "$" && /[A-Za-z_0-9{(@*#?$!-]/.test(text[index + 1] ?? ""))) hasExpansion = true;
 
       if (!quote && (/[*?[]/.test(character) || (character === "~" && !started) || /^[<>]\(/.test(text.slice(index)) || /^\{[^{}]*(?:,|\.\.)[^{}]*\}/.test(text.slice(index)))) hasExpansion = true;
+    }
+
+    if (!quote && character === ">" && text[index + 1] !== "(") {
+      const at = /^\d*$/.test(value) ? 0 : value.length;
+
+      redirectionAt ??= at;
+      redirections.push({ at, end: value.length + (text[index + 1] === ">" ? 2 : 1) });
+
+      if (text[index + 1] === ">") {
+        value += ">>";
+        index++;
+        started = true;
+
+        continue;
+      }
     }
 
     value += character;
@@ -1210,7 +1233,7 @@ function hashOverrides(args) {
   return false;
 }
 
-function helperReferences(text, environment = {}, substitutionsOnly = false) {
+function helperReferences(text, environment = {}, substitutionsOnly = false, actionsDirectoryAvailable = false) {
   const list = words(text);
   const context = commandContext(list, environment);
   const executable = context.index;
@@ -1224,6 +1247,9 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
   const commandEnvironment = context.environment;
   const commandName = path.posix.basename(list[executable]?.value ?? "");
 
+  const compilerShellAvailable = actionsDirectoryAvailable && !Object.hasOwn(commandEnvironment, "RUNNER_TEMP") &&
+    !list.slice(0, executable).some(word => ["-i", "--ignore-environment", "-"].includes(word.value) || word.value.includes("RUNNER_TEMP"));
+
   if (!substitutionsOnly && !introspection && commandName === "alias" && list.slice(executable + 1).some(word => word.hasExpansion || word.value.includes("="))) throw new Error("unprovable shell alias; install-free commands must not define aliases that can alter executable identity");
 
   if (!substitutionsOnly && !introspection && commandName === "hash" && hashOverrides(list.slice(executable + 1))) throw new Error("unprovable shell hash; install-free commands must not override cached executable identity");
@@ -1235,7 +1261,7 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
 
   const recordScript = script => {
     // Nested execution cannot establish install proof for its parent or sibling commands.
-    for (const reference of standAloneHelpers({ env: commandEnvironment, jobs: { nested: { steps: [{ run: script, shell: "bash {0}" }] } } })) references.add(reference);
+    for (const reference of standAloneHelpers({ env: commandEnvironment, jobs: { nested: { steps: [{ run: script, shell: "bash {0}" }] } } }, compilerShellAvailable)) references.add(reference);
   };
 
   if (!substitutionsOnly && !introspection && list[executable]?.value === "eval") {
@@ -1247,14 +1273,20 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
   }
 
   if (!substitutionsOnly && !introspection && ["bash", "sh"].includes(path.posix.basename(list[executable]?.value ?? ""))) {
-    const commandOption = list.findIndex((word, index) => index > executable && /^-[A-Za-z]*c[A-Za-z]*$/.test(word.value));
+    const args = list.slice(executable + 1);
+    const commandOption = args.findIndex(word => /^-[eux]*c[eux]*$/.test(word.value));
 
     if (commandOption !== -1) {
-      const payload = list[commandOption + 1];
+      const options = args.slice(0, commandOption + 1);
+      const payload = args[commandOption + 1];
 
-      if (list[commandOption].hasExpansion || !payload || payload.hasExpansion) throw new Error("unprovable shell payload; use a literal bash/sh -c command");
+      if (options.some(word => word.hasExpansion || !/^(?:-[euxc]+|--noprofile|--norc)$/.test(word.value)) || !payload || payload.hasExpansion) throw new Error("unprovable shell payload; use a literal bash/sh -c command without startup options");
 
       recordScript(payload.value);
+    } else if (args.length === 1 && !args[0].hasExpansion && ["--help", "--version"].includes(args[0].value)) {
+      // Informational shell invocations execute neither stdin nor a script.
+    } else if (!(compilerShellAvailable && /^\$(?:RUNNER_TEMP|\{RUNNER_TEMP\})\/gh-aw\/actions\/[A-Za-z0-9_-]+\.sh$/.test(args[0]?.value ?? ""))) {
+      throw new Error("unprovable shell payload; stdin and script files require a literal -c payload or a proven compiler action script");
     }
   }
 
@@ -1632,7 +1664,323 @@ function dependencyTreeChanged(list, context, checkoutRoot) {
   return false;
 }
 
-export function standAloneHelpers(lock) {
+function mergeRunnerEffects(target, incoming) {
+  target.pathChanged ||= incoming.pathChanged;
+  target.unknown ||= incoming.unknown;
+
+  for (const [name, value] of Object.entries(incoming.environment ?? {})) {
+    const relevant = /^(?:PATH|NODE_OPTIONS|NODE_ENV|BASH_ENV|ENV|npm_config_.*)$/i.test(name);
+
+    target.environment[name] = relevant && Object.hasOwn(target.environment, name) && target.environment[name] !== value ? "${unprovable}" : value;
+  }
+}
+
+function runnerEnvironmentEffects(script, environment, inherited) {
+  const effects = { environment: {}, pathChanged: false, unknown: false };
+  const scalars = new Map(inherited?.scalars ?? ["RUNNER_TEMP", "RUNNER_TOOL_CACHE", "GITHUB_SERVER_URL", "GITHUB_WORKSPACE"].map(name => [name, undefined]));
+  const sinks = new Map(inherited?.sinks ?? [["GITHUB_ENV", "environment"], ["GITHUB_PATH", "path"]]);
+  let output = [];
+  const groups = [];
+  let blockDepth = 0;
+  let conditional = false;
+
+  for (const [name, raw] of Object.entries(inherited ? {} : environment)) {
+    const value = String(raw);
+
+    if (!/[\r\n]/.test(value) && (!value.includes("${{") || /^\$\{\{\s*(?:runner\.(?:temp|tool_cache)|github\.(?:server_url|workspace))\s*\}\}$/.test(value))) scalars.set(name, value.includes("${{") ? undefined : value);
+    else scalars.delete(name);
+  }
+
+  const expand = word => {
+    if (!word || /[\r\n]/.test(word.value)) return null;
+
+    if (!word.hasExpansion) return word.value;
+
+    let known = true;
+    let literal = true;
+
+    const value = word.value.replace(/\$(?:\{([A-Za-z_]\w*)(?:#[A-Za-z0-9:/._-]+)?\}|([A-Za-z_]\w*))/g, (match, braced, bare) => {
+      const name = braced ?? bare;
+
+      if (!scalars.has(name)) known = false;
+
+      if (scalars.get(name) === undefined) literal = false;
+
+      const scalar = scalars.get(name) ?? "";
+      const prefix = /#([^}]+)\}$/.exec(match)?.[1];
+
+      return prefix && scalar.startsWith(prefix) ? scalar.slice(prefix.length) : scalar;
+    });
+
+    if (!known || /[$`]/.test(value)) return null;
+
+    return literal ? value : undefined;
+  };
+
+  const record = lines => {
+    if (lines === null) {
+      effects.unknown = true;
+
+      return;
+    }
+
+    for (const line of lines) {
+      if (line.value === "") continue;
+      const assignment = /^([A-Za-z_]\w*)=(.*)$/.exec(line.value);
+
+      if (!assignment || line.value.includes("\n")) {
+        effects.unknown = true;
+
+        continue;
+      }
+
+      const value = expand({ ...line, value: assignment[2] });
+
+      if (value === null) effects.unknown = true;
+      else mergeRunnerEffects(effects, { environment: { [assignment[1]]: value ?? "${unprovable}" } });
+    }
+  };
+
+  for (const { command, operator } of splitCommands(script)) {
+    const list = words(command);
+    const redirect = list.findIndex(word => word.redirectionAt !== undefined);
+
+    const destinations = list.flatMap((word, index) => word.redirections.map((redirection, position) => {
+      const end = word.redirections[position + 1]?.at ?? word.value.length;
+
+      return { value: word.value.slice(redirection.end, end) || list[index + 1]?.value, hasExpansion: word.hasExpansion || list[index + 1]?.hasExpansion };
+    }));
+
+    const destinationsSinks = destinations.map(destination => {
+      if (!destination.hasExpansion) return undefined;
+      const target = /^\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))$/.exec(destination.value ?? "");
+
+      if (target) return sinks.get(target[1] ?? target[2]);
+
+      if (/\$(?:\{)?GITHUB_(?:ENV|PATH)\b/.test(destination.value ?? "")) return "both";
+
+      return undefined;
+    });
+
+    const input = redirect === -1 ? list : list.slice(0, redirect).concat(list[redirect].redirectionAt ? [{ ...list[redirect], value: list[redirect].value.slice(0, list[redirect].redirectionAt) }] : []);
+    const context = commandContext(input, environment);
+    let argv = input.slice(context.index);
+
+    while (argv[0]?.value === "{") {
+      groups.push([]);
+      argv = argv.slice(1);
+    }
+
+    const bindings = ENVIRONMENT_DECLARATIONS.has(argv[0]?.value) ? argv.slice(1) : argv.length === 0 ? input : [];
+
+    for (const word of bindings) {
+      const assignment = /^([A-Za-z_]\w*)=(.*)$/.exec(word.value);
+
+      if (!assignment) continue;
+      const value = { ...word, value: assignment[2] };
+      const expanded = expand(value);
+      const alias = word.hasExpansion && /^\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))$/.exec(value.value);
+
+      if ((conditional || blockDepth > 0) && (!scalars.has(assignment[1]) || expanded === null)) scalars.delete(assignment[1]);
+      else if (conditional || blockDepth > 0) scalars.set(assignment[1], scalars.get(assignment[1]) === expanded ? expanded : undefined);
+      else if (expanded !== null) scalars.set(assignment[1], expanded);
+      else scalars.delete(assignment[1]);
+
+      const nextSink = alias ? sinks.get(alias[1] ?? alias[2]) : undefined;
+      const previousSink = sinks.get(assignment[1]);
+
+      if ((conditional || blockDepth > 0) && previousSink && previousSink !== nextSink) sinks.set(assignment[1], "both");
+      else if (nextSink) sinks.set(assignment[1], nextSink);
+      else sinks.delete(assignment[1]);
+    }
+
+    let emitted = [];
+
+    if (argv[0]?.value === "echo") emitted = argv.slice(1).some(word => word.value.startsWith('-') || word.value.includes("\\")) ? null : [{ value: argv.slice(1).map(word => word.value).join(" "), hasExpansion: argv.slice(1).some(word => word.hasExpansion) }];
+    else if (argv[0]?.value === "printf") {
+      const format = argv[1];
+
+      if (!format || format.hasExpansion) emitted = null;
+      else if (format.value === "%s\\n") emitted = argv.slice(2);
+      else if (!format.value.includes("%") && !/\\(?!n)/.test(format.value)) emitted = format.value.replace(/\\n/g, "\n").split("\n").filter(Boolean).map(value => ({ value, hasExpansion: false }));
+      else emitted = null;
+    } else if (!["{", "}", "if", "then", "fi", "[", "[[", "export", "declare"].includes(argv[0]?.value) && argv[0] && !argv[0].value.includes("=")) emitted = null;
+
+    if (argv[0]?.value === "}") emitted = groups.pop() ?? null;
+
+    if (argv[0]?.value === "tee") emitted = output;
+
+    for (const sink of destinationsSinks) {
+      if (sink === "path" || sink === "both") effects.pathChanged = true;
+
+      if (sink === "environment") record(emitted);
+
+      if (sink === "both") effects.unknown = true;
+    }
+
+    if (argv[0]?.value === "tee") {
+      for (const word of argv.slice(1)) {
+        const variable = word.hasExpansion && /^\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))$/.exec(word.value);
+        const file = variable && sinks.get(variable[1] ?? variable[2]);
+
+        if (file === "path") effects.pathChanged = true;
+        else if (file === "environment") record(output);
+        else if (file === "both") effects.unknown = true;
+      }
+    }
+
+    if (!context.introspection && argv[0] && !["tee", "echo", "printf", "cat", "test", "[", "[[", "stat", "wc", "head", "tail", "grep", "ls"].includes(argv[0].value)) {
+      for (const word of argv.slice(1)) {
+        const variable = word.hasExpansion && /^\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))$/.exec(word.value);
+        const file = variable && sinks.get(variable[1] ?? variable[2]);
+
+        if (file === "path") effects.pathChanged = true;
+        else if (file === "environment" || file === "both") effects.unknown = true;
+      }
+    }
+
+    if (groups.length && argv[0]?.value !== "{" && destinations.length === 0 && !PIPELINE.has(operator)) {
+      const last = groups.length - 1;
+
+      groups[last] = groups[last] === null || emitted === null ? null : groups[last].concat(emitted);
+    }
+
+    for (const nested of commandSubstitutions(command)) mergeRunnerEffects(effects, runnerEnvironmentEffects(nested, environment, { scalars, sinks }));
+
+    if (argv[0]?.value === "eval" && argv.slice(1).every(word => !word.hasExpansion)) mergeRunnerEffects(effects, runnerEnvironmentEffects(argv.slice(1).map(word => word.value).join(" "), environment, { scalars, sinks }));
+    const commandOption = ["bash", "sh"].includes(path.posix.basename(argv[0]?.value ?? "")) ? argv.findIndex(word => /^-[eux]*c[eux]*$/.test(word.value)) : -1;
+
+    if (commandOption !== -1 && argv[commandOption + 1] && !argv[commandOption + 1].hasExpansion) mergeRunnerEffects(effects, runnerEnvironmentEffects(argv[commandOption + 1].value, environment, { scalars, sinks }));
+
+    if (["source", ".", "eval", "unset", "read"].includes(argv[0]?.value)) scalars.clear();
+
+    if (BLOCK_CLOSERS.test(command.trim())) blockDepth = Math.max(0, blockDepth - 1);
+
+    if (BLOCK_OPENERS.test(command.trim())) blockDepth++;
+    conditional = operator === "&&" || operator === "||";
+    output = operator === "|" || operator === "|&" ? emitted : [];
+  }
+
+  return effects;
+}
+
+function githubScriptEnvironmentEffects(script) {
+  const effects = { environment: {}, pathChanged: false, unknown: false };
+  const source = parseModule(script, "github-script.js");
+  const bindings = new Map();
+
+  const bind = (name, value) => {
+    if (!bindings.has(name)) bindings.set(name, new Set());
+
+    bindings.get(name).add(value);
+  };
+
+  const collect = node => {
+    if (ts.isImportSpecifier(node)) bind(node.name.text, ts.factory.createIdentifier(node.propertyName?.text ?? node.name.text));
+
+    if (ts.isVariableDeclaration(node)) {
+      if (ts.isIdentifier(node.name)) bind(node.name.text, node.initializer);
+      else if (ts.isObjectBindingPattern(node.name) && node.initializer) {
+        for (const element of node.name.elements) {
+          if (ts.isIdentifier(element.name) && !element.dotDotDotToken) bind(element.name.text, ts.factory.createElementAccessExpression(node.initializer, ts.factory.createStringLiteral(accessedName(element.propertyName ?? element.name))));
+        }
+      }
+    }
+
+    if (ts.isBinaryExpression(node) && ts.isIdentifier(node.left) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) bind(node.left.text, node.right);
+
+    ts.forEachChild(node, collect);
+  };
+
+  const possible = (node, seen = new Set()) => {
+    if (!node) return [undefined];
+
+    if (ts.isParenthesizedExpression(node)) return possible(node.expression, seen);
+
+    if (ts.isIdentifier(node) && bindings.has(node.text) && !seen.has(node.text)) {
+      const next = new Set(seen).add(node.text);
+
+      return [...bindings.get(node.text)].flatMap(value => possible(value, next));
+    }
+
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "bind") return possible(node.expression.expression, seen);
+
+    if (ts.isConditionalExpression(node)) return possible(node.whenTrue, seen).concat(possible(node.whenFalse, seen));
+
+    return [node];
+  };
+
+  collect(source);
+
+  const literal = node => node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : undefined;
+  const exportedReferences = new Set();
+  const calledExports = new Set();
+
+  const visit = node => {
+    if ((ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) && accessedName(node) === "addPath") effects.pathChanged = true;
+
+    if ((ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) && accessedName(node) === "exportVariable") exportedReferences.add(node);
+
+    if (ts.isCallExpression(node)) {
+      const callees = possible(node.expression);
+      const names = new Set(callees.filter(Boolean).map(accessedName));
+
+      if (names.has("addPath")) effects.pathChanged = true;
+
+      if (names.has("exportVariable")) {
+        for (const callee of callees) calledExports.add(callee);
+
+        for (const key of possible(node.arguments[0])) {
+          for (const value of possible(node.arguments[1])) {
+            const name = literal(key);
+            const data = literal(value);
+
+            if (name !== undefined && data !== undefined && /^[A-Za-z_]\w*$/.test(name) && !/[\r\n]/.test(data)) mergeRunnerEffects(effects, { environment: { [name]: data } });
+            else effects.unknown = true;
+          }
+        }
+      }
+
+      const writes = [...names].filter(name => ["appendFile", "appendFileSync", "writeFile", "writeFileSync", "createWriteStream", "copyFile", "copyFileSync", "rename", "renameSync"].includes(name));
+
+      for (const writer of writes) {
+        const copied = /^(?:copyFile|rename)/.test(writer);
+
+        for (const target of possible(node.arguments[copied ? 1 : 0])) {
+          const file = target ? accessedName(target) : "";
+
+          if (file === "GITHUB_PATH") effects.pathChanged = true;
+
+          if (file === "GITHUB_ENV") {
+            for (const value of possible(node.arguments[1])) {
+              const data = copied || writer === "createWriteStream" ? undefined : literal(value);
+
+              if (data === undefined) effects.unknown = true;
+              else {
+                for (const line of data.split(/\r?\n/).filter(Boolean)) {
+                  const record = /^([A-Za-z_]\w*)=(.*)$/.exec(line);
+
+                  if (record) mergeRunnerEffects(effects, { environment: { [record[1]]: record[2] } });
+                  else effects.unknown = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  if ([...exportedReferences].some(node => !calledExports.has(node))) effects.unknown = true;
+
+  return effects;
+}
+
+export function standAloneHelpers(lock, compilerActionsAvailable = false) {
   const files = new Set();
 
   for (const job of Object.values(lock.jobs ?? {})) {
@@ -1643,7 +1991,8 @@ export function standAloneHelpers(lock) {
     // branches, a `continue-on-error` install, and any helper written before the install stay
     // in the dependency-free set.
     let installed = false;
-    let actionsDirectoryAvailable = false;
+    let actionsDirectoryAvailable = compilerActionsAvailable;
+    const persistent = { environment: {}, pathChanged: false, unknown: false };
 
     for (const step of steps) {
       const script = step.run ?? "";
@@ -1655,11 +2004,17 @@ export function standAloneHelpers(lock) {
       const modeledShell = shell === "bash" || shell === "sh" || (shell === undefined && defaultIsPosix);
       const canCreditInstall = modeledShell && ROOT_WORKING_DIRECTORIES.has(workingDirectory);
       const mayContinueOnError = step["continue-on-error"] !== undefined && step["continue-on-error"] !== false;
-      const environment = { ...lock.env, ...job.env, ...step.env };
-      let environmentMutated = false;
-      let installerShadowed = Object.hasOwn(environment, "PATH") || Object.entries(environment).some(([name, value]) => (/^(?:BASH_ENV|ENV)$/.test(name) && String(value).trim() !== "") || /^BASH_FUNC_(?:bun|npm)%%$/.test(name));
+      const environment = { ...lock.env, ...job.env, ...persistent.environment, ...step.env };
+
+      if (persistent.unknown) throw new Error("unprovable persistent runner environment; use literal single-line environment records");
+      const startupUncertain = ["NODE_OPTIONS", "BASH_ENV", "ENV"].some(name => Object.hasOwn(persistent.environment, name) && String(environment[name] ?? "").trim() !== "");
+
+      if (startupUncertain) installed = false;
+      let environmentMutated = startupUncertain || Object.keys(persistent.environment).some(name => /^(?:PATH|NODE_ENV|npm_config_.*)$/i.test(name) && environment[name] === "${unprovable}");
+      let installerShadowed = persistent.pathChanged || Object.hasOwn(environment, "PATH") || Object.entries(environment).some(([name, value]) => (/^(?:BASH_ENV|ENV)$/.test(name) && String(value).trim() !== "") || /^BASH_FUNC_(?:bun|npm)%%$/.test(name));
 
       if (step.uses?.startsWith("github/gh-aw-actions/setup@") && step.with?.destination === "${{ runner.temp }}/gh-aw/actions" && step.if === undefined && !mayContinueOnError) actionsDirectoryAvailable = true;
+      let stepCompilerActionsAvailable = actionsDirectoryAvailable;
 
       if (step.uses?.startsWith("actions/github-script@") && (!installed || runsAfterEarlierFailure)) {
         rejectNodeOptions(environment);
@@ -1691,6 +2046,9 @@ export function standAloneHelpers(lock) {
         const environmentWords = declaration ? parsedWords.slice(commandPosition + 1) : parsedWords.slice(0, firstCommand === -1 ? parsedWords.length : firstCommand);
 
         if (commandName === "eval") environmentMutated = true;
+
+        if (["eval", "source", "."].includes(commandName) || environmentWords.some(word => word.value.startsWith('RUNNER_TEMP=')) ||
+            (commandName === "unset" && effectiveArgv.slice(1).some(value => value === "RUNNER_TEMP"))) stepCompilerActionsAvailable = false;
 
         if (["source", ".", "alias"].includes(commandName) || /^(?:(?:bun|npm)\s*\(\s*\)|function\s+(?:bun|npm)(?:\s|\())/.test(text)) installerShadowed = true;
 
@@ -1732,7 +2090,7 @@ export function standAloneHelpers(lock) {
           }
 
           for (const [index, scan] of [text].concat(heredocs).entries()) {
-            for (const reference of helperReferences(scan, environment, index > 0)) {
+            for (const reference of helperReferences(scan, environment, index > 0, stepCompilerActionsAvailable)) {
               if (relocated || !ROOT_WORKING_DIRECTORIES.has(workingDirectory)) throw new Error(`unprovable helper working directory: ${workingDirectory}; invoke install-free helpers from the checkout root without directory-stack mutations`);
 
               files.add(reference.replace(/^upstream-sync-policy\//, ""));
@@ -1794,6 +2152,9 @@ export function standAloneHelpers(lock) {
       const survivors = group.concat(dead).filter(key => exitedOk(key) || mayContinueOnError);
 
       installed = survivors.length > 0 && survivors.every(installedIn);
+      mergeRunnerEffects(persistent, runnerEnvironmentEffects(script, environment));
+
+      if (step.uses?.startsWith("actions/github-script@")) mergeRunnerEffects(persistent, githubScriptEnvironmentEffects(step.with?.script ?? ""));
     }
   }
 

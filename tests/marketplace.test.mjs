@@ -1447,6 +1447,111 @@ test("Bash hash overrides cannot prove installer or helper identity", async () =
   assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
+test("shell stdin and script files cannot hide install-free helpers", async () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const run of [
+    "bash",
+    "sh -s",
+    "printf 'node tools/x.mjs\\n' | bash",
+    "bash <<'EOF'\nnode tools/x.mjs\nEOF\n",
+    "bash tools/run.sh",
+    "env sh tools/run.sh",
+    "bash -lc 'node tools/x.mjs'",
+  ]) assert.throws(() => job(run), /unprovable shell/);
+
+  assert.deepEqual(job("bash -c 'node tools/x.mjs'"), ["tools/x.mjs"]);
+  assert.deepEqual(job("bash --help; sh --version"), []);
+  const compiler = { uses: "github/gh-aw-actions/setup@pinned", with: { destination: "${{ runner.temp }}/gh-aw/actions" } };
+  const script = { run: 'bash "${RUNNER_TEMP}/gh-aw/actions/mask_headers.sh"' };
+
+  assert.deepEqual([...standAloneHelpers({ jobs: { build: { steps: [compiler, script] } } })], []);
+  assert.throws(() => standAloneHelpers({ jobs: { build: { steps: [script, compiler] } } }), /unprovable shell/);
+  assert.throws(() => standAloneHelpers({ jobs: { build: { steps: [compiler, { run: 'bash "${RUNNER_TEMP}/gh-aw/actions/../evil.sh"' }] } } }), /unprovable shell/);
+  assert.throws(() => standAloneHelpers({ jobs: { build: { steps: [compiler, { ...script, env: { RUNNER_TEMP: "/tmp/evil" } }] } } }), /unprovable shell/);
+
+  for (const prefix of ["RUNNER_TEMP=/tmp/evil", "export RUNNER_TEMP=/tmp/evil", "unset RUNNER_TEMP", "eval 'RUNNER_TEMP=/tmp/evil'"]) {
+    assert.throws(() => standAloneHelpers({ jobs: { build: { steps: [compiler, { run: `${prefix}\n${script.run}` }] } } }), /unprovable shell/);
+  }
+
+  assert.deepEqual([...standAloneHelpers({ jobs: { build: { steps: [compiler, { run: `bash -c '${script.run}'` }] } } })], []);
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-shell-stdin-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/x.mjs"), 'import "@scope/missing-package";');
+  await writeFile(path.join(dir, "tools/run.sh"), "node tools/x.mjs\n");
+
+  for (const command of ["printf 'node tools/x.mjs\\n' | bash", "bash <<'EOF'\nnode tools/x.mjs\nEOF\n", "sh tools/run.sh"]) {
+    const loaded = spawnSync("bash", ["-e", "-c", command], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.notEqual(loaded.status, 0);
+    assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
+});
+
+test("runner environment file effects persist into later install proof", async () => {
+  const job = steps => [...standAloneHelpers({ jobs: { build: { steps } } })];
+  const install = { run: "bun install" };
+  const helper = { run: "node tools/x.mjs" };
+
+  for (const run of ['echo "/tmp/fake" >> "$GITHUB_PATH"', 'printf "/tmp/fake\\n" >> "${GITHUB_PATH}"', 'echo "/tmp/fake">>"$GITHUB_PATH"', 'echo "/tmp/fake" 2>/dev/null >> "$GITHUB_PATH"', 'echo "/tmp/fake" | tee -a "$GITHUB_PATH"', 'target="$GITHUB_PATH"; echo "/tmp/fake" >> "$target"', 'bash -c \'echo "/tmp/fake" >> "$GITHUB_PATH"\'']) {
+    assert.deepEqual(job([{ run }, install, helper]), ["tools/x.mjs"]);
+  }
+
+  for (const [name, value] of [["NODE_ENV", "production"], ["NPM_CONFIG_DRY_RUN", "true"], ["PATH", "/tmp/fake"]]) {
+    assert.deepEqual(job([{ run: `echo "${name}=${value}" >> "$GITHUB_ENV"` }, { run: "npm ci" }, helper]), ["tools/x.mjs"]);
+  }
+
+  assert.throws(() => job([{ run: 'echo "BASH_ENV=/tmp/startup.sh" >> "$GITHUB_ENV"' }, helper]), /unprovable.*directory|environment/);
+  assert.throws(() => job([{ run: 'echo "NODE_OPTIONS=--import package" >> "$GITHUB_ENV"' }, helper]), /NODE_OPTIONS|environment/);
+  assert.throws(() => job([{ run: 'cat "$PAYLOAD" >> "$GITHUB_ENV"' }, install, helper]), /unprovable.*environment|NODE_OPTIONS/);
+  assert.deepEqual(job([{ run: 'echo "SAFE=plain" >> "$GITHUB_ENV"' }, install, helper]), []);
+  assert.deepEqual(job([{ run: '{\necho "SAFE=plain"\necho "OTHER=value"\n} >> "$GITHUB_ENV"' }, install, helper]), []);
+  assert.deepEqual(job([{ run: 'echo "$GITHUB_ENV"; cat "$GITHUB_ENV"' }, install, helper]), []);
+  assert.deepEqual(job([{ uses: "actions/github-script@pinned", with: { script: 'core.addPath("/tmp/fake");' } }, install, helper]), ["tools/x.mjs"]);
+  assert.deepEqual(job([{ uses: "actions/github-script@pinned", with: { script: 'core.exportVariable("NODE_ENV", "production");' } }, { run: "npm ci" }, helper]), ["tools/x.mjs"]);
+
+  for (const script of [
+    'const prepend = core.addPath; prepend("/tmp/fake");',
+    'const fs = require("node:fs"); fs.appendFileSync(process.env.GITHUB_PATH, "/tmp/fake\\n");',
+    'const file = process.env.GITHUB_PATH; const write = require("node:fs").appendFileSync; write(file, "/tmp/fake\\n");',
+  ]) assert.deepEqual(job([{ uses: "actions/github-script@pinned", with: { script } }, install, helper]), ["tools/x.mjs"]);
+
+  for (const script of [
+    'const save = core.exportVariable; save("NODE_ENV", "production");',
+    'const { exportVariable: save } = core; save("NODE_ENV", "production");',
+    'const fs = require("node:fs"); fs.appendFileSync(process.env.GITHUB_ENV, "NODE_ENV=production\\n");',
+  ]) assert.deepEqual(job([{ uses: "actions/github-script@pinned", with: { script } }, { run: "npm ci" }, helper]), ["tools/x.mjs"]);
+
+  assert.deepEqual(job([{ run: 'echo "NODE_ENV=production" | tee -a "$GITHUB_ENV"' }, { run: "npm ci" }, helper]), ["tools/x.mjs"]);
+  assert.throws(() => job([{ run: '{ echo "$UNPROVEN"; } >> "$GITHUB_ENV"' }, install, helper]), /unprovable.*environment/);
+  assert.throws(() => job([{ run: 'echo "SAFE=$PAYLOAD" >> "$GITHUB_ENV"', env: { PAYLOAD: "plain\nBASH_ENV=/tmp/startup" } }, install, helper]), /unprovable.*environment/);
+  assert.deepEqual(job([install, { run: 'echo "/tmp/fake" >> "$GITHUB_PATH"' }, helper]), []);
+  assert.deepEqual(job([{ run: 'echo "NODE_ENV=production" >> "$GITHUB_ENV"' }, { run: 'echo "NODE_ENV=" >> "$GITHUB_ENV"', if: "${{ inputs.clear }}" }, { run: "npm ci" }, helper]), ["tools/x.mjs"]);
+  assert.deepEqual(job([{ run: 'echo "NODE_ENV=production" >> "$GITHUB_ENV"' }, { run: "npm ci", env: { NODE_ENV: "development" } }, helper]), []);
+  assert.deepEqual(job([{ run: 'target="$GITHUB_PATH"; eval \'echo "/tmp/fake" >> "$target"\'' }, install, helper]), ["tools/x.mjs"]);
+  assert.throws(() => job([{ run: 'cp "$PAYLOAD" "$GITHUB_ENV"' }, install, helper]), /unprovable.*environment/);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-runner-path-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "fake"));
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/write-env.mjs"), 'import { appendFileSync as write } from "node:fs"; write(process.env.GITHUB_ENV, "PATH=/tmp/fake\\n");');
+  await assert.rejects(dependencyFreeClosure(dir, ["tools/write-env.mjs"]), /persistent runner environment/);
+  await writeFile(path.join(dir, "fake/bun"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  await writeFile(path.join(dir, "tools/x.mjs"), 'import "@scope/missing-package";');
+  const pathFile = path.join(dir, "github-path");
+  const written = spawnSync("bash", ["-e", "-c", 'printf "%s\\n" "$1" >> "$GITHUB_PATH"', "scarydex-path-test", path.join(dir, "fake")], { cwd: dir, env: { ...process.env, GITHUB_PATH: pathFile }, encoding: "utf8", timeout: 5000 });
+
+  assert.equal(written.status, 0, written.stderr);
+  const loaded = spawnSync("bash", ["-e", "-c", "bun install; node tools/x.mjs"], { cwd: dir, env: { ...process.env, PATH: `${(await readFile(pathFile, "utf8")).trim()}:${process.env.PATH}` }, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
 const SINGLE = String.fromCharCode(10);
 
 test("workflow helpers executed without dependency install stay dependency-free", async () => {

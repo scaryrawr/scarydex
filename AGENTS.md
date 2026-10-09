@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 240 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 242 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -133,6 +133,20 @@ Negated installers cannot establish install proof, and Bun `--cwd` relocation
 options cannot prove checkout-root dependency availability.
 Bash hash overrides are installer shadowing and are refused in install-free
 commands; literal hash queries and cache resets remain supported.
+Shell stdin, repository script files and startup/login options are refused
+without a verifiable literal payload. Compiler shell files are supported only
+after observed setup, with an unshadowed runner-temp location.
+Runner environment-file effects persist between steps in the same job.
+PATH-file additions deny future installer identity proof without erasing an
+already installed tree. Environment records must be provably single-line;
+unknown producers and startup hooks cannot preserve dependency proof.
+Grouped output, redirections, file aliases, tee, nested literal shells/eval,
+GitHub Script core APIs and direct file writers share this boundary.
+Install-free module closures cannot hide dependency-related runner environment
+writes; expose those writes in workflow steps instead. Step environment values
+take precedence over persisted values, and ambiguous conditional writes remain
+unproven. GitHub Actions itself blocks NODE_OPTIONS through GITHUB_ENV;
+the guard also refuses such records rather than depending on runner version.
 It parses each module with the TypeScript compiler rather than matching regexes,
 so trivia between tokens (`import /* c */ "pkg"`) counts
 and a package name inside a comment or string does not. Every target lands in one of
