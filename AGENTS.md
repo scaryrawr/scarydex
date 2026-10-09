@@ -20,7 +20,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run build` regenerates the bundled OMLX/pstack helpers and hash manifests.
 - `bun run check` validates inventory, manifests, skill YAML, local links, hooks,
   and bundle freshness.
-- `bun run lint` runs Oxlint 1.83.0 with the anti-slop plugin's rules over the
+- `bun run lint` runs Oxlint with the anti-slop plugin's rules over the
   code maintained in this repository (`tools/`, `tests/`, and `plugins/omlx-media/`).
   Ported plugin content (`plugins/pstack`, `plugins/anti-slop`) and dependency-free
   shipped skill runtimes stay verbatim upstream under the port boundary; generated
@@ -28,13 +28,13 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 284 tests across 17 files.
+  test files and strips types from `.ts` files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
 Run `bun test` unsandboxed (elevated permissions). It shells out to `git` in
 temporary repositories, and a filesystem sandbox kills those children: the symptom
-is `actual: null` assertions followed by 5000ms test timeouts, typically 27 failures
+is `actual: null` assertions followed by test timeouts
 in `tests/upstream-sync.test.mjs` and the pstack orch/store tests. Those are
 environment noise, not regressions. `bun install`, `build`, `check`, `lint`, and
 `typecheck` succeed inside the sandbox; only the git-spawning tests need escalation.
@@ -179,6 +179,10 @@ literal informational `git --version` calls without a shell or options object.
 The publication helper has an exact-content SHA-256 exception: changing its bytes
 requires reviewing its Git operation grammar, environment/config isolation and
 external-only artifact outputs before updating the seal in `check-marketplace.mjs`.
+Git execution rejects custom merge drivers and signature programs, and disables
+three-way `am` fallback and automatic signature verification in history reads.
+Output-path validation distinguishes missing components from dangling symlinks;
+only ordinary missing paths may be reconstructed below a resolved external parent.
 Arbitrary executable paths cannot acquire
 native-command trust from their basename. Hash/function/alias shadowing survives
 dependency loss within the same shell. Dependency worlds are deduplicated at every

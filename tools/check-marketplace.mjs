@@ -667,7 +667,7 @@ function parseModule(source, file) {
   }, true, ts.ScriptKind.JS);
 }
 
-const AUDITED_GIT_POLICY = "e7f00743d7a253d16f0e808189dfee61816d087514cd1e22da657d3474970851";
+const AUDITED_GIT_POLICY = "e962b2f949ccb12685a9743d37136ee6c4e1ce0b56729ad1267d1a4b3bb2ebea";
 
 export function scanImports(source, file = "module.mjs") {
   const sourceFile = parseModule(source, file);

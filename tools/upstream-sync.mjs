@@ -123,7 +123,12 @@ export function verifiedGitArguments(input) {
     }
   }
 
-  return ["diff", "show", "log"].includes(command) ? [input[0], "--no-ext-diff", "--no-textconv", ...input.slice(1)] : [...input];
+  const commandIndex = input[0] === "-c" ? 4 : 0;
+  const isolation = ["diff", "show", "log"].includes(command) ? ["--no-ext-diff", "--no-textconv"] : command === "am" ? ["--no-3way"] : [];
+
+  if (["show", "log"].includes(command)) isolation.push("--no-show-signature");
+
+  return [...input.slice(0, commandIndex + 1), ...isolation, ...input.slice(commandIndex + 1)];
 }
 
 function git(directory, args, allowed = [0], input) {
@@ -135,7 +140,7 @@ function git(directory, args, allowed = [0], input) {
   };
 
   const prefix = ["--no-pager", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-c", "core.quotePath=false", "-C", directory];
-  const executableConfig = spawnSync("git", [...prefix, "config", "--get-regexp", "^(alias\\.|filter\\.|diff\\..*\\.(command|textconv)$|diff\\.external$|core\\.(sshcommand|pager|editor)$|credential\\..*\\.helper$)"], { env: environment, maxBuffer: LIMITS.bytes });
+  const executableConfig = spawnSync("git", [...prefix, "config", "--get-regexp", "^(alias\\.|filter\\.|diff\\..*\\.(command|textconv)$|diff\\.external$|merge\\..*\\.driver$|gpg\\.(.*\\.)?(program|defaultkeycommand)$|core\\.(sshcommand|pager|editor)$|credential\\.(.*\\.)?helper$)"], { env: environment, maxBuffer: LIMITS.bytes });
 
   if (executableConfig.error || ![0, 1].includes(executableConfig.status)) throw new Error("Unable to verify Git executable configuration", { cause: executableConfig.error });
   requireThat(executableConfig.status === 1, "Git executable configuration is not allowed in the publication helper");
@@ -747,6 +752,12 @@ function externalOutput(file) {
       break;
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
+      let stats;
+
+      try { stats = lstatSync(ancestor); }
+      catch (missing) { if (missing.code !== "ENOENT") throw missing; }
+
+      requireThat(!stats?.isSymbolicLink(), "Publication outputs cannot traverse a dangling symbolic link");
       missing.unshift(path.basename(ancestor));
       ancestor = path.dirname(ancestor);
     }

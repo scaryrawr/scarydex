@@ -161,6 +161,7 @@ git diff --exit-code -- .github/workflows/upstream-sync.lock.yml
 `--output` refuses to overwrite existing files. Plan and safe-output artifacts must
 stay outside the checkout containing the policy helper, including through symlinks;
 use a runner-temporary directory or `/tmp` so outputs cannot replace audited code.
+Dangling symlinks are refused even when their missing targets appear external.
 `verify` checks the complete
 worktree/index and untracked paths. `--head SHA` checks a committed tree instead.
 `--root DIR` supports isolated fixture repositories.

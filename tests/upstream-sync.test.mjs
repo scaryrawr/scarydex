@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, renameSync, symlinkSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, realpathSync, rmSync, renameSync, symlinkSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
@@ -25,10 +25,15 @@ test("publication Git operation grammar excludes executable aliases and options"
     ["unknown"],
     ["__proto__"],
     ["remote", "update"],
+    ["am", "--3way"],
+    ["show", "--show-signature"],
   ]) assert.throws(() => verifiedGitArguments(args), /Unapproved Git/);
 
   assert.deepEqual(verifiedGitArguments(["diff", "--binary", "HEAD"]), ["diff", "--no-ext-diff", "--no-textconv", "--binary", "HEAD"]);
   assert.deepEqual(verifiedGitArguments(["ls-tree", "-r", "HEAD", "--", "-data"]), ["ls-tree", "-r", "HEAD", "--", "-data"]);
+  assert.deepEqual(verifiedGitArguments(["am", "--no-gpg-sign", "patch"]), ["am", "--no-3way", "--no-gpg-sign", "patch"]);
+  assert.deepEqual(verifiedGitArguments(["-c", "user.name=Upstream verifier", "-c", "user.email=verifier@localhost", "am", "--no-gpg-sign", "patch"]),
+    ["-c", "user.name=Upstream verifier", "-c", "user.email=verifier@localhost", "am", "--no-3way", "--no-gpg-sign", "patch"]);
 
   const f = fixture();
 
@@ -38,8 +43,12 @@ test("publication Git operation grammar excludes executable aliases and options"
   });
 
   assert.equal(inherited.status, 0, inherited.stderr);
-  git(f.scarypilot, "config", "alias.probe", "!node ./hidden.mjs");
-  assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /Git executable configuration is not allowed/);
+
+  for (const key of ["alias.probe", "filter.probe.process", "diff.probe.textconv", "merge.probe.driver", "gpg.program", "gpg.ssh.program", "gpg.ssh.defaultKeyCommand", "credential.helper", "credential.https://example.invalid.helper"]) {
+    git(f.scarypilot, "config", key, "fixture-command");
+    assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /Git executable configuration is not allowed/, key);
+    git(f.scarypilot, "config", "--unset", key);
+  }
 });
 
 afterEach(() => { for (const directory of temporary.splice(0)) rmSync(directory, { recursive: true, force: true }); });
@@ -55,6 +64,103 @@ test("publication artifact outputs cannot replace the audited policy checkout th
   for (const output of [helper, path.join(root, "tools/uncreated-output.json"), path.join(directory, "checkout/tools/upstream-sync.mjs")]) assert.throws(() => skipEmptyPlan(plan, output), /outside the policy helper checkout/);
   assert.equal(readFileSync(helper, "utf8"), before);
   assert.deepEqual(skipEmptyPlan(plan, path.join(directory, "result/noop.json")), { skipped: true });
+});
+
+test("publication rejects merge drivers before three-way patch application", () => {
+  const f = fixture();
+  write(f.local, ".gitattributes", "tests/driver.txt merge=probe\n");
+  write(f.local, "tests/driver.txt", "base\n");
+  const base = commit(f.local, "Merge driver base");
+  write(f.local, "tests/driver.txt", "proposal\n");
+  const proposal = commit(f.local, "Patch change");
+  const patch = path.join(f.directory, "driver.patch");
+  writeFileSync(patch, git(f.local, "format-patch", "--stdout", `${base}..${proposal}`) + "\n");
+  git(f.local, "switch", "--detach", base);
+  write(f.local, "tests/driver.txt", "current\n");
+  commit(f.local, "Current change");
+  const marker = path.join(f.directory, "driver-ran");
+  const driver = path.join(f.directory, "driver.sh");
+  writeFileSync(driver, `printf executed > '${marker}'\nexit 1\n`);
+  git(f.local, "config", "am.threeWay", "true");
+  git(f.local, "config", "merge.probe.driver", `sh '${driver}'`);
+
+  const native = spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-C", f.local, "am", "--no-gpg-sign", patch], { encoding: "utf8" });
+
+  assert.equal(native.status, 128, native.stderr);
+  assert.equal(readFileSync(marker, "utf8"), "executed");
+  git(f.local, "am", "--abort");
+  rmSync(marker);
+
+  const isolated = spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-C", f.local, ...verifiedGitArguments(["am", "--no-gpg-sign", patch])], { encoding: "utf8" });
+
+  assert.equal(isolated.status, 128, isolated.stderr);
+  assert.equal(existsSync(marker), false);
+  git(f.local, "am", "--abort");
+  assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /Git executable configuration is not allowed/);
+  assert.equal(existsSync(marker), false);
+});
+
+test("publication history cannot launch configured signature verification", () => {
+  const f = fixture();
+  const tree = git(f.scarypilot, "write-tree");
+
+  const signed = spawnSync("git", ["-C", f.scarypilot, "hash-object", "-t", "commit", "-w", "--stdin"], {
+    encoding: "utf8",
+    input: `tree ${tree}\nparent ${f.scaryBase}\nauthor Fixture <fixture@localhost> 1700000000 +0000\ncommitter Fixture <fixture@localhost> 1700000000 +0000\ngpgsig -----BEGIN PGP SIGNATURE-----\n fixture\n -----END PGP SIGNATURE-----\n\nSigned fixture\n`,
+  });
+
+  assert.equal(signed.status, 0, signed.stderr);
+  const sha = signed.stdout.trim();
+  git(f.scarypilot, "update-ref", "HEAD", sha);
+  const marker = path.join(f.directory, "signature-ran");
+  const verifier = path.join(f.directory, "verify-signature.sh");
+  writeFileSync(verifier, `#!/bin/sh\nprintf executed > '${marker}'\nexit 1\n`);
+  chmodSync(verifier, 0o700);
+  git(f.scarypilot, "config", "gpg.program", verifier);
+  git(f.scarypilot, "config", "log.showSignature", "true");
+  git(f.scarypilot, "show", "-s", "--format=%s", sha);
+  assert.equal(readFileSync(marker, "utf8"), "executed");
+  rmSync(marker);
+  git(f.scarypilot, ...verifiedGitArguments(["show", "-s", "--format=%s", sha]));
+  assert.equal(existsSync(marker), false);
+  git(f.scarypilot, ...verifiedGitArguments(["log", "--format=%H", `${f.scaryBase}..${sha}`]));
+  assert.equal(existsSync(marker), false);
+  assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /Git executable configuration is not allowed/);
+  assert.equal(existsSync(marker), false);
+});
+
+test("dangling output symlinks cannot create files inside the policy checkout", () => {
+  const directory = realpathSync(mkdtempSync(path.join(os.tmpdir(), "scarydex-dangling-output-")));
+
+  temporary.push(directory);
+  const checkout = path.join(directory, "checkout");
+  const copiedHelper = path.join(checkout, "tools/upstream-sync.mjs");
+  write(checkout, "tools/upstream-sync.mjs", readFileSync(helper));
+  const plan = path.join(directory, "plan.json");
+  writeJson(directory, "plan.json", { schemaVersion: 1, repository: "scaryrawr/scarydex", tracks: TRACKS.map(track => ({ id: track.id, commits: [] })) });
+
+  for (const [linkName, target, suffix] of [
+    ["file-link", path.join(checkout, "missing-file.json"), ""],
+    ["directory-link", path.join(checkout, "missing-directory"), "/noop.json"],
+    ["external-link", path.join(directory, "external-missing.json"), ""],
+  ]) {
+    const link = path.join(directory, linkName);
+    symlinkSync(target, link);
+
+    const result = spawnSync("node", [copiedHelper, "skip-empty", "--plan", plan], {
+      encoding: "utf8", env: { ...process.env, GH_AW_SAFE_OUTPUTS: link + suffix },
+    });
+
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /dangling symbolic link/);
+    assert.equal(existsSync(target), false);
+  }
+
+  const output = path.join(directory, "ordinary/missing/output.json");
+  const result = spawnSync("node", [copiedHelper, "skip-empty", "--plan", plan], { encoding: "utf8", env: { ...process.env, GH_AW_SAFE_OUTPUTS: output } });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(readFileSync(output, "utf8"), /No upstream changes/);
 });
 
 function run(command, args, cwd) {
