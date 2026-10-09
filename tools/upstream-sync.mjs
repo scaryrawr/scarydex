@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { constants, openSync, closeSync, fstatSync, readFileSync, writeFileSync, mkdirSync, readdirSync, lstatSync, realpathSync, mkdtempSync, rmSync } from "node:fs";
+import { constants, openSync, closeSync, fstatSync, readFileSync, writeFileSync, readdirSync, lstatSync, realpathSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -771,18 +771,15 @@ function externalOutput(file) {
   return resolved;
 }
 
-function writeExternalOutput(file, content, append = false) {
+function appendExternalOutput(file, content) {
   const output = externalOutput(file);
 
   requireThat(Number.isInteger(constants.O_NOFOLLOW) && constants.O_NOFOLLOW > 0 &&
     Number.isInteger(constants.O_NONBLOCK) && constants.O_NONBLOCK > 0, "Publication outputs require no-follow, nonblocking file opens");
 
-  if (append) mkdirSync(path.dirname(output), { recursive: true });
+  const flags = constants.O_WRONLY | constants.O_APPEND | constants.O_NOFOLLOW | constants.O_NONBLOCK;
 
-  const flags = constants.O_WRONLY | constants.O_CREAT | constants.O_NOFOLLOW | constants.O_NONBLOCK |
-    (append ? constants.O_APPEND : constants.O_EXCL);
-
-  const descriptor = openSync(output, flags, 0o600);
+  const descriptor = openSync(output, flags);
 
   try {
     const stats = fstatSync(descriptor);
@@ -806,7 +803,7 @@ export function skipEmptyPlan(plan, output) {
 
   if (plan.tracks.some(track => track.commits.length)) return { skipped: false };
   requireThat(isText(output) && path.isAbsolute(output), "GH_AW_SAFE_OUTPUTS must be an absolute output path");
-  writeExternalOutput(output, `${JSON.stringify({ type: "noop", message: "No upstream changes to review" })}\n`, true);
+  appendExternalOutput(output, `${JSON.stringify({ type: "noop", message: "No upstream changes to review" })}\n`);
 
   return { skipped: true };
 }
@@ -816,7 +813,7 @@ function options(args) {
 
   while (args.length) {
     const key = args.shift();
-    requireThat(/^--(root|scarypilot|cursor|output|plan|base|head|artifact-dir)$/.test(key ?? "") && args.length && !args[0].startsWith("--") && !values[key.slice(2)], `Invalid CLI option: ${key}`);
+    requireThat(/^--(root|scarypilot|cursor|plan|base|head|artifact-dir)$/.test(key ?? "") && args.length && !args[0].startsWith("--") && !values[key.slice(2)], `Invalid CLI option: ${key}`);
     values[key.slice(2)] = args.shift();
   }
 
@@ -829,7 +826,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const opts = options(args);
 
     const flags = {
-      plan: ["root", "scarypilot", "cursor", "output"],
+      plan: ["root", "scarypilot", "cursor"],
       check: ["root"],
       verify: ["root", "plan", "base", "head", "artifact-dir"],
       "skip-empty": ["plan"],
@@ -853,9 +850,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       requireThat(!opts.base || opts.base === plan.base, "Plan/base mismatch");
       result = opts["artifact-dir"] ? verifyArtifact({ root, plan, directory: path.resolve(opts["artifact-dir"]) }) :
         verifyProposal({ root, plan, base: opts.base ?? plan.base, head: opts.head });
-    } else throw new Error("Usage: upstream-sync.mjs plan --scarypilot DIR --cursor DIR [--output FILE] | check | skip-empty --plan FILE | verify --plan FILE [--base SHA] [--head SHA | --artifact-dir DIR]");
+    } else throw new Error("Usage: upstream-sync.mjs plan --scarypilot DIR --cursor DIR | check | skip-empty --plan FILE | verify --plan FILE [--base SHA] [--head SHA | --artifact-dir DIR]");
 
-    if (opts.output) writeExternalOutput(opts.output, `${JSON.stringify(result, null, 2)}\n`);
-    else console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(result, null, 2));
   } catch (error) { console.error(`upstream-sync: ${error.message}`); process.exitCode = 1; }
 }

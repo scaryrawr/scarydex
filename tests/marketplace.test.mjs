@@ -2230,6 +2230,7 @@ test("workflow helpers executed without dependency install stay dependency-free"
   const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "scarydex-bare-output-"));
 
   roots.push(outputDirectory);
+  await writeFile(path.join(outputDirectory, "noop.json"), "");
   assert.deepEqual(helper.skipEmptyPlan(emptyPlan, path.join(outputDirectory, "noop.json")), { skipped: true });
 
   assert.match(await readFile(path.join(outputDirectory, "noop.json"), "utf8"), /No upstream changes to review/);

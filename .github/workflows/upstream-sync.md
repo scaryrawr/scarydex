@@ -119,10 +119,12 @@ pre-agent-steps:
       mkdir -p /tmp/gh-aw/upstream-sync
       git clone --no-checkout https://github.com/scaryrawr/scarypilot.git /tmp/gh-aw/upstream-sync/scarypilot
       git clone --no-checkout https://github.com/cursor/plugins.git /tmp/gh-aw/upstream-sync/cursor
+      set -o noclobber
       node tools/upstream-sync.mjs plan \
         --scarypilot /tmp/gh-aw/upstream-sync/scarypilot \
-        --cursor /tmp/gh-aw/upstream-sync/cursor \
-        --output /tmp/gh-aw/upstream-sync/plan.json
+        --cursor /tmp/gh-aw/upstream-sync/cursor > /tmp/gh-aw/upstream-sync/plan.json
+      mkdir -p "$RUNNER_TEMP/gh-aw/safeoutputs"
+      : >> "$RUNNER_TEMP/gh-aw/safeoutputs/outputs.jsonl"
       node tools/upstream-sync.mjs skip-empty --plan /tmp/gh-aw/upstream-sync/plan.json
   - name: Pin plan independently of agent output
     uses: actions/upload-artifact@v4

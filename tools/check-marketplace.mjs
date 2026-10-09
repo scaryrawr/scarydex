@@ -667,7 +667,7 @@ function parseModule(source, file) {
   }, true, ts.ScriptKind.JS);
 }
 
-const AUDITED_GIT_POLICY = "03cd84c2f0ae0cc82568f4b74011057a885f7dea7149a70a3ee5f8aa742af519";
+const AUDITED_GIT_POLICY = "5eff9038516a27afc0441d3ee2b9103c29e62fe344f81fee8641f43f697ba11a";
 
 export function scanImports(source, file = "module.mjs") {
   const sourceFile = parseModule(source, file);
@@ -3016,7 +3016,10 @@ export async function validateUpstreamSetup(root) {
   const pinnedPlan = source["pre-agent-steps"].find(step => step.name === "Pin plan independently of agent output");
   const validationRuntime = source["pre-agent-steps"].find(step => step.name === "Make pinned Bun available inside AWF");
 
-  if (!preparation?.run.includes("--output /tmp/gh-aw/upstream-sync/plan.json") ||
+  if (!preparation?.run.includes("> /tmp/gh-aw/upstream-sync/plan.json") ||
+      !preparation.run.includes("set -o noclobber") ||
+      !preparation.run.includes('mkdir -p "$RUNNER_TEMP/gh-aw/safeoutputs"') ||
+      !preparation.run.includes(': >> "$RUNNER_TEMP/gh-aw/safeoutputs/outputs.jsonl"') ||
       preparation.env?.GH_AW_SAFE_OUTPUTS !== "${{ steps.set-runtime-paths.outputs.GH_AW_SAFE_OUTPUTS }}" ||
       !preparation.run.includes("node tools/upstream-sync.mjs skip-empty --plan") ||
       pinnedPlan?.with?.path !== "/tmp/gh-aw/upstream-sync/plan.json" ||

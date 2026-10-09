@@ -183,10 +183,11 @@ Git execution rejects custom merge drivers and signature programs, and disables
 three-way `am` fallback and automatic signature verification in history reads.
 Output-path validation distinguishes missing components from dangling symlinks;
 only ordinary missing paths may be reconstructed below a resolved external parent.
-Output writes use no-follow, nonblocking opens and validate the descriptor is a
-regular single-link file before writing. The opened inode must still match the
-external path; safe-output appends preserve prior records, while plans use exclusive
-creation. Do not replace descriptor writes with pathname-based appends.
+The helper never creates output files or directories: plans go to stdout, and
+safe-output appends require an existing file created by trusted runner setup.
+No-follow, nonblocking opens must yield a regular single-link descriptor matching
+the external path before writing. Do not add O_CREAT, mkdir, truncation or pathname
+appends to that flow; post-open validation cannot undo unsafe creation.
 Arbitrary executable paths cannot acquire
 native-command trust from their basename. Hash/function/alias shadowing survives
 dependency loss within the same shell. Dependency worlds are deduplicated at every

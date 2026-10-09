@@ -146,7 +146,8 @@ Fetches here are read-only inbound transfers:
 ```sh
 git clone --no-checkout https://github.com/scaryrawr/scarypilot.git /tmp/scarypilot-review
 git clone --no-checkout https://github.com/cursor/plugins.git /tmp/cursor-review
-node tools/upstream-sync.mjs plan --scarypilot /tmp/scarypilot-review --cursor /tmp/cursor-review --output /tmp/upstream-plan.json
+set -o noclobber
+node tools/upstream-sync.mjs plan --scarypilot /tmp/scarypilot-review --cursor /tmp/cursor-review > /tmp/upstream-plan.json
 node tools/upstream-sync.mjs check
 node tools/upstream-sync.mjs verify --plan /tmp/upstream-plan.json --base <local-base-SHA>
 bun install --frozen-lockfile
@@ -158,13 +159,16 @@ gh aw compile upstream-sync --no-check-update --shellcheck
 git diff --exit-code -- .github/workflows/upstream-sync.lock.yml
 ```
 
-`--output` refuses to overwrite existing files. Plan and safe-output artifacts must
-stay outside the checkout containing the policy helper, including through symlinks;
-use a runner-temporary directory or `/tmp` so outputs cannot replace audited code.
-Dangling symlinks are refused even when their missing targets appear external.
-Writes use a no-follow open and require a regular file with exactly one hard link,
-checking the opened inode against the external path before writing. Safe-output
-records append to that descriptor; plan outputs retain exclusive-create semantics.
+Plans are emitted only to stdout; `--output` is no longer supported. Trusted caller
+setup owns output creation and uses shell `noclobber` redirection to refuse replacing
+an existing plan. Choose a runner-temporary directory or `/tmp` outside the checkout.
+Before `skip-empty`, runner setup creates `GH_AW_SAFE_OUTPUTS` and its parent, retaining
+any existing records. The helper only opens an existing safe-output file; it cannot
+create files or directories, even when a parent changes during opening.
+The append target must stay outside the policy checkout, including through symlinks.
+Dangling links, hard links and special files are refused. No-follow, nonblocking
+opens and regular single-link descriptor/path identity checks precede descriptor
+writes. Output creation belongs to trusted setup, not to post-open path validation.
 `verify` checks the complete
 worktree/index and untracked paths. `--head SHA` checks a committed tree instead.
 `--root DIR` supports isolated fixture repositories.

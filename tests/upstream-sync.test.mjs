@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, linkSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, realpathSync, rmSync, renameSync, symlinkSync } from "node:fs";
+import { chmodSync, existsSync, linkSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync, realpathSync, rmSync, renameSync, symlinkSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
@@ -63,7 +63,9 @@ test("publication artifact outputs cannot replace the audited policy checkout th
 
   for (const output of [helper, path.join(root, "tools/uncreated-output.json"), path.join(directory, "checkout/tools/upstream-sync.mjs")]) assert.throws(() => skipEmptyPlan(plan, output), /outside the policy helper checkout/);
   assert.equal(readFileSync(helper, "utf8"), before);
-  assert.deepEqual(skipEmptyPlan(plan, path.join(directory, "result/noop.json")), { skipped: true });
+  const output = path.join(directory, "noop.json");
+  writeFileSync(output, "");
+  assert.deepEqual(skipEmptyPlan(plan, output), { skipped: true });
 });
 
 test("publication rejects merge drivers before three-way patch application", () => {
@@ -159,8 +161,14 @@ test("dangling output symlinks cannot create files inside the policy checkout", 
   const output = path.join(directory, "ordinary/missing/output.json");
   const result = spawnSync("node", [copiedHelper, "skip-empty", "--plan", plan], { encoding: "utf8", env: { ...process.env, GH_AW_SAFE_OUTPUTS: output } });
 
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(readFileSync(output, "utf8"), /No upstream changes/);
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stderr, /ENOENT/);
+  assert.equal(existsSync(path.join(directory, "ordinary")), false);
+  const missingLeaf = path.join(directory, "missing-output.json");
+  const leaf = spawnSync("node", [copiedHelper, "skip-empty", "--plan", plan], { encoding: "utf8", env: { ...process.env, GH_AW_SAFE_OUTPUTS: missingLeaf } });
+  assert.equal(leaf.status, 1, leaf.stderr);
+  assert.match(leaf.stderr, /ENOENT/);
+  assert.equal(existsSync(missingLeaf), false);
 });
 
 test("safe-output append requires an unaliased regular file", () => {
@@ -222,18 +230,14 @@ test("safe-output descriptor checks reject path replacements around open", () =>
   const protectedFile = path.join(checkout, "tools/protected.mjs");
   writeFileSync(protectedFile, "export const original = true;\n");
   const plan = { schemaVersion: 1, repository: "scaryrawr/scarydex", tracks: TRACKS.map(track => ({ id: track.id, commits: [] })) };
-  const f = fixture();
 
-  const cases = ["append", "plan"].flatMap(mode =>
-    [["before", "symlink"], ["before", "hardlink"], ["after", "symlink"], ["after", "hardlink"], ["before", "parent"], ["after", "parent"]].map(([phase, mutation]) => ({ mode, phase, mutation })));
-
-  for (const { mode, phase, mutation } of cases) {
-    const parent = path.join(directory, `${mode}-${phase}-${mutation}`);
+  for (const [phase, mutation] of [["before", "symlink"], ["before", "hardlink"], ["after", "symlink"], ["after", "hardlink"], ["before", "parent"], ["after", "parent"]]) {
+    const parent = path.join(directory, `${phase}-${mutation}`);
     mkdirSync(parent);
     const output = path.join(parent, "protected.mjs");
 
-    if (mode === "append") writeFileSync(output, "earlier\n");
-    const script = path.join(directory, `${mode}-${phase}-${mutation}.mjs`);
+    writeFileSync(output, "earlier\n");
+    const script = path.join(directory, `${phase}-${mutation}.mjs`);
 
     writeFileSync(script, `import fs from "node:fs";
 import { syncBuiltinESMExports } from "node:module";
@@ -260,17 +264,67 @@ fs.openSync = (...args) => {
   return fd;
 };
 syncBuiltinESMExports();
-if (${JSON.stringify(mode)} === "plan") process.argv = [process.execPath, ${JSON.stringify(copiedHelper)}, "plan", "--root", ${JSON.stringify(f.local)}, "--scarypilot", ${JSON.stringify(f.scarypilot)}, "--cursor", ${JSON.stringify(f.cursor)}, "--output", output];
 const { skipEmptyPlan } = await import(${JSON.stringify(copiedHelper)});
-try { if (${JSON.stringify(mode)} === "append") skipEmptyPlan(${JSON.stringify(plan)}, output); }
+try { skipEmptyPlan(${JSON.stringify(plan)}, output); }
 catch (error) { console.error(error.message); process.exitCode = 1; }
 `);
     const result = spawnSync("node", [script], { encoding: "utf8", timeout: 5000 });
 
-    assert.equal(result.status, 1, `${mode}/${phase}/${mutation}: ${result.stderr}`);
+    assert.equal(result.status, 1, `${phase}/${mutation}: ${result.stderr}`);
     assert.match(result.stdout, /race-triggered/);
-    assert.match(result.stderr, /ELOOP|EEXIST|regular single-link file|outside the policy helper checkout|Output path changed/);
+    assert.match(result.stderr, /ELOOP|regular single-link file|outside the policy helper checkout|Output path changed/);
     assert.equal(readFileSync(protectedFile, "utf8"), "export const original = true;\n");
+  }
+});
+
+test("safe-output failures never create checkout files or directories during parent swaps", () => {
+  const directory = realpathSync(mkdtempSync(path.join(os.tmpdir(), "scarydex-output-create-race-")));
+  temporary.push(directory);
+  const checkout = path.join(directory, "checkout");
+  const copiedHelper = path.join(checkout, "tools/upstream-sync.mjs");
+  write(checkout, "tools/upstream-sync.mjs", readFileSync(helper));
+  const plan = { schemaVersion: 1, repository: "scaryrawr/scarydex", tracks: TRACKS.map(track => ({ id: track.id, commits: [] })) };
+  const before = readdirSync(checkout, { recursive: true }).sort();
+
+  for (const phase of ["open", "before-mkdir", "after-mkdir"]) {
+    const parent = path.join(directory, phase);
+    mkdirSync(parent);
+    const output = path.join(parent, phase === "open" ? "missing.json" : "nested/missing.json");
+    const script = path.join(directory, `${phase}.mjs`);
+    writeFileSync(script, `import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
+const output = ${JSON.stringify(output)};
+const parent = ${JSON.stringify(parent)};
+const phase = ${JSON.stringify(phase)};
+const open = fs.openSync;
+const mkdir = fs.mkdirSync;
+function replace() {
+  console.log("race-triggered");
+  fs.renameSync(parent, parent + "-moved");
+  fs.symlinkSync(${JSON.stringify(checkout)}, parent);
+}
+fs.mkdirSync = (...args) => {
+  if (args[0] !== ${JSON.stringify(path.dirname(output))}) return mkdir(...args);
+  if (phase === "before-mkdir") replace();
+  const result = mkdir(...args);
+  if (phase === "after-mkdir") replace();
+  return result;
+};
+fs.openSync = (...args) => {
+  if (args[0] === output && phase === "open") replace();
+  return open(...args);
+};
+syncBuiltinESMExports();
+const { skipEmptyPlan } = await import(${JSON.stringify(copiedHelper)});
+try { skipEmptyPlan(${JSON.stringify(plan)}, output); }
+catch (error) { console.error(error.message); process.exitCode = 1; }
+`);
+    const result = spawnSync("node", [script], { encoding: "utf8", timeout: 5000 });
+    assert.equal(result.status, 1, `${phase}: ${result.stderr}`);
+
+    if (phase === "open") assert.match(result.stdout, /race-triggered/);
+    assert.deepEqual(readdirSync(checkout, { recursive: true }).sort(), before, `${phase} created checkout paths`);
+    assert.equal(readFileSync(copiedHelper, "utf8"), readFileSync(helper, "utf8"));
   }
 });
 
@@ -371,8 +425,27 @@ test("CLI plans deterministically with two pstack sources and integrated, not co
   assert.ok(first.tracks.some(t => t.id === "scarypilot/pstack"));
   assert.equal(cli(f, "check").tracks, 7);
   const output = path.join(f.directory, "saved.json");
-  run("node", [helper, "plan", "--root", f.local, "--scarypilot", f.scarypilot, "--cursor", f.cursor, "--output", output]);
-  assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor, "--output", output], 1), /EEXIST/);
+  assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor, "--output", output], 1), /Invalid CLI option: --output/);
+  assert.equal(existsSync(output), false);
+  const workflow = parse(readFileSync(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
+  const preparation = workflow.jobs.agent.steps.find(step => step.name === "Prepare full upstream snapshots and immutable plan");
+  const command = preparation.run.slice(preparation.run.indexOf("set -o noclobber"), preparation.run.indexOf('mkdir -p "$RUNNER_TEMP'));
+
+  const localCommand = command.replace("node tools/upstream-sync.mjs plan", `node tools/upstream-sync.mjs plan --root ${JSON.stringify(f.local)}`)
+    .replaceAll("/tmp/gh-aw/upstream-sync/scarypilot", JSON.stringify(f.scarypilot))
+    .replaceAll("/tmp/gh-aw/upstream-sync/cursor", JSON.stringify(f.cursor))
+    .replaceAll("/tmp/gh-aw/upstream-sync/plan.json", JSON.stringify(output));
+
+  const execute = () => spawnSync("bash", ["-e", "-c", localCommand], { cwd: root, encoding: "utf8" });
+  const saved = execute();
+  assert.equal(saved.status, 0, saved.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(output, "utf8")), first);
+  const repeated = execute();
+  assert.notEqual(repeated.status, 0);
+  assert.match(repeated.stderr, /cannot overwrite existing file/);
+  assert.deepEqual(JSON.parse(readFileSync(output, "utf8")), first);
+  assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor, "--output", output], 1), /Invalid CLI option: --output/);
+  assert.deepEqual(JSON.parse(readFileSync(output, "utf8")), first);
 });
 
 test("renames crossing track boundaries, deletes, shared dependencies, and merge parents are reviewed", () => {
@@ -635,7 +708,7 @@ test("root-only and cosmetic registry proposals cannot publish without semantic 
   assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /semantic review registry/);
 });
 
-test("compiled empty-plan step creates the output directory and writes noop without inference", () => {
+test("compiled runner setup creates safe outputs before existing-only noop append without inference", () => {
   const f = fixture(), p = plan(f);
   const workflow = parse(readFileSync(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
   const steps = workflow.jobs.agent.steps;
@@ -645,21 +718,27 @@ test("compiled empty-plan step creates the output directory and writes noop with
   assert.equal(step.env.GH_AW_SAFE_OUTPUTS, "${{ steps.set-runtime-paths.outputs.GH_AW_SAFE_OUTPUTS }}");
   const command = step.run.split("\n").find(line => line.includes(" skip-empty "));
   assert.ok(command);
-  const output = path.join(f.directory, "not-created", "outputs.jsonl");
+  const setup = step.run.slice(step.run.indexOf('mkdir -p "$RUNNER_TEMP'));
+  assert.ok(setup.includes(': >> "$RUNNER_TEMP/gh-aw/safeoutputs/outputs.jsonl"'));
+  const runner = path.join(f.directory, "not-created");
+  const output = path.join(runner, "gh-aw/safeoutputs/outputs.jsonl");
   const file = savePlan(f, p);
 
-  const execute = () => spawnSync("bash", ["-e", "-c", command.replace("/tmp/gh-aw/upstream-sync/plan.json", JSON.stringify(file))], {
-    cwd: root, encoding: "utf8", env: { ...process.env, GH_AW_SAFE_OUTPUTS: output },
+  const execute = () => spawnSync("bash", ["-e", "-c", setup.replace("/tmp/gh-aw/upstream-sync/plan.json", JSON.stringify(file))], {
+    cwd: root, encoding: "utf8", env: { ...process.env, RUNNER_TEMP: runner, GH_AW_SAFE_OUTPUTS: output },
   });
 
   assert.equal(execute().status, 0);
-  assert.equal(spawnSync("test", ["-e", output]).status, 1);
+  assert.equal(readFileSync(output, "utf8"), "");
 
   for (const track of p.tracks) track.commits = [];
   savePlan(f, p);
   const result = execute();
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(readFileSync(output, "utf8")), { type: "noop", message: "No upstream changes to review" });
+  const repeated = execute();
+  assert.equal(repeated.status, 0, repeated.stderr);
+  assert.equal(readFileSync(output, "utf8").trim().split("\n").length, 2);
 
   const missing = spawnSync("node", [helper, "skip-empty", "--plan", file], {
     encoding: "utf8", env: { ...process.env, GH_AW_SAFE_OUTPUTS: "" },
