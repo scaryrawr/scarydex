@@ -158,7 +158,10 @@ gh aw compile upstream-sync --no-check-update --shellcheck
 git diff --exit-code -- .github/workflows/upstream-sync.lock.yml
 ```
 
-`--output` refuses to overwrite existing files. `verify` checks the complete
+`--output` refuses to overwrite existing files. Plan and safe-output artifacts must
+stay outside the checkout containing the policy helper, including through symlinks;
+use a runner-temporary directory or `/tmp` so outputs cannot replace audited code.
+`verify` checks the complete
 worktree/index and untracked paths. `--head SHA` checks a committed tree instead.
 `--root DIR` supports isolated fixture repositories.
 

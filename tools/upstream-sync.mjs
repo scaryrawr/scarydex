@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync, appendFileSync, mkdirSync, readdirSync, lstatSync, mkdtempSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, mkdirSync, readdirSync, lstatSync, realpathSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -67,9 +67,81 @@ function safePath(value) {
   return value;
 }
 
+const GIT_OPTIONS = {
+  "rev-parse": ["--verify", "--is-shallow-repository", "--git-path"],
+  "merge-base": ["--is-ancestor"],
+  diff: ["--name-status", "-z", "-M", "--binary"],
+  "rev-list": ["--reverse", "--topo-order"],
+  show: ["-s", "--format=%P", "--format=%s", "--format=", "--diff-merges=separate", "--binary"],
+  log: ["--format=%H", "--name-status", "-z", "-M", "--diff-merges=separate"],
+  "ls-tree": ["-r", "-l", "-z"],
+  "ls-files": ["--unmerged", "--others", "--exclude-standard", "-z"],
+  mailsplit: ["--mboxrd"],
+  mailinfo: [],
+  apply: ["--numstat", "-z", "-"],
+  "check-ref-format": ["--branch"],
+  init: ["-q"],
+  am: ["--no-gpg-sign"],
+};
+
+export function verifiedGitArguments(input) {
+  requireThat(Array.isArray(input) && input.every(isText), "Git arguments must be literal text values");
+  const args = [...input];
+
+  if (args[0] === "-c") {
+    requireThat(same(args.splice(0, 4), ["-c", "user.name=Upstream verifier", "-c", "user.email=verifier@localhost"]), "Unapproved Git configuration");
+  }
+
+  const command = args.shift();
+  let allowedOptions = Object.hasOwn(GIT_OPTIONS, command) ? GIT_OPTIONS[command] : undefined;
+
+  if (command === "remote") {
+    requireThat(same(args, ["get-url", "origin"]), "Unapproved Git remote operation");
+
+    return [...input];
+  }
+
+  if (command === "bundle") {
+    requireThat(["list-heads", "unbundle"].includes(args.shift()) && args.length === 1, "Unapproved Git bundle operation");
+    allowedOptions = [];
+  }
+
+  if (command === "worktree") {
+    const operation = args.shift();
+
+    requireThat(["add", "remove"].includes(operation), "Unapproved Git worktree operation");
+    allowedOptions = operation === "add" ? ["--detach"] : ["--force"];
+  }
+
+  requireThat(allowedOptions !== undefined, `Unapproved Git operation: ${command}`);
+  let paths = false;
+
+  for (const arg of args) {
+    if (arg === "--") paths = true;
+    else if (!paths && arg.startsWith("-")) {
+      requireThat(allowedOptions.includes(arg) || (command === "mailsplit" && arg.startsWith("-o") && path.isAbsolute(arg.slice(2))), `Unapproved Git option for ${command}: ${arg}`);
+    }
+  }
+
+  return ["diff", "show", "log"].includes(command) ? [input[0], "--no-ext-diff", "--no-textconv", ...input.slice(1)] : [...input];
+}
+
 function git(directory, args, allowed = [0], input) {
-  const result = spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "core.quotePath=false", "-C", directory, ...args], {
-    input, maxBuffer: LIMITS.bytes, env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_CONFIG_NOSYSTEM: "1" },
+  const argv = verifiedGitArguments(args);
+
+  const environment = {
+    ...Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_"))),
+    GIT_TERMINAL_PROMPT: "0", GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null",
+  };
+
+  const prefix = ["--no-pager", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-c", "core.quotePath=false", "-C", directory];
+  const executableConfig = spawnSync("git", [...prefix, "config", "--get-regexp", "^(alias\\.|filter\\.|diff\\..*\\.(command|textconv)$|diff\\.external$|core\\.(sshcommand|pager|editor)$|credential\\..*\\.helper$)"], { env: environment, maxBuffer: LIMITS.bytes });
+
+  if (executableConfig.error || ![0, 1].includes(executableConfig.status)) throw new Error("Unable to verify Git executable configuration", { cause: executableConfig.error });
+  requireThat(executableConfig.status === 1, "Git executable configuration is not allowed in the publication helper");
+
+  const result = spawnSync("git", [...prefix, ...argv], {
+    input, maxBuffer: LIMITS.bytes, env: environment,
   });
 
   if (result.error || !allowed.includes(result.status)) throw new Error(`git ${args[0]} failed in ${directory}: ${result.error?.message ?? result.stderr.toString("utf8").trim()}`);
@@ -665,6 +737,29 @@ export function verifyArtifact({ root = ROOT, plan, directory }) {
   return results[0].result;
 }
 
+function externalOutput(file) {
+  let ancestor = path.resolve(file);
+  const missing = [];
+
+  while (true) {
+    try {
+      ancestor = realpathSync(ancestor);
+      break;
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+      missing.unshift(path.basename(ancestor));
+      ancestor = path.dirname(ancestor);
+    }
+  }
+
+  const resolved = path.join(ancestor, ...missing);
+  const relative = path.relative(realpathSync(ROOT), resolved);
+
+  requireThat(relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative), "Publication outputs must stay outside the policy helper checkout");
+
+  return resolved;
+}
+
 export function skipEmptyPlan(plan, output) {
   requireThat(plainObject(plan) && plan.schemaVersion === 1 && plan.repository === "scaryrawr/scarydex" &&
     Array.isArray(plan.tracks) && plan.tracks.length === TRACKS.length &&
@@ -672,6 +767,7 @@ export function skipEmptyPlan(plan, output) {
 
   if (plan.tracks.some(track => track.commits.length)) return { skipped: false };
   requireThat(isText(output) && path.isAbsolute(output), "GH_AW_SAFE_OUTPUTS must be an absolute output path");
+  output = externalOutput(output);
   mkdirSync(path.dirname(output), { recursive: true });
   appendFileSync(output, `${JSON.stringify({ type: "noop", message: "No upstream changes to review" })}\n`);
 
@@ -722,7 +818,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         verifyProposal({ root, plan, base: opts.base ?? plan.base, head: opts.head });
     } else throw new Error("Usage: upstream-sync.mjs plan --scarypilot DIR --cursor DIR [--output FILE] | check | skip-empty --plan FILE | verify --plan FILE [--base SHA] [--head SHA | --artifact-dir DIR]");
 
-    if (opts.output) writeFileSync(opts.output, `${JSON.stringify(result, null, 2)}\n`, { flag: "wx" });
+    if (opts.output) writeFileSync(externalOutput(opts.output), `${JSON.stringify(result, null, 2)}\n`, { flag: "wx" });
     else console.log(JSON.stringify(result, null, 2));
   } catch (error) { console.error(`upstream-sync: ${error.message}`); process.exitCode = 1; }
 }

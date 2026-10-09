@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, renameSync
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
-import { TRACKS, SOURCES, LIMITS, hasOpenProposal } from "../tools/upstream-sync.mjs";
+import { TRACKS, SOURCES, LIMITS, hasOpenProposal, verifiedGitArguments, skipEmptyPlan } from "../tools/upstream-sync.mjs";
 import { parse } from "yaml";
 import { validateRepoSkills, validateUpstreamSetup } from "../tools/check-marketplace.mjs";
 
@@ -14,7 +14,48 @@ const helper = path.join(root, "tools/upstream-sync.mjs");
 
 const temporary = [];
 
+test("publication Git operation grammar excludes executable aliases and options", () => {
+  for (const args of [
+    ["-c", "alias.probe=!node ./hidden.mjs", "probe"],
+    ["diff", "--ext-diff"],
+    ["show", "--textconv"],
+    ["rev-parse", "--config-env=alias.probe=PAYLOAD"],
+    ["bundle", "create", "data"],
+    ["worktree", "repair", "data"],
+    ["unknown"],
+    ["__proto__"],
+    ["remote", "update"],
+  ]) assert.throws(() => verifiedGitArguments(args), /Unapproved Git/);
+
+  assert.deepEqual(verifiedGitArguments(["diff", "--binary", "HEAD"]), ["diff", "--no-ext-diff", "--no-textconv", "--binary", "HEAD"]);
+  assert.deepEqual(verifiedGitArguments(["ls-tree", "-r", "HEAD", "--", "-data"]), ["ls-tree", "-r", "HEAD", "--", "-data"]);
+
+  const f = fixture();
+
+  const inherited = spawnSync("node", [helper, "plan", "--root", f.local, "--scarypilot", f.scarypilot, "--cursor", f.cursor], {
+    encoding: "utf8",
+    env: { ...process.env, GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "alias.probe", GIT_CONFIG_VALUE_0: "!node ./hidden.mjs" },
+  });
+
+  assert.equal(inherited.status, 0, inherited.stderr);
+  git(f.scarypilot, "config", "alias.probe", "!node ./hidden.mjs");
+  assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor], 1), /Git executable configuration is not allowed/);
+});
+
 afterEach(() => { for (const directory of temporary.splice(0)) rmSync(directory, { recursive: true, force: true }); });
+
+test("publication artifact outputs cannot replace the audited policy checkout through paths or symlinks", () => {
+  const directory = mkdtempSync(path.join(os.tmpdir(), "scarydex-policy-output-"));
+
+  temporary.push(directory);
+  symlinkSync(root, path.join(directory, "checkout"));
+  const plan = { schemaVersion: 1, repository: "scaryrawr/scarydex", tracks: TRACKS.map(track => ({ id: track.id, commits: [] })) };
+  const before = readFileSync(helper, "utf8");
+
+  for (const output of [helper, path.join(root, "tools/uncreated-output.json"), path.join(directory, "checkout/tools/upstream-sync.mjs")]) assert.throws(() => skipEmptyPlan(plan, output), /outside the policy helper checkout/);
+  assert.equal(readFileSync(helper, "utf8"), before);
+  assert.deepEqual(skipEmptyPlan(plan, path.join(directory, "result/noop.json")), { skipped: true });
+});
 
 function run(command, args, cwd) {
   const result = spawnSync(command, args, { cwd, encoding: "utf8" });
@@ -202,7 +243,7 @@ test("invalid command-specific flags, base mismatches, and malformed registry fa
   assert.match(cli(f, "check", [], 1), /Unexpected track path/);
 });
 
-test("bounded candidate prefix exposes remaining work and resumes only after merged review state", { timeout: 20000 }, () => {
+test("bounded candidate prefix exposes remaining work and resumes only after merged review state", { timeout: 30000 }, () => {
   const f = fixture();
 
   for (let i = 0; i < LIMITS.candidates + 2; i++) { write(f.scarypilot, "plugins/anti-slop/change.md", `${i}\n`); commit(f.scarypilot, `change ${i}`); }

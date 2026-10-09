@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 262 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 267 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -174,8 +174,12 @@ Wrapper environment assignments retain runner-file aliases in nested payloads.
 Variable-writing builtins invalidate affected environment proofs; combined `set`
 options update errexit. Descriptor/FileHandle opens for runner-file writes fail closed.
 Iterator bindings retain code origins, and throwing code-bearing values is refused.
-`node:vm` is unsupported; child-process code execution is refused except proven
-literal Git invocations without a shell. Arbitrary executable paths cannot acquire
+`node:vm` is unsupported; generic child-process code execution is refused except
+literal informational `git --version` calls without a shell or options object.
+The publication helper has an exact-content SHA-256 exception: changing its bytes
+requires reviewing its Git operation grammar, environment/config isolation and
+external-only artifact outputs before updating the seal in `check-marketplace.mjs`.
+Arbitrary executable paths cannot acquire
 native-command trust from their basename. Hash/function/alias shadowing survives
 dependency loss within the same shell. Dependency worlds are deduplicated at every
 transition, keeping the finite-state model bounded.
@@ -184,6 +188,12 @@ payloads and execution-bearing utility options. Only modeled tree-preserving
 operations and observed compiler invocations preserve that credit. Compiler Bun
 copies need an unconditional native-source copy before informational exemption;
 overwrites, unknown effects and failure-tolerant copy paths discard that provenance.
+Committed module integrity is independent of dependency installation. Shell and
+GitHub Script writes are snapshotted when an install-free helper executes, then
+checked against its complete import closure. Reinstalling cannot erase source
+mutation; opaque effects and unresolved write locations fail closed. Non-policy
+helpers cannot write their own closure or use unresolved filesystem write targets.
+Process-substitution pipes are not file destinations; their commands remain scanned.
 It parses each module with the TypeScript compiler rather than matching regexes,
 so trivia between tokens (`import /* c */ "pkg"`) counts
 and a package name inside a comment or string does not. Every target lands in one of

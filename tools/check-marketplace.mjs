@@ -667,6 +667,8 @@ function parseModule(source, file) {
   }, true, ts.ScriptKind.JS);
 }
 
+const AUDITED_GIT_POLICY = "e7f00743d7a253d16f0e808189dfee61816d087514cd1e22da657d3474970851";
+
 export function scanImports(source, file = "module.mjs") {
   const sourceFile = parseModule(source, file);
 
@@ -702,6 +704,7 @@ export function scanImports(source, file = "module.mjs") {
   const childModules = new Set();
   const childFunctions = new Map();
   const childMethods = new Set(["spawn", "spawnSync", "exec", "execSync", "execFile", "execFileSync", "fork"]);
+  const trustedGitPolicy = file === "tools/upstream-sync.mjs" && createHash("sha256").update(source).digest("hex") === AUDITED_GIT_POLICY;
 
   const isChildModule = node => node && ((ts.isIdentifier(node) && childModules.has(node.text)) ||
     (ts.isCallExpression(node) && accessedName(node.expression) === "require" && ["node:child_process", "child_process"].includes(node.arguments[0]?.text)));
@@ -725,13 +728,16 @@ export function scanImports(source, file = "module.mjs") {
     const kinds = invoked ? childFunctionKinds(invoked.callee) : [];
     const program = invoked?.inputs[0];
     const options = invoked?.inputs[2];
+    const args = invoked?.inputs[1];
 
     const direct = !options || (ts.isObjectLiteralExpression(options) && options.properties.every(property =>
       ((ts.isPropertyAssignment(property) && !ts.isComputedPropertyName(property.name)) || ts.isShorthandPropertyAssignment(property)) &&
       (accessedName(property.name) !== "shell" || (ts.isPropertyAssignment(property) && property.initializer.kind === ts.SyntaxKind.FalseKeyword))));
 
     return kinds.length > 0 && kinds.every(kind => ["spawn", "spawnSync", "execFile", "execFileSync"].includes(kind)) &&
-      program && ts.isStringLiteral(program) && program.text === "git" && direct && !invoked.inputs.some(isCodeValue);
+      program && ts.isStringLiteral(program) && program.text === "git" && !invoked.inputs.some(isCodeValue) &&
+      (trustedGitPolicy || (direct && !options && args && ts.isArrayLiteralExpression(args) &&
+        args.elements.length === 1 && ts.isStringLiteral(args.elements[0]) && args.elements[0].text === "--version"));
   };
 
   const bindChildFunction = (pattern, kinds) => {
@@ -1118,6 +1124,7 @@ async function readModule(root, file, specifier) {
 
 export async function dependencyFreeClosure(root, entrypoints) {
   const seen = new Set();
+  const sourceEffects = new Map();
 
   const queue = entrypoints.map(file => ({ file, specifier: file }));
 
@@ -1160,11 +1167,19 @@ export async function dependencyFreeClosure(root, entrypoints) {
 
     if (runnerEffects.unknown || runnerEffects.pathChanged || Object.keys(runnerEffects.environment).some(name => /^(?:PATH|NODE_OPTIONS|NODE_ENV|BASH_ENV|ENV|npm_config_.*)$/i.test(name))) throw new Error(`${file} mutates persistent runner environment; put dependency-related environment writes in explicit workflow steps so their effects can be verified`);
 
+    if (!(file === "tools/upstream-sync.mjs" && createHash("sha256").update(source).digest("hex") === AUDITED_GIT_POLICY)) sourceEffects.set(file, runnerEffects.sources);
+
     for (const relative of literals.filter(isRelativeSpecifier)) {
       const target = fileURLToPath(new URL(relative, pathToFileURL(path.resolve(root, file))));
 
       queue.push({ file: path.relative(root, target), specifier: relative });
     }
+  }
+
+  for (const [writer, writes] of sourceEffects) {
+    const modified = [...seen].find(file => sourceWasChanged(file, writes, root));
+
+    if (modified) throw new Error(`${writer} may modify verified source ${modified}; install-free helpers must preserve their committed module closure`);
   }
 
   return [...seen].sort();
@@ -2339,7 +2354,7 @@ function runnerEnvironmentEffects(script, environment, inherited) {
 }
 
 function githubScriptEnvironmentEffects(script) {
-  const effects = { environment: {}, pathChanged: false, unknown: false };
+  const effects = { environment: {}, pathChanged: false, unknown: false, sources: new Set() };
   const source = parseModule(script, "github-script.js");
   const bindings = new Map();
 
@@ -2432,7 +2447,11 @@ function githubScriptEnvironmentEffects(script) {
   const literal = node => node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : undefined;
   const exportedReferences = new Set();
   const calledExports = new Set();
-  const writers = new Set(["appendFile", "appendFileSync", "writeFile", "writeFileSync", "write", "writeSync", "writev", "writevSync", "createWriteStream", "copyFile", "copyFileSync", "rename", "renameSync"]);
+
+  const writers = new Set(["appendFile", "appendFileSync", "writeFile", "writeFileSync", "write", "writeSync", "writev", "writevSync", "createWriteStream",
+    "copyFile", "copyFileSync", "cp", "cpSync", "rename", "renameSync", "link", "linkSync", "symlink", "symlinkSync",
+    "rm", "rmSync", "rmdir", "rmdirSync", "unlink", "unlinkSync", "truncate", "truncateSync", "chmod", "chmodSync", "chown", "chownSync"]);
+
   const writerReferences = new Set();
   const calledWriters = new Set();
   let referencesEnvironmentFile = false;
@@ -2454,6 +2473,8 @@ function githubScriptEnvironmentEffects(script) {
       if (names.has("open") || names.has("openSync")) {
         for (const target of possible(node.arguments[0])) {
           if (target && /^GITHUB_(?:ENV|PATH)$/.test(accessedName(target)) && possible(node.arguments[1]).some(mode => literal(mode) !== "r")) effects.unknown = true;
+
+          if (possible(node.arguments[1]).some(mode => literal(mode) !== "r") && !/^GITHUB_(?:ENV|PATH)$/.test(accessedName(target))) effects.sources.add(literal(target) ?? "*");
         }
       }
 
@@ -2474,14 +2495,25 @@ function githubScriptEnvironmentEffects(script) {
       }
 
       const writes = [...names].filter(name => writers.has(name));
+      const expression = node.expression;
+
+      const standardStream = ts.isPropertyAccessExpression(expression) && expression.name.text === "write" &&
+        ts.isPropertyAccessExpression(expression.expression) && ["stdout", "stderr"].includes(expression.expression.name.text) &&
+        ts.isIdentifier(expression.expression.expression) && expression.expression.expression.text === "process";
 
       if (writes.length) for (const callee of callees) calledWriters.add(callee);
 
       for (const writer of writes) {
-        const copied = /^(?:copyFile|rename)/.test(writer);
+        if (standardStream) continue;
+
+        const copied = /^(?:copyFile|cp|rename|link|symlink)/.test(writer);
+
+        if (writer.startsWith("rename")) for (const target of possible(node.arguments[0])) effects.sources.add(literal(target) ?? "*");
 
         for (const target of possible(node.arguments[copied ? 1 : 0])) {
           const file = target ? accessedName(target) : "";
+
+          if (file !== "GITHUB_ENV" && file !== "GITHUB_PATH") effects.sources.add(literal(target) ?? "*");
 
           if (file !== "GITHUB_ENV" && file !== "GITHUB_PATH" && literal(target) === undefined) unknownWriteTarget = true;
 
@@ -2513,12 +2545,153 @@ function githubScriptEnvironmentEffects(script) {
 
   if ([...exportedReferences].some(node => !calledExports.has(node))) effects.unknown = true;
 
+  if ([...writerReferences].some(node => !calledWriters.has(node))) effects.sources.add("*");
+
   if (referencesEnvironmentFile && (unknownWriteTarget || [...writerReferences].some(node => !calledWriters.has(node)))) effects.unknown = true;
 
   return effects;
 }
 
-export function standAloneHelpers(lock, compilerActionsAvailable = false) {
+function recordSourceWrites(script, environment, writes, actionsDirectoryAvailable, aliases = new Map(), commands = splitCommands(script), location = { root: true }, copiedExecutables = new Set()) {
+  const external = new Set(["GITHUB_ENV", "GITHUB_PATH", "GITHUB_OUTPUT", "GITHUB_STATE", "GITHUB_STEP_SUMMARY", "RUNNER_TEMP", "RUNNER_TOOL_CACHE"]);
+
+  const resolve = (word, seen = new Set()) => {
+    if (!word) return "*";
+
+    if (!word.hasExpansion) return !location.root && !path.isAbsolute(word.value) ? "*" : path.posix.normalize(word.value);
+    const variable = /^\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))(\/[^$`*?[]*)?$/.exec(word.value);
+
+    if (!variable) return "*";
+    const name = variable[1] ?? variable[2];
+    const suffix = variable[3] ?? "";
+
+    if (seen.has(name)) return "*";
+
+    if (aliases.has(name)) {
+      const base = resolve(aliases.get(name), new Set(seen).add(name));
+
+      return base === "*" || base === null ? base : path.posix.normalize(base + suffix);
+    }
+
+    if (external.has(name) && !Object.hasOwn(environment, name) && !suffix.split("/").includes("..")) return null;
+
+    if (name === "RUNNER_TEMP" && /^\$\{\{\s*runner\.temp\s*\}\}$/.test(environment[name] ?? "") && !suffix.split("/").includes("..")) return null;
+
+    if (name === "GITHUB_WORKSPACE" && (!Object.hasOwn(environment, name) || /^\$\{\{\s*github\.workspace\s*\}\}$/.test(environment[name]))) return path.posix.normalize("." + suffix);
+
+    if (Object.hasOwn(environment, name)) return resolve({ value: String(environment[name]) + suffix, hasExpansion: String(environment[name]).includes("$") }, new Set(seen).add(name));
+
+    return "*";
+  };
+
+  const add = word => {
+    const target = resolve(word);
+
+    if (target !== null) writes.add(target);
+  };
+
+  for (const { command, heredocs } of commands) {
+    const definition = /^(?:function\s+[A-Za-z_]\w*(?:\s*\(\s*\))?|[A-Za-z_]\w*\s*\(\s*\))\s*\{/.exec(command.trim());
+
+    if (definition) {
+      recordSourceWrites(command.trim().slice(definition[0].length) || ":", environment, writes, actionsDirectoryAvailable, new Map(aliases), undefined, { ...location });
+
+      continue;
+    }
+
+    const list = words(command);
+    const context = commandContext(list, environment);
+    const argv = list.slice(context.index);
+    const executable = path.posix.basename(argv[0]?.value ?? "");
+    const bindings = ENVIRONMENT_DECLARATIONS.has(executable) ? argv.slice(1) : list.slice(0, context.index);
+
+    for (const word of bindings) {
+      const assignment = /^([A-Za-z_]\w*)=(.*)$/.exec(word.value);
+
+      if (assignment) aliases.set(assignment[1], { ...word, value: assignment[2] });
+    }
+
+    for (const target of outputDestinations(list)) {
+      if (!(target.value ?? "").startsWith(">(")) add(target);
+    }
+
+    const variables = shellVariableTargets(list, context);
+
+    if (variables === null) aliases.clear();
+    else for (const name of variables) aliases.set(name, { value: "${unprovable}", hasExpansion: true });
+
+    for (const nested of commandSubstitutions([command, ...heredocs].join("\n"))) recordSourceWrites(nested, context.environment, writes, actionsDirectoryAvailable, new Map(aliases), undefined, { ...location });
+
+    if (command.trim().startsWith("(")) {
+      const source = command.trim();
+      const end = parenthesizedEnd(source, 0);
+
+      recordSourceWrites(source.slice(1, end === source.length - 1 ? end : undefined), context.environment, writes, actionsDirectoryAvailable, new Map(aliases), undefined, { ...location });
+
+      continue;
+    }
+
+    if (compilerInvocation(argv.map(word => word.value), context.environment, actionsDirectoryAvailable, external)) continue;
+
+    if (copiedExecutables.has(argv[0]?.value) && argv.length === 2 && argv[1].value === "--version") continue;
+
+    if (executable && !context.introspection && (!nativeExecutablePath(argv[0].value) || unmodeledExecutionOption(executable, argv.slice(1)))) writes.add("*");
+
+    if (["cd", "pushd", "popd"].includes(executable)) location.root = false;
+
+    if (["bash", "sh", "eval", "trap"].includes(executable)) {
+      const index = ["eval", "trap"].includes(executable) ? 1 : argv.findIndex(word => /^-[eux]*c[eux]*$/.test(word.value)) + 1;
+      const payload = argv[index];
+
+      if (index > 0 && payload && !payload.hasExpansion) recordSourceWrites(payload.value, context.environment, writes, actionsDirectoryAvailable, executable === "eval" ? aliases : new Map(aliases), undefined, executable === "eval" ? location : { ...location });
+      else if (!argv.slice(1).every(word => ["--help", "--version"].includes(word.value))) writes.add("*");
+    } else if (["cp", "ln"].includes(executable)) {
+      const target = argv.findIndex(word => ["-t", "--target-directory"].includes(word.value));
+      const inlineTarget = argv.find(word => word.value.startsWith("--target-directory=") || /^-t.+/.test(word.value));
+
+      if (target > 0) add(argv[target + 1]);
+      else if (inlineTarget) add({ ...inlineTarget, value: inlineTarget.value.replace(/^(?:--target-directory=|-t)/, "") });
+      else add(argv.at(-1));
+    } else if (executable === "sort") {
+      const target = argv.findIndex(word => ["-o", "--output"].includes(word.value));
+      const inlineTarget = argv.find(word => word.value.startsWith("--output=") || /^-o.+/.test(word.value));
+
+      if (target > 0) add(argv[target + 1]);
+
+      if (inlineTarget) add({ ...inlineTarget, value: inlineTarget.value.replace(/^(?:--output=|-o)/, "") });
+    } else if (executable === "uniq") {
+      const inputs = [];
+
+      for (let i = 1; i < argv.length; i++) {
+        if (["-f", "-s", "-w", "--skip-fields", "--skip-chars", "--check-chars"].includes(argv[i].value)) i++;
+        else if (!argv[i].value.startsWith("-")) inputs.push(argv[i]);
+      }
+
+      if (inputs.length > 1) add(inputs.at(-1));
+    } else if (executable === "find" && argv.some(word => word.value === "-delete")) writes.add("*");
+    else if (["rm", "rmdir", "mv", "touch", "truncate", "tee", "chmod", "chown"].includes(executable)) {
+      for (const word of argv.slice(1)) {
+        if (!word.value.startsWith("-")) add(word);
+      }
+    } else if (executable && !context.introspection &&
+      !INSTALL_FREE_COMMANDS.has(executable) && !INSTALLERS.has(executable) &&
+      !treePreservingUtility(executable, argv.slice(1), context.environment, external) &&
+      !(actionsDirectoryAvailable && executable === "awf")) writes.add("*");
+  }
+}
+
+function sourceWasChanged(file, writes, root) {
+  const target = root ? path.resolve(root, file) : path.posix.normalize(file);
+
+  return [...writes].some(write => {
+    if (write === "*") return true;
+    const modified = root ? path.resolve(root, write) : path.posix.normalize(write);
+
+    return modified === target || target.startsWith(modified.replace(/\/$/, "") + "/");
+  });
+}
+
+export function standAloneHelpers(lock, compilerActionsAvailable = false, sourceChecks = []) {
   const files = new Set();
 
   for (const job of Object.values(lock.jobs ?? {})) {
@@ -2531,6 +2704,14 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
     let installed = false;
     let actionsDirectoryAvailable = compilerActionsAvailable;
     const copiedExecutables = new Set();
+    const sourceWrites = new Set();
+
+    const recordHelper = file => {
+      if (sourceWasChanged(file, sourceWrites)) throw new Error(`Workflow modifies verified source ${file} before install-free execution; preserve committed helper bytes`);
+      files.add(file);
+      sourceChecks.push({ file, writes: new Set(sourceWrites) });
+    };
+
     const persistent = { environment: {}, pathChanged: false, unknown: false };
 
     for (const step of steps) {
@@ -2554,11 +2735,14 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
 
       if (step.uses?.startsWith("github/gh-aw-actions/setup@") && step.with?.destination === "${{ runner.temp }}/gh-aw/actions" && step.if === undefined && !mayContinueOnError) actionsDirectoryAvailable = true;
       let stepCompilerActionsAvailable = actionsDirectoryAvailable;
+      const actionEffects = step.uses?.startsWith("actions/github-script@") ? githubScriptEnvironmentEffects(step.with?.script ?? "") : undefined;
+
+      for (const target of actionEffects?.sources ?? []) sourceWrites.add(target);
 
       if (step.uses?.startsWith("actions/github-script@") && (!installed || runsAfterEarlierFailure)) {
         rejectNodeOptions(environment);
 
-        for (const file of githubScriptHelpers(step.with?.script ?? "", environment, actionsDirectoryAvailable)) files.add(file);
+        for (const file of githubScriptHelpers(step.with?.script ?? "", environment, actionsDirectoryAvailable)) recordHelper(file);
       }
 
       let group = [world(installed, true), ...(runsAfterEarlierFailure ? [world(false, true)] : [])];
@@ -2568,6 +2752,8 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
       let relocated = Object.entries(environment).some(([name, value]) => /^(?:BASH_ENV|ENV)$/.test(name) && String(value).trim() !== "");
       let shortCircuited = false;
       let blockDepth = 0;
+      const sourceAliases = new Map();
+      const sourceLocation = { root: ROOT_WORKING_DIRECTORIES.has(workingDirectory) };
       const hashedExecutables = new Set();
       const definedExecutables = new Set();
       const reservedOutputs = new Set(["GITHUB_ENV", "GITHUB_PATH", "GITHUB_OUTPUT", "GITHUB_STATE", "GITHUB_STEP_SUMMARY", "RUNNER_TEMP", "RUNNER_TOOL_CACHE"]);
@@ -2648,6 +2834,8 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
         const insideBlock = blockDepth > 0;
 
         const executing = group.filter(key => nextOn === "always" || (nextOn === "ok") === exitedOk(key));
+
+        if (executing.length) recordSourceWrites("", environment, sourceWrites, stepCompilerActionsAvailable, sourceAliases, [{ command: text, heredocs }], sourceLocation, copiedExecutables);
         const copiedTarget = "/tmp/gh-aw/bin/bun";
 
         if (["cp", "mv", "rm", "rmdir", "truncate", "ln"].includes(commandName) && parsedWords.slice(commandPosition + 1).some(word =>
@@ -2678,7 +2866,7 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
             for (const reference of helperReferences(scan, environment, index > 0, stepCompilerActionsAvailable)) {
               if (relocated || !ROOT_WORKING_DIRECTORIES.has(workingDirectory)) throw new Error(`unprovable helper working directory: ${workingDirectory}; invoke install-free helpers from the checkout root without directory-stack mutations`);
 
-              files.add(reference.replace(/^upstream-sync-policy\//, ""));
+              recordHelper(reference.replace(/^upstream-sync-policy\//, ""));
             }
           }
         }
@@ -2741,11 +2929,25 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
       installed = survivors.length > 0 && survivors.every(installedIn);
       mergeRunnerEffects(persistent, runnerEnvironmentEffects(script, environment));
 
-      if (step.uses?.startsWith("actions/github-script@")) mergeRunnerEffects(persistent, githubScriptEnvironmentEffects(step.with?.script ?? ""));
+      if (actionEffects) mergeRunnerEffects(persistent, actionEffects);
     }
   }
 
   return files;
+}
+
+export async function workflowDependencyFreeClosure(root, lock) {
+  const sourceChecks = [];
+  const helpers = standAloneHelpers(lock, false, sourceChecks);
+  const closure = await dependencyFreeClosure(root, [...helpers].sort());
+
+  for (const { file, writes } of sourceChecks) {
+    for (const member of await dependencyFreeClosure(root, [file])) {
+      if (sourceWasChanged(member, writes, root)) throw new Error(`Workflow modifies verified source ${member} before executing ${file}; preserve committed import-closure bytes`);
+    }
+  }
+
+  return closure;
 }
 
 export async function validateUpstreamSetup(root) {
@@ -2824,7 +3026,7 @@ export async function validateUpstreamSetup(root) {
 
   if (lock.jobs.agent.permissions?.contents !== "read" || lock.jobs.agent.permissions?.["pull-requests"] !== "read") throw new Error("Agent permissions drift");
 
-  await dependencyFreeClosure(root, [...standAloneHelpers(lock)].sort());
+  await workflowDependencyFreeClosure(root, lock);
 
   return { tracks: 7 };
 }

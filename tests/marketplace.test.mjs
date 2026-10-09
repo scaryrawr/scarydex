@@ -7,7 +7,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, test } from "node:test";
 import { parse } from "yaml";
-import { checkModuleSyntax, dependencyFreeClosure, EXPECTED_PLUGINS, findBareImports, findComputedImports, scanImports, standAloneHelpers, validateMarketplace, validateBundle } from "../tools/check-marketplace.mjs";
+import { checkModuleSyntax, dependencyFreeClosure, EXPECTED_PLUGINS, findBareImports, findComputedImports, scanImports, standAloneHelpers, validateMarketplace, validateBundle, workflowDependencyFreeClosure } from "../tools/check-marketplace.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
 
@@ -1247,12 +1247,14 @@ test("dependency tree changes invalidate prior successful installation", async (
   const install = { run: "bun install" };
   const job = steps => [...standAloneHelpers({ jobs: { build: { steps } } })];
 
-  for (const mutation of ["rm -rf node_modules", "mv node_modules saved", "npm prune --omit=dev", "npm install --omit=dev", "cleanup node_modules"]) {
+  for (const mutation of ["rm -rf node_modules", "mv node_modules saved", "npm prune --omit=dev", "npm install --omit=dev"]) {
     assert.deepEqual(job([install, { run: mutation }, helper]), ["tools/x.mjs"]);
     assert.deepEqual(job([{ run: `bun install; ${mutation}; node tools/x.mjs` }]), ["tools/x.mjs"]);
     assert.deepEqual(job([install, { run: mutation }, install, helper]), []);
   }
 
+  assert.throws(() => job([install, { run: "cleanup node_modules" }, helper]), /modifies verified source/);
+  assert.deepEqual(job([install, { run: "cleanup node_modules" }, install, helper]), []);
   assert.deepEqual(job([install, { run: "echo node_modules" }, helper]), []);
   assert.deepEqual(job([install, { run: "rm -f /tmp/unrelated-file" }, helper]), []);
 
@@ -1919,7 +1921,7 @@ test("opaque commands cannot preserve installation credit through unmodeled effe
     "awk '@load \"tools/cleanup\"'",
     'awk \'{ print }\' "$UNPROVEN_OPTIONS"',
     "/tmp/gh-aw/bin/bun --version",
-  ]) assert.deepEqual(job(command), ["tools/x.mjs"], command);
+  ]) assert.throws(() => job(command), /modifies verified source/, command);
 
   for (const command of [
     "printf data",
@@ -1959,11 +1961,107 @@ test("compiler executable copies require observed native provenance before exemp
   const nativeCopy = 'cp "$(command -v bun)" /tmp/gh-aw/bin/bun';
 
   assert.deepEqual(job(`${nativeCopy}\n/tmp/gh-aw/bin/bun --version`), []);
-  assert.deepEqual(job(`${nativeCopy}\n/tmp/gh-aw/bin/bun --version`, {}), ["tools/x.mjs"]);
-  assert.deepEqual(job(`${nativeCopy}\ncp ./tools/unchecked /tmp/gh-aw/bin/bun\n/tmp/gh-aw/bin/bun --version`), ["tools/x.mjs"]);
-  assert.deepEqual(job(`${nativeCopy}\ncp ./tools/bun /tmp/gh-aw/bin\n/tmp/gh-aw/bin/bun --version`), ["tools/x.mjs"]);
-  assert.deepEqual(job(`${nativeCopy} && printf copied\n/tmp/gh-aw/bin/bun --version`), ["tools/x.mjs"]);
-  assert.deepEqual(job('cp ./tools/unchecked /tmp/gh-aw/bin/bun\n/tmp/gh-aw/bin/bun --version'), ["tools/x.mjs"]);
+  assert.throws(() => job(`${nativeCopy}\n/tmp/gh-aw/bin/bun --version`, {}), /modifies verified source/);
+  assert.throws(() => job(`${nativeCopy}\ncp ./tools/unchecked /tmp/gh-aw/bin/bun\n/tmp/gh-aw/bin/bun --version`), /modifies verified source/);
+  assert.throws(() => job(`${nativeCopy}\ncp ./tools/bun /tmp/gh-aw/bin\n/tmp/gh-aw/bin/bun --version`), /modifies verified source/);
+  assert.throws(() => job(`${nativeCopy} && printf copied\n/tmp/gh-aw/bin/bun --version`), /modifies verified source/);
+  assert.throws(() => job('cp ./tools/unchecked /tmp/gh-aw/bin/bun\n/tmp/gh-aw/bin/bun --version'), /modifies verified source/);
+});
+
+test("unscanned Git subprocess operations cannot execute aliases or helpers", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-git-execution-"));
+
+  roots.push(dir);
+
+  for (const source of [
+    'import { spawnSync } from "node:child_process"; spawnSync("git", ["-c", "alias.probe=!node ./hidden.mjs", "probe"]);',
+    'import { spawnSync } from "node:child_process"; spawnSync("git", ["diff", "--ext-diff"]);',
+    'import { spawnSync } from "node:child_process"; spawnSync("git", ["--version"], { env: external });',
+  ]) {
+    assert.ok(scanImports(source).dynamic.length, source);
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /evaluates code at runtime/);
+  }
+
+  await writeFile(path.join(dir, "hidden.mjs"), 'import { writeFileSync } from "node:fs"; writeFileSync("marker", "executed");');
+  const git = spawnSync("git", ["-c", "alias.probe=!node ./hidden.mjs", "probe"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.equal(git.status, 0, git.stderr);
+  assert.equal(await readFile(path.join(dir, "marker"), "utf8"), "executed");
+  const policy = await readFile(path.join(root, "tools/upstream-sync.mjs"), "utf8");
+
+  assert.deepEqual(scanImports(policy, "tools/upstream-sync.mjs").dynamic, []);
+  assert.ok(scanImports(policy + "\n", "tools/upstream-sync.mjs").dynamic.length);
+});
+
+test("workflow writes cannot replace committed entrypoint or transitive import bytes", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-source-integrity-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/entry.mjs"), 'import "./dep.mjs";');
+  await writeFile(path.join(dir, "tools/dep.mjs"), 'export const ready = true;');
+  const job = steps => ({ jobs: { build: { steps } } });
+
+  for (const mutation of [
+    "printf bad > tools/entry.mjs",
+    'TARGET=tools/entry.mjs; printf bad >> "$TARGET"',
+    "cp /tmp/unchecked tools/entry.mjs",
+    "mv tools new-tools",
+    "bash -c 'printf bad > tools/entry.mjs'",
+  ]) assert.throws(() => standAloneHelpers(job([{ run: `${mutation}\nnode tools/entry.mjs` }])), /modifies verified source/, mutation);
+
+  for (const mutation of ["printf bad > tools/dep.mjs", "cp /tmp/unchecked tools/dep.mjs"]) await assert.rejects(workflowDependencyFreeClosure(dir, job([{ run: `${mutation}\nnode tools/entry.mjs` }])), /modifies verified source.*dep\.mjs/);
+
+  await assert.rejects(workflowDependencyFreeClosure(dir, job([
+    { uses: "actions/github-script@pinned", with: { script: 'const fs = require("node:fs"); fs.writeFileSync("tools/dep.mjs", "bad");' } },
+    { run: "node tools/entry.mjs" },
+  ])), /modifies verified source.*dep\.mjs/);
+
+  assert.deepEqual(await workflowDependencyFreeClosure(dir, job([{ run: 'printf data > output.txt\nnode tools/entry.mjs' }])), ["tools/dep.mjs", "tools/entry.mjs"]);
+  assert.deepEqual(await workflowDependencyFreeClosure(dir, job([{ run: "node tools/entry.mjs\nprintf bad > tools/dep.mjs" }])), ["tools/dep.mjs", "tools/entry.mjs"]);
+  assert.deepEqual(await workflowDependencyFreeClosure(dir, job([{ run: 'sink="$GITHUB_ENV"\necho NODE_ENV=development >> "$sink"\nnode tools/entry.mjs' }])), ["tools/dep.mjs", "tools/entry.mjs"]);
+  await assert.rejects(workflowDependencyFreeClosure(dir, job([
+    { run: "printf bad > dep.mjs", "working-directory": "tools" },
+    { run: "node tools/entry.mjs" },
+  ])), /modifies verified source/);
+
+  for (const source of [
+    'import { writeFileSync } from "node:fs"; writeFileSync("tools/dep.mjs", "bad"); import "./dep.mjs";',
+    'import { writeFileSync } from "node:fs"; writeFileSync(process.env.OUTPUT, "bad"); import "./dep.mjs";',
+    'import { rmSync as remove } from "node:fs"; remove("tools/dep.mjs"); import "./dep.mjs";',
+    'import { renameSync } from "node:fs"; renameSync("tools/dep.mjs", "/tmp/data.mjs"); import "./dep.mjs";',
+    'import fs from "node:fs"; const writer = fs.writeFileSync; Reflect.apply(writer, null, ["tools/dep.mjs", "bad"]); import "./dep.mjs";',
+  ]) {
+    await writeFile(path.join(dir, "tools/entry.mjs"), source);
+    await assert.rejects(dependencyFreeClosure(dir, ["tools/entry.mjs"]), /may modify verified source/);
+  }
+
+  await writeFile(path.join(dir, "tools/entry.mjs"), 'import { writeFileSync } from "node:fs"; writeFileSync("output.txt", "data"); process.stdout.write(String(Date.now())); import "./dep.mjs";');
+  assert.deepEqual(await dependencyFreeClosure(dir, ["tools/entry.mjs"]), ["tools/dep.mjs", "tools/entry.mjs"]);
+});
+
+test("native utility output options cannot bypass committed module integrity", () => {
+  const job = run => ({ jobs: { build: { steps: [{ run: `${run}\nnode tools/entry.mjs` }] } } });
+
+  for (const mutation of [
+    "cp -t tools /tmp/entry.mjs",
+    "cp --target-directory=tools /tmp/entry.mjs",
+    "ln -t tools /tmp/entry.mjs",
+    "sort -o tools/entry.mjs /tmp/data",
+    "sort -otools/entry.mjs /tmp/data",
+    "sort --output=tools/entry.mjs /tmp/data",
+    "uniq /tmp/data tools/entry.mjs",
+    "find tools -delete",
+    "chmod 000 tools/entry.mjs",
+  ]) assert.throws(() => standAloneHelpers(job(mutation)), /modifies verified source/, mutation);
+
+  for (const command of [
+    "cp tools/entry.mjs /tmp/entry-copy.mjs",
+    "sort -o /tmp/sorted.txt tools/entry.mjs",
+    "uniq -f 3 tools/entry.mjs",
+    "uniq tools/entry.mjs /tmp/unique.txt",
+  ]) assert.deepEqual([...standAloneHelpers(job(command))], ["tools/entry.mjs"], command);
 });
 
 const SINGLE = String.fromCharCode(10);
@@ -2129,9 +2227,12 @@ test("workflow helpers executed without dependency install stay dependency-free"
 
   const emptyPlan = { schemaVersion: 1, repository: "scaryrawr/scarydex", tracks: helper.TRACKS.map(track => ({ id: track.id, commits: [] })) };
 
-  assert.deepEqual(helper.skipEmptyPlan(emptyPlan, path.join(dir, "noop.json")), { skipped: true });
+  const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "scarydex-bare-output-"));
 
-  assert.match(await readFile(path.join(dir, "noop.json"), "utf8"), /No upstream changes to review/);
+  roots.push(outputDirectory);
+  assert.deepEqual(helper.skipEmptyPlan(emptyPlan, path.join(outputDirectory, "noop.json")), { skipped: true });
+
+  assert.match(await readFile(path.join(outputDirectory, "noop.json"), "utf8"), /No upstream changes to review/);
 });
 
 test("Node is the validity oracle for install-free helpers", async () => {
