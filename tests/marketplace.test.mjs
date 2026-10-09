@@ -1900,6 +1900,72 @@ test("dependency worlds remain bounded across long uncertain command sequences",
   assert.equal(result.status, 0, result.stderr);
 });
 
+test("opaque commands cannot preserve installation credit through unmodeled effects", async () => {
+  const job = command => [...standAloneHelpers({ jobs: { build: { steps: [{ run: "bun install" }, { run: command }, { run: "node tools/x.mjs" }] } } })];
+
+  for (const command of [
+    "opaque-program",
+    "./tools/cleanup",
+    "python3 -c 'import shutil; shutil.rmtree(\"node_\" + \"modules\")'",
+    "bash -c 'opaque-program'",
+    'printf "%s" "$(opaque-program)"',
+    "/unverified/bin/printf data",
+    "find . -exec opaque-program \\;",
+    "sort --compress-program=opaque-program",
+    "git clean -fdx",
+    "git -C . reset --hard",
+    "awk 'BEGIN { system(\"opaque-program\") }'",
+    "awk -f tools/cleanup.awk",
+    "awk '@load \"tools/cleanup\"'",
+    'awk \'{ print }\' "$UNPROVEN_OPTIONS"',
+    "/tmp/gh-aw/bin/bun --version",
+  ]) assert.deepEqual(job(command), ["tools/x.mjs"], command);
+
+  for (const command of [
+    "printf data",
+    "git clone --no-checkout https://example.invalid/repo /tmp/gh-aw/upstream-sync/source",
+    "openssl rand -base64 45",
+    "awk '{ print }' input.txt",
+  ]) assert.deepEqual(job(command), [], command);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-opaque-tree-mutation-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "node_modules/scarydex-fixture"), { recursive: true });
+  await writeFile(path.join(dir, "node_modules/scarydex-fixture/package.json"), '{"name":"scarydex-fixture","main":"index.mjs"}');
+  await writeFile(path.join(dir, "node_modules/scarydex-fixture/index.mjs"), "export const ready = true;");
+  await writeFile(path.join(dir, "opaque-program"), '#!/bin/sh\na=node_; b=modules; rm -rf "$a$b"\n', { mode: 0o755 });
+  const before = spawnSync("node", ["--input-type=module", "--eval", 'await import("scarydex-fixture")'], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.equal(before.status, 0, before.stderr);
+  const mutation = spawnSync("./opaque-program", [], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.equal(mutation.status, 0, mutation.stderr);
+  const after = spawnSync("node", ["--input-type=module", "--eval", 'await import("scarydex-fixture")'], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.match(after.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
+test("compiler executable copies require observed native provenance before exemption", () => {
+  const setup = { uses: "github/gh-aw-actions/setup@pinned", with: { destination: "${{ runner.temp }}/gh-aw/actions" } };
+
+  const job = (copy, compilerSetup = setup) => [...standAloneHelpers({ jobs: { build: { steps: [
+    compilerSetup,
+    { run: "bun install" },
+    { run: copy },
+    { run: "node tools/x.mjs" },
+  ] } } })];
+
+  const nativeCopy = 'cp "$(command -v bun)" /tmp/gh-aw/bin/bun';
+
+  assert.deepEqual(job(`${nativeCopy}\n/tmp/gh-aw/bin/bun --version`), []);
+  assert.deepEqual(job(`${nativeCopy}\n/tmp/gh-aw/bin/bun --version`, {}), ["tools/x.mjs"]);
+  assert.deepEqual(job(`${nativeCopy}\ncp ./tools/unchecked /tmp/gh-aw/bin/bun\n/tmp/gh-aw/bin/bun --version`), ["tools/x.mjs"]);
+  assert.deepEqual(job(`${nativeCopy}\ncp ./tools/bun /tmp/gh-aw/bin\n/tmp/gh-aw/bin/bun --version`), ["tools/x.mjs"]);
+  assert.deepEqual(job(`${nativeCopy} && printf copied\n/tmp/gh-aw/bin/bun --version`), ["tools/x.mjs"]);
+  assert.deepEqual(job('cp ./tools/unchecked /tmp/gh-aw/bin/bun\n/tmp/gh-aw/bin/bun --version'), ["tools/x.mjs"]);
+});
+
 const SINGLE = String.fromCharCode(10);
 
 test("workflow helpers executed without dependency install stay dependency-free", async () => {

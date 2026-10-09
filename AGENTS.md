@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 260 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 262 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -179,6 +179,11 @@ literal Git invocations without a shell. Arbitrary executable paths cannot acqui
 native-command trust from their basename. Hash/function/alias shadowing survives
 dependency loss within the same shell. Dependency worlds are deduplicated at every
 transition, keeping the finite-state model bounded.
+Opaque commands also invalidate previously credited dependencies, including nested
+payloads and execution-bearing utility options. Only modeled tree-preserving
+operations and observed compiler invocations preserve that credit. Compiler Bun
+copies need an unconditional native-source copy before informational exemption;
+overwrites, unknown effects and failure-tolerant copy paths discard that provenance.
 It parses each module with the TypeScript compiler rather than matching regexes,
 so trivia between tokens (`import /* c */ "pkg"`) counts
 and a package name inside a comment or string does not. Every target lands in one of

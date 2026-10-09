@@ -1508,8 +1508,7 @@ function helperReferences(text, environment = {}, substitutionsOnly = false, act
 
     if (!INSTALL_FREE_COMMANDS.has(commandName) && !knownPackageOperation && !compilerProgram) throw new Error(`unmodeled install-free executable ${commandName}; expose its payload in a verified module or literal supported shell command`);
 
-    if ((commandName === "find" && list.slice(executable + 1).some(word => /^-(?:exec|execdir|ok|okdir)$/.test(word.value))) ||
-        (commandName === "sort" && list.slice(executable + 1).some(word => /^--compress-program(?:=|$)/.test(word.value)))) throw new Error(`unmodeled execution option for ${commandName}; invoke the payload directly`);
+    if (unmodeledExecutionOption(commandName, list.slice(executable + 1))) throw new Error(`unmodeled execution option for ${commandName}; invoke the payload directly`);
   }
 
   const recordScript = script => {
@@ -1897,9 +1896,51 @@ function outputDestinations(list) {
   }));
 }
 
-function dependencyTreeChanged(list, context, checkoutRoot, text, reservedOutputs = new Set(), compilerActionsAvailable = false) {
+function unmodeledExecutionOption(executable, args) {
+  return (executable === "find" && args.some(word => /^-(?:exec|execdir|ok|okdir)$/.test(word.value))) ||
+    (executable === "sort" && args.some(word => /^--compress-program(?:=|$)/.test(word.value)));
+}
+
+function treePreservingUtility(executable, args, environment, reservedOutputs) {
+  const argv = args.map(word => word.value);
+
+  if (executable === "awk") return argv[0] !== undefined && !args[0].hasExpansion && !argv[0].startsWith("-") &&
+    !/[<>|@]|\bsystem\b/.test(argv[0]) && args.slice(1).every(word => !word.value.startsWith("-") && !word.value.includes("=") &&
+      (!word.hasExpansion || (reservedOutputs.has("RUNNER_TEMP") &&
+        (!Object.hasOwn(environment, "RUNNER_TEMP") || /^\$\{\{\s*runner\.temp\s*\}\}$/.test(environment.RUNNER_TEMP)) &&
+        /^\$(?:RUNNER_TEMP|\{RUNNER_TEMP\})\/[^$`*?[]+$/.test(word.value))));
+
+  if (args.some(word => word.hasExpansion)) return false;
+
+  if (executable === "openssl") return argv[0] === "rand" && argv.slice(1).every(word => ["-base64", "-hex"].includes(word) || /^[0-9]+$/.test(word));
+
+  if (executable === "git") return (argv.length === 1 && ["--version", "--help"].includes(argv[0])) ||
+    (argv.length === 4 && argv[0] === "clone" && argv[1] === "--no-checkout" &&
+      /^https:\/\/[A-Za-z0-9._/-]+$/.test(argv[2]) && /^\/tmp\/gh-aw\/upstream-sync\/[A-Za-z0-9_-]+$/.test(argv[3]));
+
+  return false;
+}
+
+function compilerInvocation(argv, environment, available, reservedOutputs) {
+  if (!available || !reservedOutputs.has("RUNNER_TEMP") ||
+    (Object.hasOwn(environment, "RUNNER_TEMP") && !/^\$\{\{\s*runner\.temp\s*\}\}$/.test(environment.RUNNER_TEMP))) return false;
+  const script = /^\$(?:RUNNER_TEMP|\{RUNNER_TEMP\})\/gh-aw\/actions\/[A-Za-z0-9_-]+\.(sh|cjs)$/.exec(argv[1] ?? "");
+
+  if (!script) return false;
+  const executable = path.posix.basename(argv[0] ?? "");
+
+  if (script[1] === "sh") return nativeExecutablePath(argv[0]) && ["bash", "sh", "source", "."].includes(executable);
+
+  return (nativeExecutablePath(argv[0]) && executable === "node") || ["$GH_AW_NODE", "${GH_AW_NODE}"].includes(argv[0]);
+}
+
+function dependencyTreeChanged(list, context, checkoutRoot, text, reservedOutputs = new Set(), compilerActionsAvailable = false, copiedExecutables = new Set()) {
   const argv = list.slice(context.index).map(word => word.value);
   const executable = path.posix.basename(argv[0] ?? "");
+  const args = list.slice(context.index + 1);
+
+  const compilerTemp = compilerActionsAvailable && reservedOutputs.has("RUNNER_TEMP") &&
+    (!Object.hasOwn(context.environment, "RUNNER_TEMP") || /^\$\{\{\s*runner\.temp\s*\}\}$/.test(context.environment.RUNNER_TEMP));
 
   for (const destination of outputDestinations(list)) {
     const reserved = /^\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))(?:\/[^$`*?[]*)?$/.exec(destination.value ?? "");
@@ -1918,7 +1959,7 @@ function dependencyTreeChanged(list, context, checkoutRoot, text, reservedOutput
   const nestedChanges = script => splitCommands(script).some(({ command, heredocs }) => {
     const nested = words(command);
 
-    return dependencyTreeChanged(nested, commandContext(nested, context.environment), checkoutRoot, [command, ...heredocs].join("\n"), reservedOutputs, compilerActionsAvailable);
+    return dependencyTreeChanged(nested, commandContext(nested, context.environment), checkoutRoot, [command, ...heredocs].join("\n"), reservedOutputs, compilerActionsAvailable, copiedExecutables);
   });
 
   if (text && commandSubstitutions(text).some(nestedChanges)) return true;
@@ -1927,7 +1968,7 @@ function dependencyTreeChanged(list, context, checkoutRoot, text, reservedOutput
     const source = text.trim();
     const end = parenthesizedEnd(source, 0);
 
-    if (nestedChanges(source.slice(1, end === source.length - 1 ? end : undefined))) return true;
+    return nestedChanges(source.slice(1, end === source.length - 1 ? end : undefined));
   }
 
   if (executable === "{") {
@@ -1935,6 +1976,13 @@ function dependencyTreeChanged(list, context, checkoutRoot, text, reservedOutput
   }
 
   if (context.introspection) return false;
+
+  if (!argv[0] || (compilerTemp && nativeExecutablePath(argv[0]) && executable === "awf") ||
+    compilerInvocation(argv, context.environment, compilerActionsAvailable, reservedOutputs)) return false;
+
+  if (copiedExecutables.has(argv[0]) && argv.length === 2 && argv[1] === "--version") return false;
+
+  if (!nativeExecutablePath(argv[0]) || (list[context.index].hasExpansion && !["[", "[["].includes(executable))) return true;
 
   if (executable === "eval") {
     if (list.slice(context.index + 1).some(word => word.hasExpansion)) return true;
@@ -1947,17 +1995,17 @@ function dependencyTreeChanged(list, context, checkoutRoot, text, reservedOutput
 
     if (commandOption !== -1 && argv[commandOption + 1]) {
       if (list[context.index + commandOption + 1].hasExpansion || nestedChanges(argv[commandOption + 1])) return true;
-    } else if (!argv.slice(1).some(word => ["--help", "--version"].includes(word)) &&
-      !(compilerActionsAvailable && reservedOutputs.has("RUNNER_TEMP") && !Object.hasOwn(context.environment, "RUNNER_TEMP") &&
-        /^\$(?:RUNNER_TEMP|\{RUNNER_TEMP\})\/gh-aw\/actions\/[A-Za-z0-9_-]+\.sh$/.test(argv[1] ?? ""))) return true;
+    } else if (!argv.slice(1).some(word => ["--help", "--version"].includes(word))) return true;
   }
 
-  if (checkoutRoot && INSTALLERS.has(executable)) {
+  if (INSTALLERS.has(executable)) {
     const normalized = packageArguments(argv);
 
     if (!normalized) return true;
 
     if (PACKAGE_MUTATIONS.has(normalized[1])) {
+      if (!checkoutRoot && INSTALL_COMMANDS.has(normalized[1]) && !args.some(word => word.hasExpansion || /^(?:--prefix|--cwd)(?:=|$)/.test(word.value))) return false;
+
       const computed = list.slice(context.index + 1).some(word => word.hasExpansion) ||
         Object.entries(context.environment).some(([name, value]) => /^npm_config_(?:dry_run|package_lock_only)$/i.test(name) && String(value).includes("$"));
 
@@ -1974,7 +2022,13 @@ function dependencyTreeChanged(list, context, checkoutRoot, text, reservedOutput
   if (["rm", "rmdir", "mv", "rsync", "tar", "ln", "truncate"].includes(executable) &&
       list.slice(context.index + 1).some(word => word.hasExpansion || [".", "./", "..", "../"].includes(word.value))) return true;
 
-  return false;
+  if (unmodeledExecutionOption(executable, args)) return true;
+
+  if (INSTALLERS.has(executable)) return !argv.slice(1).every(word => ["root", "-g", "--global", "--version", "-v", "--help", "-h"].includes(word));
+
+  if (["trap", "umask"].includes(executable)) return executable === "trap" && (args.some(word => word.hasExpansion) || (argv[1] && nestedChanges(argv[1])));
+
+  return !INSTALL_FREE_COMMANDS.has(executable) && !treePreservingUtility(executable, args, context.environment, reservedOutputs);
 }
 
 function shellVariableTargets(list, context) {
@@ -2476,6 +2530,7 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
     // in the dependency-free set.
     let installed = false;
     let actionsDirectoryAvailable = compilerActionsAvailable;
+    const copiedExecutables = new Set();
     const persistent = { environment: {}, pathChanged: false, unknown: false };
 
     for (const step of steps) {
@@ -2534,6 +2589,7 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
         const variableTargets = shellVariableTargets(parsedWords, context);
         const definition = /^(?:function\s+([A-Za-z_]\w*)|([A-Za-z_]\w*)\s*\(\s*\))/.exec(text);
         const identityUncertain = hashedExecutables.has(commandName) || definedExecutables.has(commandName) || definedExecutables.has("*");
+        const verifiedCompilerCommand = compilerInvocation(effectiveArgv, context.environment, stepCompilerActionsAvailable, reservedOutputs);
 
         if (definition && group.some(installedIn)) definedExecutables.add(definition[1] ?? definition[2]);
 
@@ -2560,7 +2616,7 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
 
         if (commandName === "eval") environmentMutated = true;
 
-        if (["eval", "source", "."].includes(commandName) || environmentWords.some(word => word.value.startsWith('RUNNER_TEMP=')) ||
+        if (commandName === "eval" || (["source", "."].includes(commandName) && !verifiedCompilerCommand) || environmentWords.some(word => word.value.startsWith('RUNNER_TEMP=')) ||
             (commandName === "unset" && effectiveArgv.slice(1).some(value => value === "RUNNER_TEMP"))) stepCompilerActionsAvailable = false;
 
         if (["source", ".", "alias"].includes(commandName) || /^(?:(?:bun|npm)\s*\(\s*\)|function\s+(?:bun|npm)(?:\s|\())/.test(text)) installerShadowed = true;
@@ -2592,6 +2648,20 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
         const insideBlock = blockDepth > 0;
 
         const executing = group.filter(key => nextOn === "always" || (nextOn === "ok") === exitedOk(key));
+        const copiedTarget = "/tmp/gh-aw/bin/bun";
+
+        if (["cp", "mv", "rm", "rmdir", "truncate", "ln"].includes(commandName) && parsedWords.slice(commandPosition + 1).some(word =>
+          word.hasExpansion || word.value === copiedTarget || copiedTarget.startsWith(word.value.replace(/\/$/, "") + "/"))) copiedExecutables.delete(copiedTarget);
+
+        for (const destination of outputDestinations(parsedWords)) {
+          if (destination.hasExpansion) copiedExecutables.clear();
+          else copiedExecutables.delete(destination.value);
+        }
+
+        if (commandName === "cp" && effectiveArgv.length === 3 && effectiveArgv[1] === "$(command -v bun)" && effectiveArgv[2] === copiedTarget &&
+          stepCompilerActionsAvailable && !installerShadowed && !context.environment.PATH && executing.length > 0 && executing.every(installedIn) &&
+          errexit && nextOn === "always" && !shortCircuited && !insideBlock && !PIPELINE.has(operator) &&
+          !["&&", "||"].includes(operator) && step.if === undefined && !mayContinueOnError) copiedExecutables.add(copiedTarget);
 
         // An unquoted heredoc body is not a command, but bash does expand `$(...)` written
         // there, so a helper named inside one still runs and must be flagged.
@@ -2625,7 +2695,9 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
 
         // A command with a certain exit status opens only the worlds it can reach.
         const constantOk = constantStatus(text);
-        const invalidatesDependencies = dependencyTreeChanged(parsedWords, context, ROOT_WORKING_DIRECTORIES.has(workingDirectory) && !relocated, [text, ...heredocs].join("\n"), reservedOutputs, stepCompilerActionsAvailable);
+        const invalidatesDependencies = dependencyTreeChanged(parsedWords, context, ROOT_WORKING_DIRECTORIES.has(workingDirectory) && !relocated, [text, ...heredocs].join("\n"), reservedOutputs, stepCompilerActionsAvailable, copiedExecutables);
+
+        if (invalidatesDependencies && !installs) copiedExecutables.clear();
 
         const outcomes = executing.flatMap(key => {
           // An install lands only where the command exits 0, so the failing world keeps the
