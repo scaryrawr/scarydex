@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 249 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 260 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -166,6 +166,19 @@ modules, supported literal shell payloads or the established compiler boundary.
 Opaque executables, sourced payloads and utility options that launch arbitrary
 programs fail closed even without an explicit environment-file argument.
 Shell grouping and function bodies are scanned without granting nested install credit.
+Dependency-tree invalidation includes output redirections and nested executions;
+unresolved output destinations cannot certify preservation. Package no-op semantics
+are manager- and operation-specific: npm CI lockfile-only mode can remove the tree.
+External npm configuration files and workspace selections cannot prove root installation.
+Wrapper environment assignments retain runner-file aliases in nested payloads.
+Variable-writing builtins invalidate affected environment proofs; combined `set`
+options update errexit. Descriptor/FileHandle opens for runner-file writes fail closed.
+Iterator bindings retain code origins, and throwing code-bearing values is refused.
+`node:vm` is unsupported; child-process code execution is refused except proven
+literal Git invocations without a shell. Arbitrary executable paths cannot acquire
+native-command trust from their basename. Hash/function/alias shadowing survives
+dependency loss within the same shell. Dependency worlds are deduplicated at every
+transition, keeping the finite-state model bounded.
 It parses each module with the TypeScript compiler rather than matching regexes,
 so trivia between tokens (`import /* c */ "pkg"`) counts
 and a package name inside a comment or string does not. Every target lands in one of

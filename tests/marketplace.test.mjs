@@ -332,9 +332,9 @@ test("executable substitutions and path-qualified Node commands expose their hel
     "cat < <(echo ok; node tools/x.mjs)",
     "cat < <(echo $(node tools/x.mjs))",
     "/usr/bin/node tools/x.mjs",
-    "./runtime/node tools/x.mjs",
   ]) assert.deepEqual(job(run), ["tools/x.mjs"]);
 
+  assert.throws(() => job("./runtime/node tools/x.mjs"), /unprovable native executable path/);
   assert.deepEqual(job("cat < <(node tools/x.mjs) > >(node tools/y.mjs)"), ["tools/x.mjs", "tools/y.mjs"]);
   assert.deepEqual(job("cat < <(echo done && bun install)\nnode tools/x.mjs"), ["tools/x.mjs"]);
   assert.deepEqual(job("bun install\n/usr/bin/node tools/x.mjs"), []);
@@ -1714,6 +1714,190 @@ test("compound assignments retain code origins across every assignment surface",
   }
 
   assert.deepEqual(scanImports('let value; value ??= "data"; let other = true; other &&= value; let count = 0; count += 1; other.trim();').dynamic, []);
+});
+
+test("dependency mutations include redirections and nested execution without nested install credit", async () => {
+  const job = mutation => [...standAloneHelpers({ jobs: { build: { steps: [{ run: `bun install\n${mutation}\nnode tools/x.mjs` }] } } })];
+
+  for (const mutation of [
+    "printf bad > node_modules/pkg/index.mjs",
+    "echo bad>node_modules/pkg/index.mjs",
+    'TARGET=node_modules/pkg/index.mjs; printf bad > "$TARGET"',
+    "cat data 3>node_modules/pkg/index.mjs",
+    "{ printf bad; } > node_modules/pkg/index.mjs",
+    "bash -c 'rm -rf node_modules'",
+    "sh -c 'npm prune --omit=dev'",
+    'echo "$(rm -rf node_modules)"',
+    "(rm -rf node_modules)",
+    "npm ci --package-lock-only",
+    "npm uninstall --lockfile-only typescript",
+    "npm ci --userconfig tools/npmrc",
+  ]) assert.deepEqual(job(mutation), ["tools/x.mjs"], mutation);
+
+  for (const mutation of ["printf data > output.txt", "printf data 2>&1", "bash -c 'printf data'", "npm install --package-lock-only", "bun install --lockfile-only", "npm install -g example"]) assert.deepEqual(job(mutation), [], mutation);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-npm-tree-removal-"));
+
+  roots.push(dir);
+
+  for (const args of [["ci", "--package-lock-only"], ["uninstall", "--lockfile-only", "scarydex-fixture"]]) {
+    await mkdir(path.join(dir, "node_modules/scarydex-fixture"), { recursive: true });
+    await writeFile(path.join(dir, "node_modules/scarydex-fixture/package.json"), '{"name":"scarydex-fixture","version":"1.0.0","main":"index.mjs"}');
+    await writeFile(path.join(dir, "node_modules/scarydex-fixture/index.mjs"), 'export const ready = true;');
+    await writeFile(path.join(dir, "package.json"), '{"name":"fixture","version":"1.0.0","devDependencies":{"scarydex-fixture":"1.0.0"}}');
+    await writeFile(path.join(dir, "package-lock.json"), JSON.stringify({ name: "fixture", version: "1.0.0", lockfileVersion: 3, packages: {
+      "": { name: "fixture", version: "1.0.0", devDependencies: { "scarydex-fixture": "1.0.0" } },
+      "node_modules/scarydex-fixture": { version: "1.0.0", dev: true },
+    } }));
+    const before = spawnSync("node", ["--input-type=module", "--eval", 'await import("scarydex-fixture")'], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.equal(before.status, 0, before.stderr);
+    const mutation = spawnSync("npm", [...args, "--offline", "--ignore-scripts", "--no-audit", "--no-fund"], { cwd: dir, encoding: "utf8", timeout: 10000 });
+
+    assert.equal(mutation.status, 0, mutation.stderr);
+    const after = spawnSync("node", ["--input-type=module", "--eval", 'await import("scarydex-fixture")'], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.notEqual(after.status, 0);
+    assert.match(after.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
+});
+
+test("descriptor and FileHandle runner writes cannot hide persistent configuration", () => {
+  const job = script => [...standAloneHelpers({ jobs: { build: { steps: [
+    { uses: "actions/github-script@pinned", with: { script } },
+    { run: "npm ci" },
+    { run: "node tools/x.mjs" },
+  ] } } })];
+
+  for (const script of [
+    'const fs = require("node:fs"); const fd = fs.openSync(process.env.GITHUB_ENV, "a"); fs.writeSync(fd, "npm_config_dry_run=true\\n");',
+    'const fs = require("node:fs"); const fd = fs.openSync(process.env.GITHUB_PATH, "a"); fs.writeSync(fd, "/tmp/fake\\n");',
+    'const fs = require("node:fs"); const handle = await fs.promises.open(process.env.GITHUB_ENV, "a"); await handle.write("NODE_ENV=production\\n");',
+    'const fs = require("node:fs"); const handle = await fs.promises.open(process.env.GITHUB_ENV, "a"); await handle.writeFile("NODE_ENV=production\\n");',
+    'const fs = require("node:fs"); const fd = fs.openSync(process.env.GITHUB_ENV, "a"); const emit = fs.writeSync; emit(fd, "npm_config_dry_run=true\\n");',
+  ]) assert.throws(() => job(script), /unprovable.*environment/, script);
+
+  assert.deepEqual(job('const fs = require("node:fs"); const fd = fs.openSync("output.txt", "a"); fs.writeSync(fd, "data");'), []);
+});
+
+test("wrapper environments preserve runner-file aliases in nested payloads", () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }, { run: "npm ci" }, { run: "node tools/x.mjs" }] } } })];
+
+  for (const run of [
+    'env TARGET="$GITHUB_ENV" bash -c \'echo npm_config_dry_run=true >> "$TARGET"\'',
+    'env TARGET="$GITHUB_PATH" bash -c \'echo /tmp/fake >> "$TARGET"\'',
+    'TARGET="$GITHUB_ENV" command bash -c \'echo NODE_ENV=production >> "$TARGET"\'',
+  ]) assert.deepEqual(job(run), ["tools/x.mjs"], run);
+
+  assert.deepEqual(job('env TARGET=output.txt bash -c \'echo data >> "$TARGET"\''), []);
+});
+
+test("shell variable-writing builtins invalidate environment and runner-file proofs", () => {
+  const job = run => [...standAloneHelpers({ env: { NPM_CONFIG_DRY_RUN: "false" }, jobs: { build: { steps: [{ run }, { run: "node tools/x.mjs" }] } } })];
+
+  for (const run of [
+    "printf -v NPM_CONFIG_DRY_RUN true\nnpm ci",
+    "read -r NPM_CONFIG_DRY_RUN <<< true\nnpm ci",
+    "builtin printf -v NPM_CONFIG_DRY_RUN true\nnpm ci",
+  ]) assert.deepEqual(job(run), ["tools/x.mjs"], run);
+
+  assert.throws(() => job('printf -v sink "%s" "$GITHUB_ENV"\necho npm_config_dry_run=true >> "$sink"\nnpm ci'), /unprovable.*environment/);
+  assert.deepEqual(job("printf -v ordinary data\nnpm ci"), []);
+});
+
+test("all supported set option sequences update errexit", () => {
+  const job = prefix => [...standAloneHelpers({ jobs: { build: { steps: [{ run: `${prefix}\nnpm ci\nnode tools/x.mjs` }] } } })];
+
+  for (const prefix of ["set +eu", "set +ex", "set +e +u", "set +o errexit -o pipefail", "set +e -- unused", "set -e +e"]) {
+    assert.deepEqual(job(prefix), ["tools/x.mjs"], prefix);
+    const native = spawnSync("bash", ["-e", "-c", `${prefix}; false; printf REACHED`], { encoding: "utf8", timeout: 5000 });
+
+    assert.equal(native.status, 0, native.stderr);
+    assert.equal(native.stdout, "REACHED");
+  }
+
+  for (const prefix of ["set +e -eu", "set +o errexit -o errexit", "set -euo pipefail"]) assert.deepEqual(job(prefix), [], prefix);
+});
+
+test("external configuration and workspace selections cannot establish root dependency proof", () => {
+  const job = (install, env = {}) => [...standAloneHelpers({ env, jobs: { build: { steps: [{ run: install }, { run: "node tools/x.mjs" }] } } })];
+
+  for (const install of ["npm ci --userconfig tools/npmrc", "npm ci --globalconfig tools/npmrc", "npm ci --workspace=child", "npm ci -w child", "npm ci --workspaces"]) assert.deepEqual(job(install), ["tools/x.mjs"], install);
+
+  for (const env of [{ NPM_CONFIG_USERCONFIG: "tools/npmrc" }, { npm_config_globalconfig: "tools/npmrc" }, { npm_config_workspace: "child" }, { NPM_CONFIG_WORKSPACES: "true" }]) assert.deepEqual(job("npm ci", env), ["tools/x.mjs"]);
+
+  assert.deepEqual(job("npm ci"), []);
+});
+
+test("iteration and exceptional transfers retain code origins but not ordinary data", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-transfer-origins-"));
+
+  roots.push(dir);
+
+  for (const source of [
+    'for (const load of [globalThis["ev" + "al"]]) await load(\'import("@scope/missing-package")\');',
+    'let load; for (load of [globalThis["ev" + "al"]]) await load(\'import("@scope/missing-package")\');',
+    'function produce() { throw globalThis["ev" + "al"]; } try { produce(); } catch (load) { await load(\'import("@scope/missing-package")\'); }',
+    'try { throw globalThis["ev" + "al"]; } catch (load) { await load(\'import("@scope/missing-package")\'); }',
+  ]) {
+    assert.ok(scanImports(source).dynamic.length, source);
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /evaluates code at runtime/);
+    const native = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.match(native.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
+
+  assert.deepEqual(scanImports('for (const value of ["data"]) value.trim(); try { throw new Error("data"); } catch (error) { console.log(error.message); }').dynamic, []);
+});
+
+test("builtin code execution cannot introduce an unscanned module graph", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-builtin-execution-"));
+
+  roots.push(dir);
+
+  for (const source of [
+    'import vm from "node:vm"; vm.runInThisContext("process.getBuiltinModule(\\\"module\\\").createRequire(process.cwd() + \\\"/entry.cjs\\\")(\\\"@scope/missing-package\\\")");',
+    'import { spawnSync } from "node:child_process"; spawnSync(process.execPath, ["--input-type=module", "--eval", \'await import("@scope/missing-package")\']);',
+    'import { spawnSync as run } from "node:child_process"; const launch = run; launch("node", ["--eval", "data"]);',
+    'import * as child from "node:child_process"; const { spawnSync: run } = child; run("node", ["--eval", "data"]);',
+    'import { spawnSync } from "node:child_process"; const box = [spawnSync]; box[0]("node", ["--eval", "data"]);',
+    'import { spawnSync } from "node:child_process"; const get = () => spawnSync; get()("node", ["--eval", "data"]);',
+    'import { execSync as execute } from "node:child_process"; execute("git", ["--version"]);',
+    'import { spawnSync } from "node:child_process"; spawnSync("git", ["--version"], { shell: true });',
+    'import { spawnSync } from "node:child_process"; spawnSync("git", [globalThis["ev" + "al"]]);',
+  ]) {
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /unsupported module loader|evaluates code at runtime/);
+  }
+
+  assert.deepEqual(scanImports('import { spawnSync } from "node:child_process"; spawnSync("git", ["--version"]);').dynamic, []);
+  assert.deepEqual(scanImports('import { spawnSync as run } from "node:child_process"; const launch = run; launch("git", ["--version"]);').dynamic, []);
+  assert.deepEqual(await dependencyFreeClosure(root, ["tools/upstream-sync.mjs"]), ["tools/upstream-sync.mjs"]);
+});
+
+test("only established native executable paths receive native-command trust", () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }, { run: "npm ci" }, { run: "node tools/x.mjs" }] } } })];
+
+  for (const run of ["./tools/echo", "/unverified/bin/cat", "./runtime/node tools/x.mjs", "./tools/bash -c true", "./tools/env npm ci"]) assert.throws(() => job(run), /unprovable.*executable|unmodeled/, run);
+
+  assert.deepEqual(job("/usr/bin/printf data"), []);
+  assert.deepEqual(job("/bin/bash -c 'printf data'"), []);
+});
+
+test("executable shadowing remains visible when dependency availability is lost", () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const shadow of ["hash -p ./tools/unchecked node", "alias node=unchecked", "node() { printf data; }"]) assert.throws(() => job(`bun install\n${shadow}\nrm -rf node_modules\nnode tools/x.mjs`), /unprovable.*executable|unprovable shell/, shadow);
+
+  assert.deepEqual(job("bun install\nhash -p ./tools/unchecked node\nhash -r\nrm -rf node_modules\nnode tools/x.mjs"), ["tools/x.mjs"]);
+});
+
+test("dependency worlds remain bounded across long uncertain command sequences", () => {
+  const source = `import { standAloneHelpers } from ${JSON.stringify(pathToFileURL(path.join(root, "tools/check-marketplace.mjs")).href)}; const run = "set +e\\n" + ":\\n".repeat(256) + "node tools/x.mjs"; const result = [...standAloneHelpers({jobs:{build:{steps:[{run}]}}})]; if (JSON.stringify(result) !== '["tools/x.mjs"]') throw new Error("Incorrect proof");`;
+  const result = spawnSync("node", ["--max-old-space-size=64", "--input-type=module", "--eval", source], { encoding: "utf8", timeout: 10000 });
+
+  assert.equal(result.status, 0, result.stderr);
 });
 
 const SINGLE = String.fromCharCode(10);

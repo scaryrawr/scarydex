@@ -195,11 +195,11 @@ const INSTALL_COMMANDS = new Set(["install", "ci"]);
 
 const ENVIRONMENT_DECLARATIONS = new Set(["export", "declare", "typeset", "readonly", "local"]);
 
-const INSTALLS_ELSEWHERE = new Set(["-g", "-G", "--global", "--global-style", "--link", "--location", "--prefix", "--cwd", "--no-install"]);
+const INSTALLS_ELSEWHERE = new Set(["-g", "-G", "--global", "--global-style", "--link", "--location", "--prefix", "--cwd", "--no-install", "--userconfig", "--globalconfig", "--workspace", "--workspaces", "-w"]);
 
 const PACKAGE_MUTATIONS = new Set(["install", "i", "in", "ins", "inst", "ci", "clean-install", "ic", "install-clean", "add", "remove", "uninstall", "un", "unlink", "uninst", "rm", "r", "update", "up", "upgrade", "ug", "prune", "link", "dedupe", "ddp", "rebuild", "rb"]);
 
-const PACKAGE_OPTION_VALUES = new Set(["--prefix", "--cwd", "--location", "--cache", "--registry", "--userconfig", "--omit", "--only", "--include"]);
+const PACKAGE_OPTION_VALUES = new Set(["--prefix", "--cwd", "--location", "--cache", "--registry", "--userconfig", "--globalconfig", "--workspace", "-w", "--omit", "--only", "--include"]);
 
 const PACKAGE_OPTION_BOOLEANS = new Set(["-g", "-G", "--global", "--no-global", "--global-style", "--production", "--prod", "--no-dev", "--dry-run", "--package-lock-only", "--lockfile-only", "--no-audit", "--no-fund", "--ignore-scripts", "--frozen-lockfile", "--no-save", "--no-package-lock", "--silent", "--force", "--verbose", "--version", "-v", "--help", "-h"]);
 
@@ -229,11 +229,14 @@ function packageArguments(argv) {
 
 function packageMutationOptions(argv, environment) {
   let global = false;
-  const noops = new Map(["--dry-run", "--package-lock-only", "--lockfile-only", "--help", "--version", "-h", "-v"].map(flag => [flag, false]));
+  const lockOnly = argv[0] === "bun" ? ["--lockfile-only"] : ["ci", "clean-install", "ic", "install-clean"].includes(argv[1]) ? [] : ["--package-lock-only"];
+  const noops = new Map(["--dry-run", ...lockOnly, "--help", "--version", "-h", "-v"].map(flag => [flag, false]));
 
   if (argv[0] === "npm") {
     for (const [name, value] of Object.entries(environment)) {
-      if (/^npm_config_(?:dry_run|package_lock_only)$/i.test(name)) noops.set(`--${name.toLowerCase().slice("npm_config_".length).replaceAll("_", "-")}`, String(value).toLowerCase() === "true");
+      const flag = `--${name.toLowerCase().slice("npm_config_".length).replaceAll("_", "-")}`;
+
+      if (/^npm_config_(?:dry_run|package_lock_only)$/i.test(name) && noops.has(flag)) noops.set(flag, String(value).toLowerCase() === "true");
     }
   }
 
@@ -264,14 +267,23 @@ function packageMutationOptions(argv, environment) {
   return { global, noop: [...noops.values()].some(Boolean) };
 }
 
+function externalPackageConfiguration(argv, environment) {
+  return argv[0] === "npm" && (argv.slice(2).some(word => /^(?:--userconfig|--globalconfig)(?:=|$)/.test(word)) ||
+    Object.entries(environment).some(([name, value]) => /^npm_config_(?:userconfig|globalconfig)$/i.test(name) && String(value).trim() !== ""));
+}
+
 function installsElsewhere(argv, environment) {
   if (argv.slice(2).some(word => INSTALLS_ELSEWHERE.has(word.split("=")[0]))) return true;
 
   if (argv[0] !== "npm") return false;
 
+  if (externalPackageConfiguration(argv, environment)) return true;
+
   for (const [name, rawValue] of Object.entries(environment)) {
     const key = name.toLowerCase();
     const value = String(rawValue).trim().toLowerCase();
+
+    if (/^npm_config_workspaces?$/.test(key) && value !== "" && value !== "false") return true;
 
     if (!["npm_config_global", "npm_config_global_style", "npm_config_location", "npm_config_prefix"].includes(key)) continue;
 
@@ -558,7 +570,7 @@ function splitCommands(script) {
 const MAX_DEPENDENCY_FREE_MODULES = 200;
 
 // Workers and module registration start graphs the static import closure cannot traverse.
-const UNSUPPORTED_MODULE_LOADERS = new Set(["node:worker_threads", "node:module"]);
+const UNSUPPORTED_MODULE_LOADERS = new Set(["node:worker_threads", "node:module", "node:vm"]);
 
 const ROOT_WORKING_DIRECTORIES = new Set([".", "./", "${{ github.workspace }}"]);
 
@@ -687,6 +699,55 @@ export function scanImports(source, file = "module.mjs") {
   // Call results can carry global code references, not just direct aliases. Keep
   // their origins separate from data lookups such as repositories[track.source].
   const codeNames = new Set();
+  const childModules = new Set();
+  const childFunctions = new Map();
+  const childMethods = new Set(["spawn", "spawnSync", "exec", "execSync", "execFile", "execFileSync", "fork"]);
+
+  const isChildModule = node => node && ((ts.isIdentifier(node) && childModules.has(node.text)) ||
+    (ts.isCallExpression(node) && accessedName(node.expression) === "require" && ["node:child_process", "child_process"].includes(node.arguments[0]?.text)));
+
+  const childFunctionKinds = node => {
+    if (!node) return [];
+
+    if (ts.isIdentifier(node)) return [...(childFunctions.get(node.text) ?? [])];
+
+    if ((ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) && isChildModule(node.expression)) {
+      if (childMethods.has(accessedName(node))) return [accessedName(node)];
+
+      if (ts.isElementAccessExpression(node) && !ts.isStringLiteral(node.argumentExpression)) return [...childMethods];
+    }
+
+    return [];
+  };
+
+  const verifiedGitCall = node => {
+    const invoked = invocation(node);
+    const kinds = invoked ? childFunctionKinds(invoked.callee) : [];
+    const program = invoked?.inputs[0];
+    const options = invoked?.inputs[2];
+
+    const direct = !options || (ts.isObjectLiteralExpression(options) && options.properties.every(property =>
+      ((ts.isPropertyAssignment(property) && !ts.isComputedPropertyName(property.name)) || ts.isShorthandPropertyAssignment(property)) &&
+      (accessedName(property.name) !== "shell" || (ts.isPropertyAssignment(property) && property.initializer.kind === ts.SyntaxKind.FalseKeyword))));
+
+    return kinds.length > 0 && kinds.every(kind => ["spawn", "spawnSync", "execFile", "execFileSync"].includes(kind)) &&
+      program && ts.isStringLiteral(program) && program.text === "git" && direct && !invoked.inputs.some(isCodeValue);
+  };
+
+  const bindChildFunction = (pattern, kinds) => {
+    const names = new Set();
+
+    taintPattern(pattern, names);
+
+    for (const name of names) {
+      if (!childFunctions.has(name)) childFunctions.set(name, new Set());
+
+      for (const kind of kinds) childFunctions.get(name).add(kind);
+      codeNames.add(name);
+    }
+  };
+
+  const childOriginCount = () => [...childFunctions.values()].flatMap(kinds => [...kinds]).length;
 
   const valueHasTaint = (value, names, codeOnly) => {
     while (value && (ts.isParenthesizedExpression(value) || ts.isAwaitExpression(value))) value = value.expression;
@@ -710,7 +771,7 @@ export function scanImports(source, file = "module.mjs") {
 
     const invoked = invocation(value);
 
-    if (invoked) return invoked.inputs.some(isCodeValue) || isCodeValue(invoked.callee);
+    if (invoked) return !verifiedGitCall(value) && (invoked.inputs.some(isCodeValue) || isCodeValue(invoked.callee));
 
     if (ts.isConditionalExpression(value)) return valueHasTaint(value.whenTrue, names, codeOnly) || valueHasTaint(value.whenFalse, names, codeOnly);
 
@@ -726,7 +787,7 @@ export function scanImports(source, file = "module.mjs") {
       if (!ts.isBlock(value.body)) return isCodeValue(value.body);
 
       const returnedCode = node => {
-        if (ts.isReturnStatement(node) || ts.isYieldExpression(node)) return isCodeValue(node.expression);
+        if (ts.isReturnStatement(node) || ts.isYieldExpression(node) || ts.isThrowStatement(node)) return isCodeValue(node.expression);
 
         if (isAssignment(node) && isCodeValue(node.right)) return true;
 
@@ -768,7 +829,7 @@ export function scanImports(source, file = "module.mjs") {
 
     const invoked = invocation(value);
 
-    if (invoked) return invoked.inputs.some(isCodeValue) || isCodeValue(invoked.callee);
+    if (invoked) return !verifiedGitCall(value) && (invoked.inputs.some(isCodeValue) || isCodeValue(invoked.callee));
 
     if (ts.isConditionalExpression(value)) return isUnprovableAggregate(value.whenTrue) || isUnprovableAggregate(value.whenFalse);
 
@@ -797,10 +858,58 @@ export function scanImports(source, file = "module.mjs") {
   let grew = true;
 
   while (grew) {
-    const before = unprovableNames.size + unprovableAggregates.size + codeNames.size;
+    const before = unprovableNames.size + unprovableAggregates.size + codeNames.size + childModules.size + childOriginCount();
 
     const collect = node => {
+      if (ts.isImportDeclaration(node) && node.moduleSpecifier.text === "node:child_process") {
+        const clause = node.importClause;
+
+        if (clause?.name) {
+          childModules.add(clause.name.text);
+          codeNames.add(clause.name.text);
+        }
+
+        if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+          childModules.add(clause.namedBindings.name.text);
+          codeNames.add(clause.namedBindings.name.text);
+        }
+
+        if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+          for (const binding of clause.namedBindings.elements) {
+            const kind = binding.propertyName?.text ?? binding.name.text;
+
+            if (childMethods.has(kind)) bindChildFunction(binding.name, [kind]);
+          }
+        }
+      }
+
+      if ((ts.isVariableDeclaration(node) || isAssignment(node))) {
+        const binding = ts.isVariableDeclaration(node) ? node.name : node.left;
+        const value = ts.isVariableDeclaration(node) ? node.initializer : node.right;
+
+        if (ts.isIdentifier(binding) && isChildModule(value)) {
+          childModules.add(binding.text);
+          codeNames.add(binding.text);
+        }
+
+        const kinds = childFunctionKinds(value);
+
+        if (kinds.length) bindChildFunction(binding, kinds);
+
+        if (isChildModule(value) && (ts.isObjectBindingPattern(binding) || ts.isObjectLiteralExpression(binding))) bindChildFunction(binding, [...childMethods]);
+      }
+
       if ((ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) && node.name && isCodeValue(node)) taintPattern(node.name, codeNames);
+
+      if (ts.isForOfStatement(node)) {
+        const binding = ts.isVariableDeclarationList(node.initializer) ? node.initializer.declarations.map(declaration => declaration.name) : [node.initializer];
+
+        for (const pattern of binding) {
+          if (isCodeValue(node.expression)) taintPattern(pattern, codeNames);
+
+          if (isUnprovableAggregate(node.expression)) taintPattern(pattern, unprovableAggregates);
+        }
+      }
 
       if ((ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isParameter(node)) && isUnprovableValue(node.initializer)) taintPattern(node.name);
 
@@ -824,7 +933,7 @@ export function scanImports(source, file = "module.mjs") {
 
     collect(sourceFile);
 
-    grew = unprovableNames.size + unprovableAggregates.size + codeNames.size !== before;
+    grew = unprovableNames.size + unprovableAggregates.size + codeNames.size + childModules.size + childOriginCount() !== before;
   }
 
   const record = node => {
@@ -866,6 +975,26 @@ export function scanImports(source, file = "module.mjs") {
     const isConstruction = invoked !== undefined;
     const callee = invoked?.callee ?? node;
     const calleeName = accessedName(callee);
+
+    if (ts.isThrowStatement(node) && isCodeValue(node.expression)) {
+      dynamic.add(text(node));
+
+      return;
+    }
+
+    const childKinds = childFunctionKinds(callee);
+
+    if (isConstruction && childKinds.length) {
+      if (!verifiedGitCall(node)) {
+        dynamic.add(text(node));
+
+        return;
+      }
+
+      ts.forEachChild(node, visit);
+
+      return;
+    }
 
     if (isAssignment(node) &&
         (ts.isPropertyAccessExpression(node.left) || ts.isElementAccessExpression(node.left)) && isCodeValue(node.right)) {
@@ -1236,6 +1365,10 @@ function rejectNodeOptions(environment) {
   }
 }
 
+function nativeExecutablePath(value) {
+  return !value.includes("/") || /^\/(?:bin|usr\/bin|usr\/local\/bin|opt\/homebrew\/bin)\/[A-Za-z0-9_-]+$/.test(value);
+}
+
 function commandContext(list, environment) {
   let executable = 0;
   let effectiveEnvironment = { ...environment };
@@ -1256,7 +1389,7 @@ function commandContext(list, environment) {
       if (word.value === "!") negated = true;
 
       executable++;
-    } else if (!word.hasExpansion && ["env", "command", "builtin", "exec"].includes(wrapper)) {
+    } else if (!word.hasExpansion && nativeExecutablePath(word.value) && ["env", "command", "builtin", "exec"].includes(wrapper)) {
       if (wrapper === "builtin" || (externalOnly && wrapper !== "env")) launchesExternal = false;
 
       if (["env", "exec"].includes(wrapper)) externalOnly = true;
@@ -1354,6 +1487,8 @@ function helperReferences(text, environment = {}, substitutionsOnly = false, act
 
   const compilerShellAvailable = actionsDirectoryAvailable && !Object.hasOwn(commandEnvironment, "RUNNER_TEMP") &&
     !list.slice(0, executable).some(word => ["-i", "--ignore-environment", "-"].includes(word.value) || word.value.includes("RUNNER_TEMP"));
+
+  if (!substitutionsOnly && !introspection && list[executable] && !nativeExecutablePath(list[executable].value)) throw new Error(`unprovable native executable path: ${list[executable].value}; use an established system executable`);
 
   if (!substitutionsOnly && !introspection && commandName === "alias" && list.slice(executable + 1).some(word => word.hasExpansion || word.value.includes("="))) throw new Error("unprovable shell alias; install-free commands must not define aliases that can alter executable identity");
 
@@ -1753,20 +1888,68 @@ function shellRelocates(script, environment) {
   return false;
 }
 
-function dependencyTreeChanged(list, context, checkoutRoot) {
+function outputDestinations(list) {
+  return list.flatMap((word, index) => word.redirections.map((redirection, position) => {
+    const end = word.redirections[position + 1]?.at ?? word.value.length;
+    const attached = word.value.slice(redirection.end, end);
+
+    return { value: attached || list[index + 1]?.value, hasExpansion: attached ? word.hasExpansion : list[index + 1]?.hasExpansion };
+  }));
+}
+
+function dependencyTreeChanged(list, context, checkoutRoot, text, reservedOutputs = new Set(), compilerActionsAvailable = false) {
   const argv = list.slice(context.index).map(word => word.value);
   const executable = path.posix.basename(argv[0] ?? "");
+
+  for (const destination of outputDestinations(list)) {
+    const reserved = /^\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))(?:\/[^$`*?[]*)?$/.exec(destination.value ?? "");
+    const name = reserved?.[1] ?? reserved?.[2];
+    const configured = context.environment[name];
+
+    const knownTemp = (name === "RUNNER_TEMP" && /^\$\{\{\s*runner\.temp\s*\}\}$/.test(configured ?? "")) ||
+      (name === "RUNNER_TOOL_CACHE" && /^\$\{\{\s*runner\.tool_cache\s*\}\}$/.test(configured ?? ""));
+
+    if (reserved && reservedOutputs.has(name) && (!Object.hasOwn(context.environment, name) || knownTemp) &&
+      !destination.value.split("/").some(part => part === "..")) continue;
+
+    if (destination.hasExpansion || destination.value === undefined || /(?:^|\/)node_modules(?:\/|$)/.test(destination.value)) return true;
+  }
+
+  const nestedChanges = script => splitCommands(script).some(({ command, heredocs }) => {
+    const nested = words(command);
+
+    return dependencyTreeChanged(nested, commandContext(nested, context.environment), checkoutRoot, [command, ...heredocs].join("\n"), reservedOutputs, compilerActionsAvailable);
+  });
+
+  if (text && commandSubstitutions(text).some(nestedChanges)) return true;
+
+  if (text?.trim().startsWith("(")) {
+    const source = text.trim();
+    const end = parenthesizedEnd(source, 0);
+
+    if (nestedChanges(source.slice(1, end === source.length - 1 ? end : undefined))) return true;
+  }
+
+  if (executable === "{") {
+    if (nestedChanges(text.trim().slice(1))) return true;
+  }
 
   if (context.introspection) return false;
 
   if (executable === "eval") {
     if (list.slice(context.index + 1).some(word => word.hasExpansion)) return true;
 
-    for (const { command } of splitCommands(argv.slice(1).join(" "))) {
-      const nested = words(command);
+    if (nestedChanges(argv.slice(1).join(" "))) return true;
+  }
 
-      if (dependencyTreeChanged(nested, commandContext(nested, context.environment), checkoutRoot)) return true;
-    }
+  if (["bash", "sh"].includes(executable)) {
+    const commandOption = argv.findIndex(word => /^-[eux]*c[eux]*$/.test(word));
+
+    if (commandOption !== -1 && argv[commandOption + 1]) {
+      if (list[context.index + commandOption + 1].hasExpansion || nestedChanges(argv[commandOption + 1])) return true;
+    } else if (!argv.slice(1).some(word => ["--help", "--version"].includes(word)) &&
+      !(compilerActionsAvailable && reservedOutputs.has("RUNNER_TEMP") && !Object.hasOwn(context.environment, "RUNNER_TEMP") &&
+        /^\$(?:RUNNER_TEMP|\{RUNNER_TEMP\})\/gh-aw\/actions\/[A-Za-z0-9_-]+\.sh$/.test(argv[1] ?? ""))) return true;
   }
 
   if (checkoutRoot && INSTALLERS.has(executable)) {
@@ -1780,7 +1963,7 @@ function dependencyTreeChanged(list, context, checkoutRoot) {
 
       const options = packageMutationOptions(normalized, context.environment);
 
-      return computed || (!options.global && !options.noop);
+      return computed || externalPackageConfiguration(normalized, context.environment) || (!options.global && !options.noop);
     }
   }
 
@@ -1793,6 +1976,82 @@ function dependencyTreeChanged(list, context, checkoutRoot) {
 
   return false;
 }
+
+function shellVariableTargets(list, context) {
+    const argv = list.slice(context.index);
+    const executable = argv[0]?.value;
+
+    if (executable === "printf") {
+      const option = argv[1];
+
+      if (!option || !option.value.startsWith("-v")) return [];
+      const target = option.value === "-v" ? argv[2] : { ...option, value: option.value.slice(2) };
+
+      return target && !target.hasExpansion && /^[A-Za-z_]\w*$/.test(target.value) ? [target.value] : null;
+    }
+
+    if (executable === "read") {
+      const targets = [];
+
+      for (let index = 1; index < argv.length; index++) {
+        const word = argv[index];
+
+        if (/^[<>]/.test(word.value)) break;
+
+        if (word.hasExpansion) return null;
+
+        if (word.value === "--") continue;
+
+        if (word.value.startsWith("-")) {
+          if (!/^-[a-zA-Z]+$/.test(word.value)) return null;
+
+          for (const [position, flag] of Array.from(word.value.slice(1)).entries()) {
+            if ("adnNptui".includes(flag)) {
+              if (position !== word.value.length - 2) return null;
+              const value = argv[++index];
+
+              if (!value || value.hasExpansion) return null;
+
+              if (flag === "a") {
+                if (!/^[A-Za-z_]\w*$/.test(value.value)) return null;
+                targets.push(value.value);
+              }
+            } else if (!"ers".includes(flag)) return null;
+          }
+        } else {
+          if (!/^[A-Za-z_]\w*$/.test(word.value)) return null;
+          targets.push(word.value);
+        }
+      }
+
+      return targets.length ? targets : ["REPLY"];
+    }
+
+    return [];
+  }
+
+function setErrexit(argv, current) {
+    for (let index = 1; index < argv.length; index++) {
+      const word = argv[index];
+
+      if (["--", "-", "+"].includes(word) || !/^[+-]/.test(word)) break;
+
+      if (!/^[+-][a-zA-Z]+$/.test(word)) return false;
+
+      for (const [position, flag] of Array.from(word.slice(1)).entries()) {
+        if (flag === "e") current = word[0] === "-";
+        else if (flag === "o") {
+          if (position !== word.length - 2) return false;
+          const option = argv[++index];
+
+          if (option === "errexit") current = word[0] === "-";
+          else if (option && !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(option)) return false;
+        } else if (!"abfhkmnptuvxBCEHPT".includes(flag)) return false;
+      }
+    }
+
+    return current;
+  }
 
 function mergeRunnerEffects(target, incoming) {
   target.pathChanged ||= incoming.pathChanged;
@@ -1875,11 +2134,7 @@ function runnerEnvironmentEffects(script, environment, inherited) {
     const list = words(command);
     const redirect = list.findIndex(word => word.redirectionAt !== undefined);
 
-    const destinations = list.flatMap((word, index) => word.redirections.map((redirection, position) => {
-      const end = word.redirections[position + 1]?.at ?? word.value.length;
-
-      return { value: word.value.slice(redirection.end, end) || list[index + 1]?.value, hasExpansion: word.hasExpansion || list[index + 1]?.hasExpansion };
-    }));
+    const destinations = outputDestinations(list);
 
     const destinationsSinks = destinations.map(destination => {
       if (!destination.hasExpansion) return undefined;
@@ -1895,6 +2150,22 @@ function runnerEnvironmentEffects(script, environment, inherited) {
     const input = redirect === -1 ? list : list.slice(0, redirect).concat(list[redirect].redirectionAt ? [{ ...list[redirect], value: list[redirect].value.slice(0, list[redirect].redirectionAt) }] : []);
     const context = commandContext(input, environment);
     let argv = input.slice(context.index);
+    const variableTargets = shellVariableTargets(input, context);
+
+    if (variableTargets === null) {
+      scalars.clear();
+
+      if (sinks.size) effects.unknown = true;
+    } else if (variableTargets.length) {
+      const receivesSink = argv.some(word => word.hasExpansion && [...sinks.keys()].some(name => word.value.includes(`$${name}`) || word.value.includes(`\${${name}}`)));
+
+      for (const name of variableTargets) {
+        scalars.delete(name);
+        sinks.delete(name);
+      }
+
+      if (receivesSink) effects.unknown = true;
+    }
 
     while (argv[0]?.value === "{") {
       groups.push([]);
@@ -1975,12 +2246,31 @@ function runnerEnvironmentEffects(script, environment, inherited) {
       groups[last] = groups[last] === null || emitted === null ? null : groups[last].concat(emitted);
     }
 
-    for (const nested of commandSubstitutions(command)) mergeRunnerEffects(effects, runnerEnvironmentEffects(nested, environment, { scalars, sinks }));
+    const childScalars = new Map(scalars);
+    const childSinks = new Map(sinks);
+
+    for (const word of input.slice(0, context.index)) {
+      const assignment = /^([A-Za-z_]\w*)=(.*)$/.exec(word.value);
+
+      if (!assignment) continue;
+      const alias = word.hasExpansion && /^\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))$/.exec(assignment[2]);
+      const name = assignment[1];
+      const sink = alias && sinks.get(alias[1] ?? alias[2]);
+
+      if (sink) childSinks.set(name, sink);
+      else childSinks.delete(name);
+      const value = expand({ ...word, value: assignment[2] });
+
+      if (value !== null) childScalars.set(name, value);
+      else childScalars.delete(name);
+    }
+
+    for (const nested of commandSubstitutions(command)) mergeRunnerEffects(effects, runnerEnvironmentEffects(nested, context.environment, { scalars: childScalars, sinks: childSinks }));
 
     if (argv[0]?.value === "eval" && argv.slice(1).every(word => !word.hasExpansion)) mergeRunnerEffects(effects, runnerEnvironmentEffects(argv.slice(1).map(word => word.value).join(" "), environment, { scalars, sinks }));
     const commandOption = ["bash", "sh"].includes(path.posix.basename(argv[0]?.value ?? "")) ? argv.findIndex(word => /^-[eux]*c[eux]*$/.test(word.value)) : -1;
 
-    if (commandOption !== -1 && argv[commandOption + 1] && !argv[commandOption + 1].hasExpansion) mergeRunnerEffects(effects, runnerEnvironmentEffects(argv[commandOption + 1].value, environment, { scalars, sinks }));
+    if (commandOption !== -1 && argv[commandOption + 1] && !argv[commandOption + 1].hasExpansion) mergeRunnerEffects(effects, runnerEnvironmentEffects(argv[commandOption + 1].value, context.environment, { scalars: childScalars, sinks: childSinks }));
 
     if (["source", ".", "eval", "unset", "read"].includes(argv[0]?.value)) scalars.clear();
 
@@ -2088,7 +2378,7 @@ function githubScriptEnvironmentEffects(script) {
   const literal = node => node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : undefined;
   const exportedReferences = new Set();
   const calledExports = new Set();
-  const writers = new Set(["appendFile", "appendFileSync", "writeFile", "writeFileSync", "createWriteStream", "copyFile", "copyFileSync", "rename", "renameSync"]);
+  const writers = new Set(["appendFile", "appendFileSync", "writeFile", "writeFileSync", "write", "writeSync", "writev", "writevSync", "createWriteStream", "copyFile", "copyFileSync", "rename", "renameSync"]);
   const writerReferences = new Set();
   const calledWriters = new Set();
   let referencesEnvironmentFile = false;
@@ -2106,6 +2396,12 @@ function githubScriptEnvironmentEffects(script) {
     if (ts.isCallExpression(node)) {
       const callees = possible(node.expression);
       const names = new Set(callees.filter(Boolean).map(accessedName));
+
+      if (names.has("open") || names.has("openSync")) {
+        for (const target of possible(node.arguments[0])) {
+          if (target && /^GITHUB_(?:ENV|PATH)$/.test(accessedName(target)) && possible(node.arguments[1]).some(mode => literal(mode) !== "r")) effects.unknown = true;
+        }
+      }
 
       if (names.has("addPath")) effects.pathChanged = true;
 
@@ -2217,6 +2513,9 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
       let relocated = Object.entries(environment).some(([name, value]) => /^(?:BASH_ENV|ENV)$/.test(name) && String(value).trim() !== "");
       let shortCircuited = false;
       let blockDepth = 0;
+      const hashedExecutables = new Set();
+      const definedExecutables = new Set();
+      const reservedOutputs = new Set(["GITHUB_ENV", "GITHUB_PATH", "GITHUB_OUTPUT", "GITHUB_STATE", "GITHUB_STEP_SUMMARY", "RUNNER_TEMP", "RUNNER_TOOL_CACHE"]);
 
       for (const { command, operator, heredocs } of splitCommands(script)) {
         const text = command.trim();
@@ -2232,6 +2531,32 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
         const firstCommand = parsedWords.findIndex(word => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value));
         const declaration = ENVIRONMENT_DECLARATIONS.has(commandName);
         const environmentWords = declaration ? parsedWords.slice(commandPosition + 1) : parsedWords.slice(0, firstCommand === -1 ? parsedWords.length : firstCommand);
+        const variableTargets = shellVariableTargets(parsedWords, context);
+        const definition = /^(?:function\s+([A-Za-z_]\w*)|([A-Za-z_]\w*)\s*\(\s*\))/.exec(text);
+        const identityUncertain = hashedExecutables.has(commandName) || definedExecutables.has(commandName) || definedExecutables.has("*");
+
+        if (definition && group.some(installedIn)) definedExecutables.add(definition[1] ?? definition[2]);
+
+        if (commandName === "alias" && group.some(installedIn)) {
+          for (const word of parsedWords.slice(commandPosition + 1)) {
+            if (word.hasExpansion) definedExecutables.add("*");
+            else if (word.value.includes("=")) definedExecutables.add(word.value.split("=")[0]);
+          }
+        }
+
+        if (commandName === "hash") {
+          if (hashOverrides(parsedWords.slice(commandPosition + 1))) hashedExecutables.add(effectiveArgv.at(-1));
+          else if (effectiveArgv.includes("-r")) hashedExecutables.clear();
+        }
+
+        if (variableTargets === null) {
+          environmentMutated = true;
+          reservedOutputs.clear();
+        } else {
+          if (variableTargets.some(name => /^(?:PATH|NODE_OPTIONS|NODE_ENV|BASH_ENV|ENV|npm_config_.*)$/i.test(name))) environmentMutated = true;
+
+          for (const name of variableTargets) reservedOutputs.delete(name);
+        }
 
         if (commandName === "eval") environmentMutated = true;
 
@@ -2243,6 +2568,8 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
         if (commandName === "hash" && hashOverrides(parsedWords.slice(commandPosition + 1))) installerShadowed = true;
 
         for (const word of environmentWords) {
+          reservedOutputs.delete(word.value.split("=")[0]);
+
           if (word.value.startsWith("PATH=") && !(word.hasExpansion && /^PATH=\$(?:PATH|\{PATH\})(?::\/[A-Za-z0-9_./-]+)+$/.test(word.value))) installerShadowed = true;
 
           const assignment = /^(NODE_OPTIONS|NODE_ENV|BASH_ENV|ENV|npm_config_[A-Za-z0-9_]+)=(.*)$/i.exec(word.value);
@@ -2252,9 +2579,7 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
           environmentMutated = true;
         }
 
-        if (commandName === "set" && effectiveArgv.length === 2 && /^[+-]e$/.test(effectiveArgv[1])) errexit = effectiveArgv[1] === "-e";
-
-        if (commandName === "set" && effectiveArgv.length === 3 && /^[+-]o$/.test(effectiveArgv[1]) && effectiveArgv[2] === "errexit") errexit = effectiveArgv[1] === "-o";
+        if (commandName === "set") errexit = parsedWords.slice(commandPosition + 1).some(word => word.hasExpansion) ? false : setErrexit(effectiveArgv, errexit);
 
         // Move the depth for any delimiter written on this line, then ask whether what
         // follows is inside a block. The order is not a judgement call: an install is only
@@ -2271,6 +2596,8 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
         // An unquoted heredoc body is not a command, but bash does expand `$(...)` written
         // there, so a helper named inside one still runs and must be flagged.
         if (executing.some(key => !installedIn(key))) {
+          if (identityUncertain) throw new Error(`unprovable executable identity: ${commandName}; restore the native command before install-free execution`);
+
           for (const word of environmentWords) {
             if (declaration && word.hasExpansion && !/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value)) throw new Error(`unprovable shell environment mutation: ${word.value}; declare literal variable names`);
 
@@ -2298,7 +2625,7 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
 
         // A command with a certain exit status opens only the worlds it can reach.
         const constantOk = constantStatus(text);
-        const invalidatesDependencies = dependencyTreeChanged(parsedWords, context, ROOT_WORKING_DIRECTORIES.has(workingDirectory) && !relocated);
+        const invalidatesDependencies = dependencyTreeChanged(parsedWords, context, ROOT_WORKING_DIRECTORIES.has(workingDirectory) && !relocated, [text, ...heredocs].join("\n"), reservedOutputs, stepCompilerActionsAvailable);
 
         const outcomes = executing.flatMap(key => {
           // An install lands only where the command exits 0, so the failing world keeps the
@@ -2311,7 +2638,7 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
 
         const carried = group.filter(key => !executing.includes(key));
 
-        group = outcomes.concat(carried);
+        group = [...new Set(outcomes.concat(carried))];
 
         // An operand the short-circuit skipped exempts the list's failure from errexit, so
         // the script really does reach the next line with whatever never got installed.
@@ -2327,7 +2654,7 @@ export function standAloneHelpers(lock, compilerActionsAvailable = false) {
           // A list boundary ends the line: errexit ends the worlds that failed here, unless
           // the list short-circuited and bash forgives its status.
           if (errexit && !shortCircuited) {
-            dead = group.filter(key => !exitedOk(key)).concat(dead);
+            dead = [...new Set(group.filter(key => !exitedOk(key)).concat(dead))];
             group = group.filter(exitedOk);
           }
 
