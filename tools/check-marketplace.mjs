@@ -622,7 +622,10 @@ export function scanImports(source, file = "module.mjs") {
 
     if (ts.isArrayLiteralExpression(value)) return value.elements.some(element => valueHasTaint(element, names, codeOnly));
 
-    if (ts.isObjectLiteralExpression(value)) return value.properties.some(property => valueHasTaint(ts.isPropertyAssignment(property) ? property.initializer : ts.isShorthandPropertyAssignment(property) ? property.name : ts.isSpreadAssignment(property) ? property.expression : undefined, names, codeOnly));
+    if (ts.isObjectLiteralExpression(value)) return value.properties.some(property => valueHasTaint(ts.isPropertyAssignment(property) ? property.initializer : ts.isShorthandPropertyAssignment(property) ? property.name : ts.isSpreadAssignment(property) ? property.expression : ts.isFunctionLike(property) ? property : undefined, names, codeOnly));
+
+    if (codeOnly && (ts.isClassDeclaration(value) || ts.isClassExpression(value))) return value.members.some(member => isCodeValue(member.initializer ?? member)) ||
+      (value.heritageClauses ?? []).some(clause => clause.types.some(type => isCodeValue(type.expression)));
 
     if (ts.isSpreadElement(value) || ts.isPropertyAccessExpression(value)) return valueHasTaint(value.expression, names, codeOnly);
 
@@ -634,13 +637,15 @@ export function scanImports(source, file = "module.mjs") {
 
     if (ts.isBinaryExpression(value) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(value.operatorToken.kind)) return valueHasTaint(value.left, names, codeOnly) || valueHasTaint(value.right, names, codeOnly);
 
-    if (codeOnly && (ts.isArrowFunction(value) || ts.isFunctionExpression(value) || ts.isFunctionDeclaration(value))) {
+    if (codeOnly && (ts.isFunctionLike(value) || ts.isClassStaticBlockDeclaration(value))) {
       if (!value.body) return false;
 
       if (!ts.isBlock(value.body)) return isCodeValue(value.body);
 
       const returnedCode = node => {
         if (ts.isReturnStatement(node) || ts.isYieldExpression(node)) return isCodeValue(node.expression);
+
+        if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && isCodeValue(node.right)) return true;
 
         if (ts.isFunctionLike(node)) return false;
 
@@ -665,6 +670,7 @@ export function scanImports(source, file = "module.mjs") {
     } else if (ts.isBindingElement(pattern) || ts.isShorthandPropertyAssignment(pattern)) taintPattern(pattern.name, names);
     else if (ts.isPropertyAssignment(pattern)) taintPattern(pattern.initializer, names);
     else if (ts.isSpreadAssignment(pattern) || ts.isSpreadElement(pattern) || ts.isParenthesizedExpression(pattern)) taintPattern(pattern.expression, names);
+    else if (names === codeNames && (ts.isPropertyAccessExpression(pattern) || ts.isElementAccessExpression(pattern))) taintPattern(pattern.expression, names);
     else if (ts.isBinaryExpression(pattern) && pattern.operatorToken.kind === ts.SyntaxKind.EqualsToken) taintPattern(pattern.left, names);
   };
 
@@ -673,7 +679,7 @@ export function scanImports(source, file = "module.mjs") {
 
     if (!value) return false;
 
-    if (ts.isIdentifier(value)) return unprovableAggregates.has(value.text);
+    if (ts.isIdentifier(value)) return unprovableAggregates.has(value.text) || codeNames.has(value.text);
 
     if (ts.isPropertyAccessExpression(value) || ts.isElementAccessExpression(value)) return isUnprovableAggregate(value.expression);
 
@@ -685,7 +691,7 @@ export function scanImports(source, file = "module.mjs") {
 
     if (ts.isBinaryExpression(value) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(value.operatorToken.kind)) return isUnprovableAggregate(value.left) || isUnprovableAggregate(value.right);
 
-    return (ts.isObjectLiteralExpression(value) || ts.isArrayLiteralExpression(value)) && isUnprovableValue(value);
+    return (ts.isObjectLiteralExpression(value) || ts.isArrayLiteralExpression(value) || ts.isClassExpression(value)) && (isUnprovableValue(value) || isCodeValue(value));
   };
 
   const hasComputedPattern = pattern => {
@@ -707,7 +713,7 @@ export function scanImports(source, file = "module.mjs") {
     const before = unprovableNames.size + unprovableAggregates.size + codeNames.size;
 
     const collect = node => {
-      if (ts.isFunctionDeclaration(node) && node.name && isCodeValue(node)) taintPattern(node.name, codeNames);
+      if ((ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) && node.name && isCodeValue(node)) taintPattern(node.name, codeNames);
 
       if ((ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isParameter(node)) && isUnprovableValue(node.initializer)) taintPattern(node.name);
 
@@ -773,6 +779,13 @@ export function scanImports(source, file = "module.mjs") {
     const callee = isConstruction ? node.expression : node;
     const calleeName = accessedName(callee);
 
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+        (ts.isPropertyAccessExpression(node.left) || ts.isElementAccessExpression(node.left)) && isCodeValue(node.right)) {
+      dynamic.add(text(node));
+
+      return;
+    }
+
     if (calleeName === "getBuiltinModule") {
       builtins.add(text(node));
 
@@ -791,7 +804,7 @@ export function scanImports(source, file = "module.mjs") {
 
     while (ts.isParenthesizedExpression(target)) target = target.expression;
 
-    if (isConstruction && (isUnprovableAggregate(callee) || (!ts.isPropertyAccessExpression(target) && !ts.isElementAccessExpression(target) && isUnprovableValue(target)) ||
+    if (isConstruction && ((node.arguments ?? []).some(isCodeValue) || isUnprovableAggregate(callee) || (!ts.isPropertyAccessExpression(target) && !ts.isElementAccessExpression(target) && isUnprovableValue(target)) ||
         (/^(?:call|apply|bind)$/.test(calleeName) && isUnprovableValue(callee)))) {
       dynamic.add(text(node));
 
@@ -1185,6 +1198,18 @@ function commandContext(list, environment) {
   return { index: executable, environment: effectiveEnvironment, introspection, launchesExternal, negated };
 }
 
+function hashOverrides(args) {
+  for (const word of args) {
+    if (word.hasExpansion) return true;
+
+    if (word.value === "--") break;
+
+    if (/^-[^-]*p/.test(word.value)) return true;
+  }
+
+  return false;
+}
+
 function helperReferences(text, environment = {}, substitutionsOnly = false) {
   const list = words(text);
   const context = commandContext(list, environment);
@@ -1201,7 +1226,9 @@ function helperReferences(text, environment = {}, substitutionsOnly = false) {
 
   if (!substitutionsOnly && !introspection && commandName === "alias" && list.slice(executable + 1).some(word => word.hasExpansion || word.value.includes("="))) throw new Error("unprovable shell alias; install-free commands must not define aliases that can alter executable identity");
 
-  if (!substitutionsOnly && !introspection && !executesNode && !["echo", "printf", "cat", "which", "type", "[", "[[", "test", "alias", "eval", "bash", "sh"].includes(commandName) &&
+  if (!substitutionsOnly && !introspection && commandName === "hash" && hashOverrides(list.slice(executable + 1))) throw new Error("unprovable shell hash; install-free commands must not override cached executable identity");
+
+  if (!substitutionsOnly && !introspection && !executesNode && !["echo", "printf", "cat", "which", "type", "[", "[[", "test", "alias", "hash", "eval", "bash", "sh"].includes(commandName) &&
       list.slice(executable + 1).some(word => path.posix.basename(word.value) === "node" || /(?:^|[\s;|&])(?:[\w/.-]+\/)?node(?:\s|$)/.test(word.value))) {
     throw new Error(`unmodeled command ${commandName} forwards Node execution; invoke the helper directly or through a modeled wrapper`);
   }
@@ -1666,6 +1693,8 @@ export function standAloneHelpers(lock) {
         if (commandName === "eval") environmentMutated = true;
 
         if (["source", ".", "alias"].includes(commandName) || /^(?:(?:bun|npm)\s*\(\s*\)|function\s+(?:bun|npm)(?:\s|\())/.test(text)) installerShadowed = true;
+
+        if (commandName === "hash" && hashOverrides(parsedWords.slice(commandPosition + 1))) installerShadowed = true;
 
         for (const word of environmentWords) {
           if (word.value.startsWith("PATH=") && !(word.hasExpansion && /^PATH=\$(?:PATH|\{PATH\})(?::\/[A-Za-z0-9_./-]+)+$/.test(word.value))) installerShadowed = true;

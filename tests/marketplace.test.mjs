@@ -1377,6 +1377,76 @@ test("negated installer failures cannot establish dependencies", () => {
   assert.equal(result.stdout, "HELPER_REACHED\n");
 });
 
+test("class and object methods accessors and fields retain returned code origins", async () => {
+  const job = script => [...standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script } }] } } })];
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-method-taint-"));
+
+  roots.push(dir);
+
+  for (const source of [
+    `class Loader { static get() { return globalThis["ev" + "al"]; } } const load = Loader.get(); await load('import("@scope/missing-package")');`,
+    `class Loader { get() { return globalThis["ev" + "al"]; } } const load = new Loader().get(); await load('import("@scope/missing-package")');`,
+    `class Loader { static get load() { return globalThis["ev" + "al"]; } } await Loader.load('import("@scope/missing-package")');`,
+    `const box = { get() { return globalThis["ev" + "al"]; } }; const load = box.get(); await load('import("@scope/missing-package")');`,
+    `const box = { get load() { return globalThis["ev" + "al"]; } }; await box.load('import("@scope/missing-package")');`,
+    `class Loader { load = globalThis["ev" + "al"]; } await new Loader().load('import("@scope/missing-package")');`,
+    `class Loader { constructor() { this.load = globalThis["ev" + "al"]; } } await new Loader().load('import("@scope/missing-package")');`,
+    `class Loader { static { this.load = globalThis["ev" + "al"]; } } await Loader.load('import("@scope/missing-package")');`,
+    `class Base { static get() { return globalThis["ev" + "al"]; } } class Loader extends Base {} const load = Loader.get(); await load('import("@scope/missing-package")');`,
+    `const box = { set value(value) { this.load = globalThis["ev" + "al"]; } }; box.value = 1; await box.load('import("@scope/missing-package")');`,
+    `await (class { static get load() { return globalThis["ev" + "al"]; } }).load('import("@scope/missing-package")');`,
+    `const box = {}; box.load = globalThis["ev" + "al"]; const load = (value => value)(box.load); await load('import("@scope/missing-package")');`,
+    `const values = []; values[0] = globalThis["ev" + "al"]; const load = (value => value)(values[0]); await load('import("@scope/missing-package")');`,
+    `((load) => load('import("@scope/missing-package")'))(globalThis["ev" + "al"]);`,
+    `class Loader { constructor(load) { load('import("@scope/missing-package")'); } } new Loader(globalThis["ev" + "al"]);`,
+    `const box = { set run(load) { load('import("@scope/missing-package")'); } }; box.run = globalThis["ev" + "al"];`,
+  ]) {
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    assert.ok(scanImports(source).dynamic.length, source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /evaluates code at runtime/);
+    assert.throws(() => job(source), /github-script.*evaluates code at runtime/);
+    const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.notEqual(loaded.status, 0);
+    assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
+
+  assert.deepEqual(scanImports("class Data { constructor() { this.value = 1; } get() { return this.value; } } new Data().get();").dynamic, []);
+  assert.deepEqual(scanImports("const box = { get value() { return 1; }, method() { return 2; } }; box.method();").dynamic, []);
+});
+
+test("Bash hash overrides cannot prove installer or helper identity", async () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }] } } })];
+
+  for (const run of [
+    "hash -p /bin/true bun; bun install; node tools/x.mjs",
+    'builtin hash "-p" /bin/true npm; command npm ci; node tools/x.mjs',
+    "command hash -p/bin/true bun; env bun install; node tools/x.mjs",
+    'hash "$OPTIONS" bun; bun install; node tools/x.mjs',
+    "hash -p /bin/true node; node tools/x.mjs",
+  ]) assert.throws(() => job(run), /unprovable shell hash/);
+
+  for (const query of ["hash", "hash -r", "hash -l", "hash -t node || true", "builtin hash -t bun || true"]) {
+    assert.deepEqual(job(`${query}; bun install; node tools/x.mjs`), []);
+  }
+
+  assert.deepEqual(job("bun install; hash -p /bin/true bun; bun install; node tools/x.mjs"), ["tools/x.mjs"]);
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-hash-installer-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "tools"));
+  await writeFile(path.join(dir, "tools/x.mjs"), 'import "@scope/missing-package";');
+  const located = spawnSync("bash", ["-c", "type -P true"], { encoding: "utf8", timeout: 5000 });
+
+  assert.equal(located.status, 0, located.stderr);
+  assert.ok(path.isAbsolute(located.stdout.trim()));
+  const loaded = spawnSync("bash", ["-e", "-c", 'hash -p "$1" bun; bun install; printf "INSTALLER_EXIT=%s\\n" "$?"; node tools/x.mjs', "scarydex-hash-test", located.stdout.trim()], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.equal(loaded.stdout, "INSTALLER_EXIT=0\n");
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+});
+
 const SINGLE = String.fromCharCode(10);
 
 test("workflow helpers executed without dependency install stay dependency-free", async () => {
