@@ -338,7 +338,8 @@ test("executable substitutions and path-qualified Node commands expose their hel
   assert.deepEqual(job("cat < <(node tools/x.mjs) > >(node tools/y.mjs)"), ["tools/x.mjs", "tools/y.mjs"]);
   assert.deepEqual(job("cat < <(echo done && bun install)\nnode tools/x.mjs"), ["tools/x.mjs"]);
   assert.deepEqual(job("bun install\n/usr/bin/node tools/x.mjs"), []);
-  assert.deepEqual(job("/usr/bin/not-node tools/x.mjs"), []);
+  assert.throws(() => job("/usr/bin/not-node tools/x.mjs"), /unmodeled install-free executable/);
+  assert.deepEqual(job("/usr/bin/printf tools/x.mjs"), []);
   assert.deepEqual(job('echo "/usr/bin/node tools/x.mjs"'), []);
 
   const bash = spawnSync("bash", ["-c", "node() { printf 'HELPER_EXECUTED\\n'; }; cat < <(node tools/x.mjs)"], { encoding: "utf8", timeout: 5000 });
@@ -1622,6 +1623,71 @@ test("runner environment effects follow nested container bindings", () => {
 
   assert.deepEqual(job('const [left, right] = ["plain", "data"]; console.log(left, right);'), []);
   assert.throws(() => job('const fs = require("node:fs"); function emit(file) { fs.appendFileSync(file, "NODE_ENV=production\\n"); } emit(process.env.GITHUB_ENV);'), /unprovable.*environment/);
+});
+
+test("assignment results retain code origins", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-assignment-result-"));
+
+  roots.push(dir);
+
+  for (const source of [
+    'let slot; const load = (slot = globalThis["ev" + "al"]); await load(\'import("@scope/missing-package")\');',
+    'let slot; const box = { load: (slot = globalThis["ev" + "al"]) }; await box.load(\'import("@scope/missing-package")\');',
+    'let slot; const get = () => (slot = globalThis["ev" + "al"]); await get()(\'import("@scope/missing-package")\');',
+  ]) {
+    assert.ok(scanImports(source).dynamic.length, source);
+    await writeFile(path.join(dir, "entry.mjs"), source);
+    await assert.rejects(dependencyFreeClosure(dir, ["entry.mjs"]), /evaluates code at runtime/);
+    assert.throws(() => standAloneHelpers({ jobs: { build: { steps: [{ uses: "actions/github-script@pinned", with: { script: source } }] } } }), /evaluates code at runtime/);
+    const loaded = spawnSync("node", ["entry.mjs"], { cwd: dir, encoding: "utf8", timeout: 5000 });
+
+    assert.notEqual(loaded.status, 0);
+    assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
+  }
+
+  assert.deepEqual(scanImports('let slot; const transform = (slot = value => value.trim()); transform(" data ");').dynamic, []);
+});
+
+test("informational package invocations cannot establish install credit", async () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }, { run: "node tools/x.mjs" }] } } })];
+
+  for (const run of ["npm install --help", "npm ci -h", "npm install --version", "bun install --help", "bun install -h", "bun install --version"]) assert.deepEqual(job(run), ["tools/x.mjs"]);
+
+  assert.deepEqual([...standAloneHelpers({ jobs: { build: { steps: [{ run: "bun install" }, { run: "npm install --help; bun install --version" }, { run: "node tools/x.mjs" }] } } })], []);
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-install-help-"));
+
+  roots.push(dir);
+  await writeFile(path.join(dir, "package.json"), '{"name":"fixture","version":"1.0.0"}');
+
+  for (const program of ["npm", "bun"]) {
+    const result = spawnSync(program, ["install", "--help"], { cwd: dir, env: { ...process.env, npm_config_viewer: "cat" }, encoding: "utf8", timeout: 10000 });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(existsSync(path.join(dir, "node_modules")), false);
+  }
+});
+
+test("opaque install-free executables cannot hide runner-file mutations", async () => {
+  const job = run => [...standAloneHelpers({ jobs: { build: { steps: [{ run }, { run: "bun install" }, { run: "node tools/x.mjs" }] } } })];
+
+  for (const run of ["python script.py", "python3 -c 'import os; open(os.environ[\"GITHUB_PATH\"], \"a\").write(\"/tmp/fake\\n\")'", 'awk \'BEGIN { print "/tmp/fake" >> ENVIRON["GITHUB_PATH"] }\'', "unknown-program", "{ python script.py; }", "find . -exec python script.py \\;", "sort --compress-program=unknown-program"]) assert.throws(() => job(run), /unprovable|unmodeled/);
+
+  assert.deepEqual(job('printf "data\\n" | cat; mkdir -p /tmp/data; test -d /tmp/data'), []);
+  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-opaque-runner-writer-"));
+
+  roots.push(dir);
+  await mkdir(path.join(dir, "fake"));
+  await writeFile(path.join(dir, "fake/bun"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  await writeFile(path.join(dir, "entry.mjs"), 'import "@scope/missing-package";');
+  const file = path.join(dir, "github-path");
+  const written = spawnSync("awk", ['BEGIN { print ENVIRON["FAKE_BIN"] >> ENVIRON["GITHUB_PATH"] }'], { cwd: dir, env: { ...process.env, FAKE_BIN: path.join(dir, "fake"), GITHUB_PATH: file }, encoding: "utf8", timeout: 5000 });
+
+  assert.equal(written.status, 0, written.stderr);
+  const loaded = spawnSync("bash", ["-e", "-c", "bun install; node entry.mjs"], { cwd: dir, env: { ...process.env, PATH: `${(await readFile(file, "utf8")).trim()}:${process.env.PATH}` }, encoding: "utf8", timeout: 5000 });
+
+  assert.notEqual(loaded.status, 0);
+  assert.match(loaded.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
 const SINGLE = String.fromCharCode(10);

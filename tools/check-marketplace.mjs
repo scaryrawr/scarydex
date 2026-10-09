@@ -229,7 +229,7 @@ function packageArguments(argv) {
 
 function packageMutationOptions(argv, environment) {
   let global = false;
-  const noops = new Map(["--dry-run", "--package-lock-only", "--lockfile-only"].map(flag => [flag, false]));
+  const noops = new Map(["--dry-run", "--package-lock-only", "--lockfile-only", "--help", "--version", "-h", "-v"].map(flag => [flag, false]));
 
   if (argv[0] === "npm") {
     for (const [name, value] of Object.entries(environment)) {
@@ -343,7 +343,7 @@ function omitsDevDependencies(argv, environment) {
 function installsNothing(argv, environment) {
   if (argv[0] === "npm") {
     for (const [name, rawValue] of Object.entries(environment)) {
-      if (!["npm_config_dry_run", "npm_config_package_lock_only"].includes(name.toLowerCase())) continue;
+      if (!["npm_config_dry_run", "npm_config_package_lock_only", "npm_config_help", "npm_config_version"].includes(name.toLowerCase())) continue;
 
       const value = String(rawValue).trim().toLowerCase();
 
@@ -351,7 +351,7 @@ function installsNothing(argv, environment) {
     }
   }
 
-  return argv.slice(2).some(word => /^(?:--dry-run|--package-lock-only|--lockfile-only)(?:=(?!false$).*)?$/.test(word));
+  return argv.slice(2).some(word => /^(?:--dry-run|--package-lock-only|--lockfile-only|--help|--version|-h|-v)(?:=(?!false$).*)?$/.test(word));
 }
 
 // Operators that run their right-hand side beside or after the left without waiting for it
@@ -710,7 +710,7 @@ export function scanImports(source, file = "module.mjs") {
 
     if (ts.isConditionalExpression(value)) return valueHasTaint(value.whenTrue, names, codeOnly) || valueHasTaint(value.whenFalse, names, codeOnly);
 
-    if (ts.isBinaryExpression(value) && value.operatorToken.kind === ts.SyntaxKind.CommaToken) return valueHasTaint(value.right, names, codeOnly);
+    if (ts.isBinaryExpression(value) && [ts.SyntaxKind.CommaToken, ts.SyntaxKind.EqualsToken].includes(value.operatorToken.kind)) return valueHasTaint(value.right, names, codeOnly);
 
     if (ts.isBinaryExpression(value) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(value.operatorToken.kind)) return valueHasTaint(value.left, names, codeOnly) || valueHasTaint(value.right, names, codeOnly);
 
@@ -766,7 +766,7 @@ export function scanImports(source, file = "module.mjs") {
 
     if (ts.isConditionalExpression(value)) return isUnprovableAggregate(value.whenTrue) || isUnprovableAggregate(value.whenFalse);
 
-    if (ts.isBinaryExpression(value) && value.operatorToken.kind === ts.SyntaxKind.CommaToken) return isUnprovableAggregate(value.right);
+    if (ts.isBinaryExpression(value) && [ts.SyntaxKind.CommaToken, ts.SyntaxKind.EqualsToken].includes(value.operatorToken.kind)) return isUnprovableAggregate(value.right);
 
     if (ts.isBinaryExpression(value) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(value.operatorToken.kind)) return isUnprovableAggregate(value.left) || isUnprovableAggregate(value.right);
 
@@ -1313,7 +1313,24 @@ function hashOverrides(args) {
   return false;
 }
 
+const INSTALL_FREE_COMMANDS = new Set([":", "[", "[[", "test", "true", "false", "exit", "return", "break", "continue", "if", "then", "else", "elif", "fi", "for", "while", "until", "do", "done", "case", "esac", "{", "}", "(", ")", "set", "unset", "export", "declare", "typeset", "readonly", "local", "alias", "hash", "echo", "printf", "cat", "mkdir", "cp", "mv", "rm", "rmdir", "touch", "chmod", "chown", "ln", "truncate", "ls", "stat", "id", "which", "type", "pwd", "head", "tail", "grep", "cut", "wc", "tr", "sort", "uniq", "tee", "find", "sleep", "read", "shopt", "eval", "bash", "sh", "node", "date", "cd", "pushd", "popd"]);
+
 function helperReferences(text, environment = {}, substitutionsOnly = false, actionsDirectoryAvailable = false) {
+  if (!substitutionsOnly) {
+    const source = text.trim();
+    const definition = /^(?:function\s+[A-Za-z_]\w*(?:\s*\(\s*\))?|[A-Za-z_]\w*\s*\(\s*\))\s*\{/.exec(source);
+
+    if (definition) return helperReferences(source.slice(definition[0].length) || ":", environment, false, actionsDirectoryAvailable);
+
+    if (/^\{(?:\s|$)/.test(source)) return helperReferences(source.slice(1).trim() || ":", environment, false, actionsDirectoryAvailable);
+
+    if (source.startsWith("(")) {
+      const end = parenthesizedEnd(source, 0);
+
+      return helperReferences(source.slice(1, end === source.length - 1 ? end : undefined).trim() || ":", environment, false, actionsDirectoryAvailable);
+    }
+  }
+
   const list = words(text);
   const context = commandContext(list, environment);
   const executable = context.index;
@@ -1337,6 +1354,19 @@ function helperReferences(text, environment = {}, substitutionsOnly = false, act
   if (!substitutionsOnly && !introspection && !executesNode && !["echo", "printf", "cat", "which", "type", "[", "[[", "test", "alias", "hash", "eval", "bash", "sh"].includes(commandName) &&
       list.slice(executable + 1).some(word => path.posix.basename(word.value) === "node" || /(?:^|[\s;|&])(?:[\w/.-]+\/)?node(?:\s|$)/.test(word.value))) {
     throw new Error(`unmodeled command ${commandName} forwards Node execution; invoke the helper directly or through a modeled wrapper`);
+  }
+
+  if (!substitutionsOnly && !introspection && commandName) {
+    const packageArgs = INSTALLERS.has(commandName) ? packageArguments(list.slice(executable).map(word => word.value)) : undefined;
+    const knownPackageOperation = packageArgs && (PACKAGE_MUTATIONS.has(packageArgs[1]) || packageArgs[1] === "");
+    const compilerProgram = compilerShellAvailable && commandName === "awf";
+
+    if (["source", "."].includes(commandName)) throw new Error("unprovable helper working directory and runner environment: sourced install-free payloads must be verified explicitly");
+
+    if (!INSTALL_FREE_COMMANDS.has(commandName) && !knownPackageOperation && !compilerProgram) throw new Error(`unmodeled install-free executable ${commandName}; expose its payload in a verified module or literal supported shell command`);
+
+    if ((commandName === "find" && list.slice(executable + 1).some(word => /^-(?:exec|execdir|ok|okdir)$/.test(word.value))) ||
+        (commandName === "sort" && list.slice(executable + 1).some(word => /^--compress-program(?:=|$)/.test(word.value)))) throw new Error(`unmodeled execution option for ${commandName}; invoke the payload directly`);
   }
 
   const recordScript = script => {

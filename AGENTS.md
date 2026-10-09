@@ -28,7 +28,7 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
-  test files and strips types from `.ts` files. A green run is 245 tests across 17 files.
+  test files and strips types from `.ts` files. A green run is 248 tests across 17 files.
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
@@ -125,6 +125,8 @@ retain code origins. Passing those values into calls or property writes is
 refused because callbacks and setters can evaluate code before any return.
 Tagged templates are invocations too; their tags, interpolations and results
 share the call/constructor code-origin checks.
+Plain assignments return their right-hand value and retain its code origins
+when nested in another binding, container or function result.
 Runner-temp require exemptions are restricted to the compiler actions directory
 after its unconditional setup step. Dependency-tree removals, moves and local
 package mutations invalidate install credit; a later valid install restores it.
@@ -132,6 +134,7 @@ Package mutation classification parses leading global options and treats root
 prefix/cwd selectors as possible local mutations. Explicit global operations
 and proven no-ops preserve the installed tree; option values cannot masquerade
 as those flags, and CLI negations override inherited no-op settings.
+Package-manager help/version modes never establish install credit.
 Install classification uses the same effective command/environment context as
 helper discovery. Supported env/command/exec launches can prove installation;
 builtin-only and introspection forms cannot launch an external installer.
@@ -155,6 +158,11 @@ writes; expose those writes in workflow steps instead. Step environment values
 take precedence over persisted values, and ambiguous conditional writes remain
 unproven. GitHub Actions itself blocks NODE_OPTIONS through GITHUB_ENV;
 the guard also refuses such records rather than depending on runner version.
+Install-free shell commands must use modeled native operations, verified Node
+modules, supported literal shell payloads or the established compiler boundary.
+Opaque executables, sourced payloads and utility options that launch arbitrary
+programs fail closed even without an explicit environment-file argument.
+Shell grouping and function bodies are scanned without granting nested install credit.
 It parses each module with the TypeScript compiler rather than matching regexes,
 so trivia between tokens (`import /* c */ "pkg"`) counts
 and a package name inside a comment or string does not. Every target lands in one of
