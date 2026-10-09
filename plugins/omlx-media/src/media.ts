@@ -6,6 +6,7 @@ import { executeSpeech, executeTranscription } from "./execute-audio.ts";
 import { imageParameters, speechParameters, transcriptionParameters } from "./tool-schemas.ts";
 
 const [operation, option, value, ...extra] = process.argv.slice(2);
+
 if (["--help", "-h"].includes(operation) || !operation) {
   console.log(`Usage: node <plugin-root>/scripts/media.mjs <image|speech|transcribe> --input-json <file>
        node <plugin-root>/scripts/media.mjs <image|speech|transcribe> --json '<arguments>'
@@ -21,6 +22,7 @@ Results are JSON on stdout. Errors go to stderr with exit code 1.`);
     if (!value || extra.length || !["--input-json", "--json"].includes(option)) throw new Error("Use --input-json <file> or --json '<arguments>'; see --help");
     const args = JSON.parse(option === "--input-json" ? await readFile(value, "utf8") : value);
     let result;
+
     switch (operation) {
       case "image":
         if (!Value.Check(imageParameters, args)) throw new Error("Invalid image arguments");
@@ -36,6 +38,7 @@ Results are JSON on stdout. Errors go to stderr with exit code 1.`);
         break;
       default: throw new Error(`Unknown operation: ${operation}`);
     }
+
     console.log(JSON.stringify(result));
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

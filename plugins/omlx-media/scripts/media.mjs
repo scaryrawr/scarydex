@@ -6110,8 +6110,9 @@ import * as path from "node:path";
 import { access, mkdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 var IMAGE_EXTENSIONS = /* @__PURE__ */ new Set([".png", ".jpg", ".jpeg", ".webp"]);
+var NodeCodeError = Type.Object({ code: Type.Optional(Type.String()) });
 function errorCode(error) {
-  return error instanceof Error && "code" in error && typeof error.code === "string" ? error.code : void 0;
+  return error instanceof Error && value_exports2.Check(NodeCodeError, error) ? error.code : void 0;
 }
 function requireAbsolutePath(value2) {
   if (!path.isAbsolute(value2)) {

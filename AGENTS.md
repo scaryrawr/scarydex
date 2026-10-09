@@ -20,6 +20,11 @@ registry, so `bun install --frozen-lockfile` works offline):
 - `bun run build` regenerates the bundled OMLX/pstack helpers and hash manifests.
 - `bun run check` validates inventory, manifests, skill YAML, local links, hooks,
   and bundle freshness.
+- `bun run lint` runs Oxlint with the anti-slop plugin's rules over the
+  code maintained in this repository (`tools/`, `tests/`, and `plugins/omlx-media/`).
+  Ported plugin content (`plugins/pstack`, `plugins/anti-slop`) and dependency-free
+  shipped skill runtimes stay verbatim upstream under the port boundary; generated
+  CLI bundles are linted through their sources. Schema validation uses TypeBox.
 - `bun run typecheck` runs `tsc --noEmit` against `plugins/omlx-media/src/**/*.ts`
   and `plugins/omlx-media/tests/**/*.ts`.
 - `bun test` runs the offline regression suite; bun auto-discovers `.mjs` and `.ts`
@@ -27,11 +32,190 @@ registry, so `bun install --frozen-lockfile` works offline):
 - Optional pstack source tests live in `plugins/pstack/skills/poteto-mode/scripts/`;
   from that directory, run `bun install --frozen-lockfile` then `bun test orch watch-pr`.
 
+Run `bun test` unsandboxed (elevated permissions). It shells out to `git` in
+temporary repositories, and a filesystem sandbox kills those children: the symptom
+is `actual: null` assertions followed by test timeouts
+in `tests/upstream-sync.test.mjs` and the pstack orch/store tests. Those are
+environment noise, not regressions. `bun install`, `build`, `check`, `lint`, and
+`typecheck` succeed inside the sandbox; only the git-spawning tests need escalation.
+
 The OMLX and pstack CLI helpers are checked in so installed users need no npm
 dependencies or Bun. After changing their source, build inputs, or the root
 lockfile, rebuild and include the `.mjs` bundles and `bundle-manifest.json`.
 Runtime Node helpers must use explicit `.mjs` files. Imported Python scripts use
 optional `uv`.
+
+`tools/upstream-sync.mjs` is the trusted publication policy helper: the workflow's
+`pre_activation` duplicate check and `safe_outputs` verify gate execute it from bare
+checkouts that never install dependencies, so it imports only `node:` builtins and
+relative paths. `bun run check` derives those install-free jobs from
+`upstream-sync.lock.yml`, walks the transitive relative-import closure of every
+`.mjs` entrypoint they execute, including workspace imports in `actions/github-script`.
+JavaScript action scripts are parsed separately from shell `run` steps. Unprovable
+import targets fail the guard instead of silently omitting an entrypoint. Only
+unconditional install steps in the checkout root establish dependency availability,
+including inherited working-directory defaults and npm production/omit-dev
+environment settings, including no-op dry-run and package-lock-only modes.
+Shell helper discovery includes process substitutions and
+path-qualified Node interpreters. Lockfile-only installs never establish dependencies.
+Custom or unresolved shell invocations cannot establish install proof; unresolved
+`continue-on-error` values are treated as potentially tolerating failure. Relative
+module specifiers must start with `./` or `../`, not merely a dot. Every module path
+component below the checkout root must be free of symlinks. Install predicates use
+parsed shell words so quoted options cannot bypass the proof. Word metadata preserves
+whether a value contains a real shell expansion. Computed install arguments cannot
+establish dependencies, and unprovable Node entrypoints fail closed. Node preload,
+loader, and require option modules are validated too: local literal modules join the
+closure, while bare and computed preloads are rejected. Worker loaders and
+`node:module` registration are refused because they can start module graphs
+outside the verified static import closure.
+`process.getBuiltinModule` references are refused too, including aliases;
+load builtins through literal static imports.
+ANSI-C and localized shell quotes cannot establish install proof. Computed
+executables and nonempty `NODE_OPTIONS` are refused in install-free commands;
+put Node options on the literal command line instead. Inherited npm global,
+location, and prefix settings cannot prove a checkout-local installation.
+Shell mutations of dependency-related environment variables, including
+`export`, `declare`, `typeset`, `readonly`, and `local` assignments, also
+invalidate subsequent install proof within that step.
+Computed declaration names are refused. Parenthesized blocks cannot establish
+install proof; literal nested `bash`/`sh -c` scripts are scanned recursively,
+without crediting nested installs. Computed shell payloads fail closed.
+Literal shell `eval` payloads are scanned through the same guard, and invalidate
+later install proof because they can mutate the calling shell's environment.
+Installer function redefinitions, aliases, sourced state, and inherited shell
+startup configuration cannot establish install proof. GitHub Script `require`
+targets are proven from literal paths and immutable workspace-path expressions;
+unknown targets and loader aliases fail closed. Compiler action scripts in
+proven runner-temp directories remain outside the repository module graph.
+Command wrappers use one shared parser, including literal `env` unset/clear
+options. Unsupported wrapper options fail closed. Wrapped `set` controls
+errexit; all `cd`/`pushd`/`popd` forms invalidate install proof. Install-free
+helpers must run from the checkout root without directory-stack mutations,
+so relative paths cannot accidentally validate different files.
+Unknown Node options, including environment-file loaders, fail closed instead
+of hiding a later entrypoint behind an option value. GitHub Script reuses the
+module scanner's dynamic-code/alias boundary for `eval` and `Function`.
+Constructor member access is also dynamic code, while ordinary class constructor
+definitions remain supported. Workspace templates use the same environment and
+immutable-binding proof as require targets, including parameter/destructuring
+shadowing. Literal eval propagates directory changes through nested eval; sourced
+state and shell startup configuration make the parent directory unprovable.
+Computed-code alias taint propagates through nested binding/assignment patterns
+and aggregates to a fixed point. Unmodeled command wrappers that forward Node
+fail closed; data/lookup commands and scanned substitutions remain supported.
+Trusted process/environment and native path objects cannot escape to aliases or
+mutators; compound/delete writes invalidate their proof, and all native path
+bindings share one mutation boundary.
+Install-free Node commands need an explicit module entrypoint: eval/print and
+implicit stdin are refused, while help/version remain informational. PATH
+overrides and replacement/prepend assignments cannot prove installer identity;
+only literal absolute-directory appends to unchanged PATH preserve that proof.
+Upstream paths reject forbidden characters anywhere, including at the end.
+Computed property extraction taints aliases in bindings, assignments and
+parameters. Install-free shell steps may query aliases but cannot define them;
+alias expansion can inject preloads or hide the actual helper executable.
+Aggregate taint also follows member calls, while ordinary scalar indexed reads
+remain supported. Module-context parsing models top-level await as Node does.
+Code-bearing global reads and containers retain their taint through calls,
+constructors, await, function returns/yields and result-valued expressions.
+Ordinary data lookups do not taint their transformation results as code.
+Class/object methods, accessors, fields, inheritance and static blocks also
+retain code origins. Passing those values into calls or property writes is
+refused because callbacks and setters can evaluate code before any return.
+Tagged templates are invocations too; their tags, interpolations and results
+share the call/constructor code-origin checks.
+Plain assignments return their right-hand value and retain its code origins
+when nested in another binding, container or function result.
+All assignment tokens share one classification for collection, returns and
+property writes. Compound assignment results conservatively retain origins
+from both operands, including logical assignment short-circuit paths.
+Runner-temp require exemptions are restricted to the compiler actions directory
+after its unconditional setup step. Dependency-tree removals, moves and local
+package mutations invalidate install credit; a later valid install restores it.
+Package mutation classification parses leading global options and treats root
+prefix/cwd selectors as possible local mutations. Explicit global operations
+and proven no-ops preserve the installed tree; option values cannot masquerade
+as those flags, and CLI negations override inherited no-op settings.
+Package-manager help/version modes never establish install credit.
+Install classification uses the same effective command/environment context as
+helper discovery. Supported env/command/exec launches can prove installation;
+builtin-only and introspection forms cannot launch an external installer.
+Negated installers cannot establish install proof, and Bun `--cwd` relocation
+options cannot prove checkout-root dependency availability.
+Bash hash overrides are installer shadowing and are refused in install-free
+commands; literal hash queries and cache resets remain supported.
+Shell stdin, repository script files and startup/login options are refused
+without a verifiable literal payload. Compiler shell files are supported only
+after observed setup, with an unshadowed runner-temp location.
+Runner environment-file effects persist between steps in the same job.
+PATH-file additions deny future installer identity proof without erasing an
+already installed tree. Environment records must be provably single-line;
+unknown producers and startup hooks cannot preserve dependency proof.
+Grouped output, redirections, file aliases, tee, nested literal shells/eval,
+GitHub Script core APIs and direct file writers share this boundary.
+Writer/target aliases follow nested array/object containers, destructuring and
+assignments; unresolved writer flows touching runner environment files fail closed.
+Install-free module closures cannot hide dependency-related runner environment
+writes; expose those writes in workflow steps instead. Step environment values
+take precedence over persisted values, and ambiguous conditional writes remain
+unproven. GitHub Actions itself blocks NODE_OPTIONS through GITHUB_ENV;
+the guard also refuses such records rather than depending on runner version.
+Install-free shell commands must use modeled native operations, verified Node
+modules, supported literal shell payloads or the established compiler boundary.
+Opaque executables, sourced payloads and utility options that launch arbitrary
+programs fail closed even without an explicit environment-file argument.
+Shell grouping and function bodies are scanned without granting nested install credit.
+Dependency-tree invalidation includes output redirections and nested executions;
+unresolved output destinations cannot certify preservation. Package no-op semantics
+are manager- and operation-specific: npm CI lockfile-only mode can remove the tree.
+External npm configuration files and workspace selections cannot prove root installation.
+Wrapper environment assignments retain runner-file aliases in nested payloads.
+Variable-writing builtins invalidate affected environment proofs; combined `set`
+options update errexit. Descriptor/FileHandle opens for runner-file writes fail closed.
+Iterator bindings retain code origins, and throwing code-bearing values is refused.
+`node:vm` is unsupported; generic child-process code execution is refused except
+literal informational `git --version` calls without a shell or options object.
+The publication helper has an exact-content SHA-256 exception: changing its bytes
+requires reviewing its Git operation grammar, environment/config isolation and
+external-only artifact outputs before updating the seal in `check-marketplace.mjs`.
+Git execution rejects custom merge drivers and signature programs, and disables
+three-way `am` fallback and automatic signature verification in history reads.
+Output-path validation distinguishes missing components from dangling symlinks;
+only ordinary missing paths may be reconstructed below a resolved external parent.
+The helper never creates output files or directories: plans go to stdout, and
+safe-output appends require an existing file created by trusted runner setup.
+No-follow, nonblocking opens must yield a regular single-link descriptor matching
+the external path before writing. Do not add O_CREAT, mkdir, truncation or pathname
+appends to that flow; post-open validation cannot undo unsafe creation.
+Arbitrary executable paths cannot acquire
+native-command trust from their basename. Hash/function/alias shadowing survives
+dependency loss within the same shell. Dependency worlds are deduplicated at every
+transition, keeping the finite-state model bounded.
+Opaque commands also invalidate previously credited dependencies, including nested
+payloads and execution-bearing utility options. Only modeled tree-preserving
+operations and observed compiler invocations preserve that credit. Compiler Bun
+copies need an unconditional native-source copy before informational exemption;
+overwrites, unknown effects and failure-tolerant copy paths discard that provenance.
+Committed module integrity is independent of dependency installation. Shell and
+GitHub Script writes are snapshotted when an install-free helper executes, then
+checked against its complete import closure. Reinstalling cannot erase source
+mutation; opaque effects and unresolved write locations fail closed. Non-policy
+helpers cannot write their own closure or use unresolved filesystem write targets.
+Process-substitution pipes are not file destinations; their commands remain scanned.
+It parses each module with the TypeScript compiler rather than matching regexes,
+so trivia between tokens (`import /* c */ "pkg"`) counts
+and a package name inside a comment or string does not. Every target lands in one of
+three buckets: provable literal specifiers, `computed` targets (identifiers,
+concatenation, conditionals, member access, call results, interpolated templates), and
+`requires` (any `require`/`createRequire` reference, which also refuses the aliasing
+shape `const r = require; r("pkg")`). Only `node:` builtins and relative literals
+pass; anything the guard cannot prove is a finding, including sources the parser
+rejects, because an unparsed module proves nothing. Install-free helpers therefore use
+static `import` with literal specifiers only.
+TypeBox belongs to code that runs after `bun install`
+(`tools/check-marketplace.mjs`, tests) and to sources that esbuild inlines into the
+shipped bundles.
 
 Codex hooks use PascalCase lifecycle names, snake_case event payload fields,
 and event-specific JSON output. `apply_patch` input is `tool_input.command`.

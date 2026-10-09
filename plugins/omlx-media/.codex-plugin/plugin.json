@@ -1,6 +1,6 @@
 {
   "name": "omlx-media",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Generate images and speech, transcribe audio, mine highlight reels (clips, key frames, verbatim-verified takeaways), and turn recordings into grounded documents using local OMLX models.",
   "author": {
     "name": "Mike Wallio"
