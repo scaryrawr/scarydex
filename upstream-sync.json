@@ -267,7 +267,7 @@
       "source": "cursor",
       "plugin": "pstack",
       "path": "pstack",
-      "reviewedThrough": "861d5c0cae26d1f258f899f9f251089503334ad5",
+      "reviewedThrough": "fc520b24b3af4a842921c8766931940af81313eb",
       "reviews": [
         {
           "commit": "12d587dfb20741cafc376c42c696c5f6e2a64487",
@@ -1048,6 +1048,406 @@
           "paths": [
             "third_party/google-drive/.cursor-plugin/plugin.json",
             "third_party/google-drive/skills/google-drive/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "adf3218ca2f5b9971eedc07a76bef22df7701539",
+          "disposition": "skipped",
+          "reason": "Compared every parent. The pstack changes precede the already integrated Cursor77526ff coverage supplied by ScaryPilot ce2b8cbc; replaying them would overwrite existing Codex adaptations. Other paths do not add pstack runtime dependencies.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/skills/architect/SKILL.md",
+            "pstack/skills/arena/SKILL.md",
+            "pstack/skills/how/SKILL.md",
+            "pstack/skills/interrogate/SKILL.md",
+            "pstack/skills/poteto-mode/SKILL.md",
+            "pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "pstack/skills/poteto-mode/playbooks/babysit.md",
+            "pstack/skills/poteto-mode/playbooks/multi-phase-plan.md",
+            "pstack/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "pstack/skills/poteto-mode/scripts/check-plan.mjs",
+            "pstack/skills/reflect/SKILL.md",
+            "pstack/skills/setup-pstack/SKILL.md",
+            "pstack/skills/show-me-your-work/SKILL.md",
+            "pstack/skills/swarm/SKILL.md",
+            "pstack/skills/why/SKILL.md",
+            "third_party/beehiiv/.cursor-plugin/plugin.json",
+            "third_party/beehiiv/CHANGELOG.md",
+            "third_party/beehiiv/LICENSE",
+            "third_party/beehiiv/README.md",
+            "third_party/beehiiv/assets/logo.png",
+            "third_party/beehiiv/mcp.json",
+            "third_party/buffer/.cursor-plugin/plugin.json",
+            "third_party/buffer/CHANGELOG.md",
+            "third_party/buffer/LICENSE",
+            "third_party/buffer/README.md",
+            "third_party/buffer/assets/logo.png",
+            "third_party/buffer/mcp.json",
+            "third_party/finance/.cursor-plugin/plugin.json",
+            "third_party/finance/CHANGELOG.md",
+            "third_party/finance/assets/logo.svg",
+            "third_party/google-drive/.cursor-plugin/plugin.json",
+            "third_party/google-drive/CHANGELOG.md",
+            "third_party/google-drive/README.md",
+            "third_party/google-drive/mcp.json",
+            "third_party/google-drive/skills/google-drive/SKILL.md",
+            "third_party/plaud/.cursor-plugin/plugin.json",
+            "third_party/plaud/CHANGELOG.md",
+            "third_party/plaud/LICENSE",
+            "third_party/plaud/README.md",
+            "third_party/plaud/assets/logo.png",
+            "third_party/plaud/mcp.json",
+            "third_party/posthog-mcp/.cursor-plugin/plugin.json",
+            "third_party/posthog-mcp/CHANGELOG.md",
+            "third_party/posthog-mcp/LICENSE",
+            "third_party/posthog-mcp/README.md",
+            "third_party/posthog-mcp/assets/logo.png",
+            "third_party/posthog-mcp/mcp.json",
+            "third_party/shopify-store/.cursor-plugin/plugin.json",
+            "third_party/shopify-store/CHANGELOG.md",
+            "third_party/shopify-store/LICENSE",
+            "third_party/shopify-store/README.md",
+            "third_party/shopify-store/assets/logo.png",
+            "third_party/shopify-store/mcp.json",
+            "third_party/shopify-store/rules/shopify.mdc",
+            "third_party/tinyfish/.cursor-plugin/plugin.json",
+            "third_party/tinyfish/CHANGELOG.md",
+            "third_party/tinyfish/LICENSE",
+            "third_party/tinyfish/README.md",
+            "third_party/tinyfish/assets/logo.png",
+            "third_party/tinyfish/mcp.json",
+            "third_party/trello/.cursor-plugin/plugin.json",
+            "third_party/trello/CHANGELOG.md",
+            "third_party/trello/LICENSE",
+            "third_party/trello/README.md",
+            "third_party/trello/assets/logo.png",
+            "third_party/trello/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 2 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "c6070d580e10ddd7394b0a7363dafdb4d1454857",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to .cursor-plugin, third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/greenhouse/.cursor-plugin/plugin.json",
+            "third_party/greenhouse/CHANGELOG.md",
+            "third_party/greenhouse/LICENSE",
+            "third_party/greenhouse/README.md",
+            "third_party/greenhouse/assets/logo.png",
+            "third_party/greenhouse/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "6900670b2f54dca7fab564db73f8607fdfad2467",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/greenhouse/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "a5926fd5406a5a677f156220794e50edfa00627e",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to .cursor-plugin, third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/greenhouse/.cursor-plugin/plugin.json",
+            "third_party/greenhouse/CHANGELOG.md",
+            "third_party/greenhouse/LICENSE",
+            "third_party/greenhouse/README.md",
+            "third_party/greenhouse/assets/logo.png",
+            "third_party/greenhouse/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 2 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "0b38ff677bde6b463a3671e10fbce9ab668dc391",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/etoro-trading/.cursor-plugin/plugin.json",
+            "third_party/etoro-trading/CHANGELOG.md",
+            "third_party/etoro-trading/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "69cf06fa253ba0761213669171198968e51fb9ff",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/etoro-trading/.cursor-plugin/plugin.json",
+            "third_party/etoro-trading/CHANGELOG.md",
+            "third_party/etoro-trading/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 2 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "fba2ded3726a9b6a3516ce78987ff738d3969be6",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/hubspot/.cursor-plugin/plugin.json",
+            "third_party/hubspot/CHANGELOG.md",
+            "third_party/hubspot/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "4b4d98e5e3b3c139f63dbc1ce4b538954c8f2f52",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to .cursor-plugin, third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/etoro-trading/.cursor-plugin/plugin.json",
+            "third_party/etoro-trading/CHANGELOG.md",
+            "third_party/etoro-trading/mcp.json",
+            "third_party/greenhouse/.cursor-plugin/plugin.json",
+            "third_party/greenhouse/CHANGELOG.md",
+            "third_party/greenhouse/LICENSE",
+            "third_party/greenhouse/README.md",
+            "third_party/greenhouse/assets/logo.png",
+            "third_party/greenhouse/mcp.json",
+            "third_party/hubspot/.cursor-plugin/plugin.json",
+            "third_party/hubspot/CHANGELOG.md",
+            "third_party/hubspot/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 2 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "fae2c6ed95821bd85f614a73e4842e13229fa5e5",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to .cursor-plugin, README.md, dyl-stack and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "dyl-stack/.cursor-plugin/plugin.json",
+            "dyl-stack/.gitignore",
+            "dyl-stack/LICENSE",
+            "dyl-stack/README.md",
+            "dyl-stack/agents/dyl-agent.md",
+            "dyl-stack/assets/logo.png",
+            "dyl-stack/skills/build-figma/SKILL.md",
+            "dyl-stack/skills/build-figma/references/design-system-discovery.md",
+            "dyl-stack/skills/build-figma/references/failure-lessons.md",
+            "dyl-stack/skills/build-figma/references/visual-judge.md",
+            "dyl-stack/skills/dyl-mode/SKILL.md",
+            "dyl-stack/skills/dyl-mode/playbooks/bug-fix.md",
+            "dyl-stack/skills/dyl-mode/playbooks/feature.md",
+            "dyl-stack/skills/dyl-mode/playbooks/opening-a-pr.md",
+            "dyl-stack/skills/dyl-mode/references/requirements.md",
+            "dyl-stack/skills/dyl-ready-pr/SKILL.md",
+            "dyl-stack/skills/dyl-review/SKILL.md",
+            "dyl-stack/skills/principle-the-algorithm/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "370e9ff5ae240f77507244ba8ca21eb977fd2895",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/zoom/.cursor-plugin/plugin.json",
+            "third_party/zoom/CHANGELOG.md",
+            "third_party/zoom/README.md",
+            "third_party/zoom/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "5f9a00e39a4c6e67703e83fbc99c0e3fd51c5aed",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/zoom/.cursor-plugin/plugin.json",
+            "third_party/zoom/CHANGELOG.md",
+            "third_party/zoom/README.md",
+            "third_party/zoom/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 2 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "ffcb2ce1b0dad9e4d0e7ec35eb105656632f6499",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md",
+            "third_party/x/skills/x-chat/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "80acca006175e25e6ba94fb90d68913ddb0f3429",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "ad0c6a06b240f09a555867661fef684b59184404",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "2eb7ed4613cfc8f098dfe464a23680ea44d84c5e",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md",
+            "third_party/x/skills/x-chat/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 2 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "984892fd66ed47384dba40ce399fba9d492c0f8d",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/etoro-trading/.cursor-plugin/plugin.json",
+            "third_party/etoro-trading/CHANGELOG.md",
+            "third_party/etoro-trading/README.md",
+            "third_party/etoro-trading/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "6c94f54a25cbe71b4a77c36e285d95b05d5a1db8",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/etoro-trading/.cursor-plugin/plugin.json",
+            "third_party/etoro-trading/CHANGELOG.md",
+            "third_party/etoro-trading/README.md",
+            "third_party/etoro-trading/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 2 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "550622414564f72c5436c924c7d6807c14269447",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/etoro-trading/.cursor-plugin/plugin.json",
+            "third_party/etoro-trading/CHANGELOG.md",
+            "third_party/etoro-trading/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "c47b12849e43f18d5c374c7069c744cc55b0ea00",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/etoro-trading/.cursor-plugin/plugin.json",
+            "third_party/etoro-trading/CHANGELOG.md",
+            "third_party/etoro-trading/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 2 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "fc520b24b3af4a842921c8766931940af81313eb",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/todoist/README.md",
+            "third_party/todoist/assets/logo.png"
           ],
           "localPaths": [],
           "evidence": [
