@@ -31,9 +31,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// node_modules/commander/lib/error.js
+// plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/error.js
 var require_error = __commonJS({
-  "node_modules/commander/lib/error.js"(exports) {
+  "plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/error.js"(exports) {
     var CommanderError2 = class extends Error {
       /**
        * Constructs the CommanderError class
@@ -66,9 +66,9 @@ var require_error = __commonJS({
   }
 });
 
-// node_modules/commander/lib/argument.js
+// plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/argument.js
 var require_argument = __commonJS({
-  "node_modules/commander/lib/argument.js"(exports) {
+  "plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/argument.js"(exports) {
     var { InvalidArgumentError: InvalidArgumentError2 } = require_error();
     var Argument2 = class {
       /**
@@ -193,9 +193,9 @@ var require_argument = __commonJS({
   }
 });
 
-// node_modules/commander/lib/help.js
+// plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/help.js
 var require_help = __commonJS({
-  "node_modules/commander/lib/help.js"(exports) {
+  "plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/help.js"(exports) {
     var { humanReadableArgName } = require_argument();
     var Help2 = class {
       constructor() {
@@ -795,9 +795,9 @@ ${itemIndentStr}`);
   }
 });
 
-// node_modules/commander/lib/option.js
+// plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/option.js
 var require_option = __commonJS({
-  "node_modules/commander/lib/option.js"(exports) {
+  "plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/option.js"(exports) {
     var { InvalidArgumentError: InvalidArgumentError2 } = require_error();
     var Option2 = class {
       /**
@@ -1107,9 +1107,9 @@ var require_option = __commonJS({
   }
 });
 
-// node_modules/commander/lib/suggestSimilar.js
+// plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/suggestSimilar.js
 var require_suggestSimilar = __commonJS({
-  "node_modules/commander/lib/suggestSimilar.js"(exports) {
+  "plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/suggestSimilar.js"(exports) {
     var maxDistance = 3;
     function editDistance(a, b) {
       if (Math.abs(a.length - b.length) > maxDistance)
@@ -1187,9 +1187,9 @@ var require_suggestSimilar = __commonJS({
   }
 });
 
-// node_modules/commander/lib/command.js
+// plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/command.js
 var require_command = __commonJS({
-  "node_modules/commander/lib/command.js"(exports) {
+  "plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/lib/command.js"(exports) {
     var EventEmitter = __require("node:events").EventEmitter;
     var childProcess = __require("node:child_process");
     var path = __require("node:path");
@@ -3435,9 +3435,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
   }
 });
 
-// node_modules/commander/index.js
+// plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/index.js
 var require_commander = __commonJS({
-  "node_modules/commander/index.js"(exports) {
+  "plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/index.js"(exports) {
     var { Argument: Argument2 } = require_argument();
     var { Command: Command2 } = require_command();
     var { CommanderError: CommanderError2, InvalidArgumentError: InvalidArgumentError2 } = require_error();
@@ -3460,7 +3460,7 @@ var require_commander = __commonJS({
 // plugins/pstack/skills/poteto-mode/scripts/watch-pr/cli.ts
 import { setTimeout as delay } from "node:timers/promises";
 
-// node_modules/commander/esm.mjs
+// plugins/pstack/skills/poteto-mode/scripts/node_modules/commander/esm.mjs
 var import_index = __toESM(require_commander(), 1);
 var {
   program,
@@ -4095,6 +4095,16 @@ async function discoverStack(reader, context) {
 // plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts
 function assessGitHubMerge(args) {
   if (args.mergeStateStatus === "BLOCKED") {
+    if (args.headRollupState === "FAILURE" && args.checks.some(
+      (check) => check.kind === "code-review-gate" && check.reportedState === "ACTION_REQUIRED"
+    ) && args.checks.every(
+      (check) => check.kind === "passed" || check.kind === "skipped" || check.kind === "code-review-gate" && check.reportedState === "ACTION_REQUIRED"
+    ))
+      return {
+        kind: "review-gate",
+        mergeStateStatus: args.mergeStateStatus,
+        headRollupState: args.headRollupState
+      };
     if (args.headRollupState === "ERROR" || args.headRollupState === "FAILURE")
       return {
         kind: "refused",
@@ -4115,7 +4125,7 @@ function assessGitHubMerge(args) {
     headRollupState: args.headRollupState
   };
 }
-async function mergeAssessment(reader, facts) {
+async function mergeAssessment(reader, facts, checks) {
   const commits = await reader.commitRollups(facts.context);
   const headRollupState = facts.headRefOid === null ? null : commits.find((commit) => commit.oid === facts.headRefOid)?.state ?? null;
   return {
@@ -4124,7 +4134,8 @@ async function mergeAssessment(reader, facts) {
     ),
     github: assessGitHubMerge({
       mergeStateStatus: facts.mergeStateStatus,
-      headRollupState
+      headRollupState,
+      checks
     })
   };
 }
@@ -4163,7 +4174,7 @@ async function readSnapshot(args) {
       hadPreviousPassingCi: false
     };
   else {
-    const merge = await mergeAssessment(args.reader, facts);
+    const merge = await mergeAssessment(args.reader, facts, checks.checks);
     const base = {
       source: checks.source,
       all: checks.checks,
@@ -4217,10 +4228,12 @@ function threadBlocker(row) {
 }
 var ciBlocker = (row) => row.kind === "open" && (row.ci.kind === "ci-failing" || row.ci.kind === "ci-github-rejected") ? { kind: "failing-checks", pr: row.context, ci: row.ci } : null;
 function gateReason(row, allowDraft) {
-  if (row.kind === "merged") return null;
-  if (row.kind === "closed") return "closed-without-merge";
+  if (row.kind !== "open")
+    return row.kind === "closed" ? "closed-without-merge" : null;
   if (row.facts.isDraft && !allowDraft) return "draft-pr";
-  return row.facts.reviewDecision === "CHANGES_REQUESTED" ? "changes-requested" : null;
+  if (row.facts.reviewDecision === "CHANGES_REQUESTED")
+    return "changes-requested";
+  return row.ci.kind === "ci-clean" && row.ci.github.kind === "review-gate" ? "owner-approval-required" : null;
 }
 function gateBlocker(row, allowDraft) {
   const reason = gateReason(row, allowDraft);
@@ -4233,7 +4246,7 @@ function readyContribution(row, allowDraft) {
       context: row.context,
       mergedAt: row.facts.mergedAt
     };
-  if (row.kind !== "open" || row.ci.kind !== "ci-clean" || row.threads.length !== 0 || conflictBlocker(row) !== null || gateReason(row, allowDraft) !== null)
+  if (row.kind !== "open" || row.ci.kind !== "ci-clean" || row.ci.github.kind !== "allowed" || row.threads.length !== 0 || conflictBlocker(row) !== null || gateReason(row, allowDraft) !== null)
     return null;
   const reviewDecision2 = row.facts.reviewDecision;
   if (reviewDecision2 === "CHANGES_REQUESTED") return null;
@@ -4243,7 +4256,7 @@ function readyContribution(row, allowDraft) {
     proof: {
       mergeability: "clear",
       threads: [],
-      ci: row.ci,
+      ci: { ...row.ci, github: row.ci.github },
       gate: {
         state: "OPEN",
         reviewDecision: reviewDecision2,
@@ -4729,6 +4742,8 @@ function mergeCell(row) {
   if (row.facts.isDraft) return "\u23F8 draft";
   if (row.facts.reviewDecision === "CHANGES_REQUESTED")
     return "\u26A0\uFE0F changes requested";
+  if (row.kind === "open" && row.ci.kind === "ci-clean" && row.ci.github.kind === "review-gate")
+    return "\u26A0\uFE0F owner approval required";
   return row.facts.mergeable === "CONFLICTING" || row.facts.mergeStateStatus === "DIRTY" || row.facts.mergeStateStatus === "CONFLICTING" ? "\u26A0\uFE0F conflict" : "\u2705";
 }
 function renderStatusTable(rows) {
@@ -4789,7 +4804,7 @@ function renderBlocker(blocker) {
       ].join("\n");
     }
     case "merge-gate": {
-      const action = blocker.reason === "closed-without-merge" ? "restore or remove the closed PR from the queued stack" : blocker.reason === "draft-pr" ? "mark the PR ready for review before waiting for the merge queue" : "resolve the changes-requested review before waiting for the merge queue";
+      const action = blocker.reason === "closed-without-merge" ? "restore or remove the closed PR from the queued stack" : blocker.reason === "draft-pr" ? "mark the PR ready for review before waiting for the merge queue" : blocker.reason === "owner-approval-required" ? "obtain owner approval before merging; do not treat this gate as repairable CI" : "resolve the changes-requested review before waiting for the merge queue";
       return [
         `BLOCKER: ${blocker.reason}`,
         `pr=${blocker.pr.number}`,

@@ -109,3 +109,5 @@ Run a description-optimization loop only if the skill's trigger accuracy turns o
 - The **poteto-mode** skill: example of the output shape.
 - The **unslop** skill: prose discipline for every line.
 - The Agent Skills specification: required structure and frontmatter.
+
+Match supported delegate effort to the job per **poteto-mode**'s Codex delegation guidance. Preserve the configured model or inheritance; do not send unsupported effort or speed flags.

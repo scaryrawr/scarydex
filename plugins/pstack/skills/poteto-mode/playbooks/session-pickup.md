@@ -8,4 +8,7 @@
 4. Route the remaining work to the matching playbook and pick the verdict: continue the execution, ship a finished recommendation, ratify or override a prior conclusion, or postmortem a failed run. The pickup playbook ends here. The routed playbook owns the rest.
 5. Verify the inherited claims against the original goal on the real artifact (the **principle-prove-it-works** skill). A passing prior self-report is not the proof.
 
+
+Match supported delegate effort to the job per **poteto-mode**'s Codex delegation guidance. Preserve the configured model or inheritance; do not send unsupported effort or speed flags.
+
 **Reply:** where the prior agent stopped, what you inherited vs redid (ideally nothing redone), the resume point, and the outcome.

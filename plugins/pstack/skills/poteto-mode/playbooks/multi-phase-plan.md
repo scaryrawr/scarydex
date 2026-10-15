@@ -145,4 +145,7 @@ Each live lane runs in an isolated worktree or session at the PR head. Drive thr
 <Docs to read before editing. Which PRs get `pstack/skills/how/SKILL.md` and `pstack/skills/interrogate/SKILL.md`. The trail per `pstack/skills/show-me-your-work/SKILL.md`.>
 ````
 
+
+Match supported delegate effort to the job per **poteto-mode**'s Codex delegation guidance. Preserve the configured model or inheritance; do not send unsupported effort or speed flags.
+
 **Reply:** the plan path, the PR ids with their dependencies and the review-gated set, what the prototypes proved and what stays unproven, and the check script's output.

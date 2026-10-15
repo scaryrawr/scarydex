@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { WatcherQueryError } from "./github.ts";
+import { renderPretty, renderStatusTable } from "./render.ts";
 import {
   applyQueueSnapshot,
   assessGitHubMerge,
@@ -65,7 +66,7 @@ describe("readiness truth table", () => {
 
     for (const [mergeStateStatus, headRollupState, expected] of cases) {
       expect(
-        assessGitHubMerge({ mergeStateStatus, headRollupState }).kind
+        assessGitHubMerge({ mergeStateStatus, headRollupState, checks: [] }).kind
       ).toBe(expected);
     }
   });
@@ -92,6 +93,63 @@ describe("readiness truth table", () => {
       kind: "blocker",
       blocker: { kind: "failing-checks" },
     });
+  });
+
+  it("exempts only an owner-approval failure with otherwise settled checks", async () => {
+    const gate = {
+      ...passingCheck("Code Review Gate"),
+      kind: "code-review-gate",
+      name: "Code Review Gate",
+      reportedState: "ACTION_REQUIRED",
+    } as const;
+
+    for (const [headRollupState, checks, expected] of [
+      ["FAILURE", [gate, passingCheck()], "ci-clean"],
+      ["FAILURE", [gate, failedCheck()], "ci-failing"],
+      ["FAILURE", [failedCheck("Code Review Gate")], "ci-failing"],
+      ["ERROR", [gate, passingCheck()], "ci-github-rejected"],
+      ["FAILURE", [gate, pendingCheck()], "ci-github-rejected"],
+      ["FAILURE", [{ ...gate, reportedState: "PENDING" }], "ci-github-rejected"],
+    ] as const) {
+      for (const source of ["fast", "graphql"] as const) {
+        const snapshot = await readSnapshot({
+          reader: fakeReader({
+            facts: { mergeStateStatus: "BLOCKED" },
+            fastPath: source === "fast"
+              ? { kind: "checks", checks }
+              : { kind: "unusable", exitCode: 1, stderr: "use rollup" },
+            rollupPages: [{ checks: checks.slice(0, 1), endCursor: "next" },
+              { checks: checks.slice(1), endCursor: null }],
+            commitRollups: [{ oid: "head", state: headRollupState }],
+          }),
+          context: context(1),
+          pendingHistory: "include",
+          allowDraft: false,
+        });
+
+        if (snapshot.kind !== "open") throw new Error("expected open snapshot");
+        expect(snapshot.ci.kind).toBe(expected);
+        const decision = classifyPr(snapshot);
+        if (expected === "ci-clean") {
+          const blocker = {
+            kind: "blocker",
+            blocker: { kind: "merge-gate", reason: "owner-approval-required" },
+          };
+          expect(decision).toMatchObject(blocker);
+          expect(selectTierMajorStackDecision([snapshot])).toMatchObject(blocker);
+          expect(renderStatusTable([snapshot])).toContain("owner approval required");
+          if (decision.kind !== "blocker" || decision.blocker.kind !== "merge-gate")
+            throw new Error("expected approval blocker");
+          expect(renderPretty({
+            schemaVersion: 1, sequence: 1, observedAt: "2026-07-26T00:00:00Z",
+            mode: "single", kind: "BLOCKER", terminal: true, exitCode: 6,
+            blocker: decision.blocker,
+          })).toContain("do not treat this gate as repairable CI");
+        } else {
+          expect(decision.kind).toBe("blocker");
+        }
+      }
+    }
   });
 });
 

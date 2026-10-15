@@ -267,7 +267,7 @@
       "source": "cursor",
       "plugin": "pstack",
       "path": "pstack",
-      "reviewedThrough": "7d8d9091e59a1fe9600bb317a1b7f69a31daa349",
+      "reviewedThrough": "6ce45c59b9301a638c1fe1a7b8dc2a82b650898f",
       "reviews": [
         {
           "commit": "12d587dfb20741cafc376c42c696c5f6e2a64487",
@@ -3460,6 +3460,346 @@
           ],
           "localPaths": [
             "plugins/pstack/skills/poteto-help/references/recipes.md"
+          ],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "d00ba6ee9b26ff3bb084b8a5051ff6436860cbdf",
+          "disposition": "skipped",
+          "reason": "Compared every parent for feat(pstack): shorten /ketchup replies and build them on real visuals (#595). The relevant portable path refinements are already folded into the pinned final-tree artifacts integrated by an earlier checkpoint; no duplicate file rewrite is needed.",
+          "paths": [
+            "pstack/README.md",
+            "pstack/skills/ketchup/SKILL.md",
+            "pstack/skills/poteto-help/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "36cecbf2b5089b275254d59cb4612d6f96f00fbd",
+          "disposition": "ported",
+          "reason": "Ported the changed source paths as their cumulative final 6ce45c59 Codex adaptations, including later refinements independently reviewed before this checkpoint. Port distilled principle wording while preserving local caller-visible negative/type/property test contracts and authorization boundaries where applicable.",
+          "paths": [
+            "pstack/skills/principle-fix-root-causes/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/principle-fix-root-causes/SKILL.md",
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/bundle-manifest.json",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs"
+          ],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "3177dab5d4057724e6a02a198596664707795444",
+          "disposition": "skipped",
+          "reason": "Compared every parent for chore(pstack): bump to 0.15.22 (#605). No additional portable file update is needed: Cursor manifests, docs, vendor model defaults and host registrations are excluded; prior integrated semantics and the adapted fence validator are retained.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "dbf49813a39c1a5389c5e28cb8e4c1c2379e2454",
+          "disposition": "skipped",
+          "reason": "Compared every parent for refactor(pstack): reword /in-your-own-words around goals and the problem (#606). The relevant portable path refinements are already folded into the pinned final-tree artifacts integrated by an earlier checkpoint; no duplicate file rewrite is needed.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/plugin.json",
+            "pstack/skills/in-your-own-words/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "c86f349b102feb91f1966f8a6a60882a4e601b50",
+          "disposition": "skipped",
+          "reason": "Compared every parent for refactor(pstack): make /ketchup read like /bro in 150 words (#609). The relevant portable path refinements are already folded into the pinned final-tree artifacts integrated by an earlier checkpoint; no duplicate file rewrite is needed.",
+          "paths": [
+            "pstack/README.md",
+            "pstack/skills/ketchup/SKILL.md",
+            "pstack/skills/poteto-help/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "e06323e81337750bad6725c26ce2f6e772794705",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. .cursor-plugin, README.md, third_party changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/highlevel/.cursor-plugin/plugin.json",
+            "third_party/highlevel/CHANGELOG.md",
+            "third_party/highlevel/LICENSE",
+            "third_party/highlevel/README.md",
+            "third_party/highlevel/assets/logo.png",
+            "third_party/highlevel/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "5108b719a7aa484ef1a9781f587c7bbeac793f92",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. .cursor-plugin, README.md, third_party changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/highlevel/.cursor-plugin/plugin.json",
+            "third_party/highlevel/CHANGELOG.md",
+            "third_party/highlevel/LICENSE",
+            "third_party/highlevel/README.md",
+            "third_party/highlevel/assets/logo.png",
+            "third_party/highlevel/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 2 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "9b079e3ac456e6b4b82728e8c5bfd8cfcf078b40",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. third_party changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "third_party/highlevel/.cursor-plugin/plugin.json",
+            "third_party/highlevel/CHANGELOG.md",
+            "third_party/highlevel/README.md",
+            "third_party/highlevel/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "837067b75aa20ab58d7b2a2f6c0531e37118c596",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. third_party changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "third_party/highlevel/.cursor-plugin/plugin.json",
+            "third_party/highlevel/CHANGELOG.md",
+            "third_party/highlevel/README.md",
+            "third_party/highlevel/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 2 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "ce649c03ac3b75b6ae80cbd15b7e2c536caedb5a",
+          "disposition": "ported",
+          "reason": "Ported the changed source paths as their cumulative final 6ce45c59 Codex adaptations, including later refinements independently reviewed before this checkpoint. Three-way port against original Codex tree; preserve local capability and authorization boundaries. Resolved overlapping edits in favor of existing Codex model, scoped-history, authorization and local runtime contracts; adopted portable distillation and verification refinements. Port job-matched effort guidance through supported Codex controls only; retain existing scoped history, inherited/configured model choices, local CLI and authorization contracts verbatim. Port concise lifecycle and topology ownership, gh-first delivery, recoverable owner records and targeted verification of later heads; preserve independent real-surface lanes, exact receipts, stronger local combined-base freshness, explicit publication/merge authority and operator stops; ketchup at changed checkpoints; optional Graphite only for an existing authorized shipping queue; exclude Origin/cloud/native loops. Applied nonconflicting upstream Markdown refinements against the original local baseline. Migrate frontier to authenticated gh PR-base-chain discovery and exclusive topology writer; retain standalone Node CLI, coordinator-authored standing orders, untrusted-evidence boundary, scoped Codex delegation and explicit mutation/merge authority; exclude Origin and native cloud. Port evidence/prompt distillation and role guidance; preserve Codex inheritance, read-only delegates, scoped history and explicit untrusted-source/citation boundaries; exclude transcript-cache discovery and foreign model fallback. Merged pinned upstream runtime semantics while preserving local receipt compare-and-swap and Copilot review-bot recognition. Ported remote-default and explicit-base audit; excluded Origin and global transcript scanning.",
+          "paths": [
+            "pstack/skills/arena/SKILL.md",
+            "pstack/skills/automate-me/SKILL.md",
+            "pstack/skills/figure-it-out/SKILL.md",
+            "pstack/skills/how/SKILL.md",
+            "pstack/skills/interrogate/SKILL.md",
+            "pstack/skills/no-comments/SKILL.md",
+            "pstack/skills/poteto-mode/SKILL.md",
+            "pstack/skills/poteto-mode/playbooks/autonomous-run.md",
+            "pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "pstack/skills/poteto-mode/playbooks/autopilot-stack.md",
+            "pstack/skills/poteto-mode/playbooks/bug-fix.md",
+            "pstack/skills/poteto-mode/playbooks/eval.md",
+            "pstack/skills/poteto-mode/playbooks/feature.md",
+            "pstack/skills/poteto-mode/playbooks/hillclimb.md",
+            "pstack/skills/poteto-mode/playbooks/multi-phase-plan.md",
+            "pstack/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "pstack/skills/poteto-mode/playbooks/orchestrate.md",
+            "pstack/skills/poteto-mode/playbooks/perf-issue.md",
+            "pstack/skills/poteto-mode/playbooks/refactoring.md",
+            "pstack/skills/poteto-mode/playbooks/runtime-forensics.md",
+            "pstack/skills/poteto-mode/playbooks/session-pickup.md",
+            "pstack/skills/poteto-mode/playbooks/shipping.md",
+            "pstack/skills/poteto-mode/playbooks/trace-forensics.md",
+            "pstack/skills/poteto-mode/playbooks/worktree-cleanup.md",
+            "pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "pstack/skills/poteto-mode/scripts/orch/orch.ts",
+            "pstack/skills/poteto-mode/scripts/orch/store.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "pstack/skills/poteto-mode/scripts/worktree-audit.sh",
+            "pstack/skills/recall/SKILL.md",
+            "pstack/skills/reflect/SKILL.md",
+            "pstack/skills/show-me-your-work/SKILL.md",
+            "pstack/skills/swarm/SKILL.md",
+            "pstack/skills/why/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/automate-me/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/autonomous-run.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/autopilot-stack.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/eval.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/feature.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/hillclimb.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/orchestrate.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/perf-issue.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/refactoring.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/runtime-forensics.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/session-pickup.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/shipping.md",
+            "plugins/pstack/skills/recall/SKILL.md",
+            "plugins/pstack/skills/show-me-your-work/SKILL.md",
+            "plugins/pstack/skills/swarm/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/store.ts"
+          ],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "8043881e5cbb962f8948d1a1f8f8e28089d67c9a",
+          "disposition": "skipped",
+          "reason": "Compared every parent for pstack: autopilot loops catch the operator up with /ketchup (#616). The relevant portable path refinements are already folded into the pinned final-tree artifacts integrated by an earlier checkpoint; no duplicate file rewrite is needed.",
+          "paths": [
+            "pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "pstack/skills/poteto-mode/playbooks/autopilot-stack.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "79afd75d5bd51383fbb526b72f36db03180b8301",
+          "disposition": "skipped",
+          "reason": "Compared every parent for feat(pstack): add /sharpen (#615). The relevant portable path refinements are already folded into the pinned final-tree artifacts integrated by an earlier checkpoint; no duplicate file rewrite is needed.",
+          "paths": [
+            "pstack/README.md",
+            "pstack/skills/poteto-help/SKILL.md",
+            "pstack/skills/poteto-help/references/recipes.md",
+            "pstack/skills/sharpen/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "1e5c90a4b6f249917bd21fe361b3a2a7deb741b8",
+          "disposition": "skipped",
+          "reason": "Compared every parent for chore(pstack): bump to 0.15.24 (#617). No additional portable file update is needed: Cursor manifests, docs, vendor model defaults and host registrations are excluded; prior integrated semantics and the adapted fence validator are retained.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "a8df8d58608c04bd8185394e65be2d239d689a6a",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. .cursor-plugin, README.md, third_party changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/finary/.cursor-plugin/plugin.json",
+            "third_party/finary/CHANGELOG.md",
+            "third_party/finary/LICENSE",
+            "third_party/finary/README.md",
+            "third_party/finary/assets/logo.png",
+            "third_party/finary/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "55345a9ba60970e705bb2259555433c715cc2b7b",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. .cursor-plugin, README.md, third_party changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/finary/.cursor-plugin/plugin.json",
+            "third_party/finary/CHANGELOG.md",
+            "third_party/finary/LICENSE",
+            "third_party/finary/README.md",
+            "third_party/finary/assets/logo.png",
+            "third_party/finary/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 2 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "afd51cf66a3100a95f878d6c4b93a01f6508e3b0",
+          "disposition": "skipped",
+          "reason": "Compared every parent for feat(pstack): have /ketchup explain changes with screenshots, videos, and diagrams (#628). The relevant portable path refinements are already folded into the pinned final-tree artifacts integrated by an earlier checkpoint; no duplicate file rewrite is needed.",
+          "paths": [
+            "pstack/skills/ketchup/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "6ce45c59b9301a638c1fe1a7b8dc2a82b650898f",
+          "disposition": "ported",
+          "reason": "Compared every parent for chore(pstack): bump to 0.15.25 (#614). No additional portable file update is needed: Cursor manifests, docs, vendor model defaults and host registrations are excluded; prior integrated semantics and the adapted fence validator are retained. Released the complete reviewed Codex adaptation at 0.15.25-codex.1 with updated attribution, prerequisites and offline caller regressions. Preserved executable installation modes. Propagated explicit owner-approval gate evidence into merge assessment as an approval blocker, never READY or repairable CI, without exempting real failed checks, error rollups or unexplained failures.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/plugin.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/render.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.compile.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs",
+            "plugins/pstack/references/codex-runtime.md",
+            "plugins/pstack/README.md",
+            "plugins/pstack/NOTICE.md",
+            "plugins/pstack/skills/poteto-mode/scripts/worktree-audit.sh"
           ],
           "evidence": [
             "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",

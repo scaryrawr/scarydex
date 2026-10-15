@@ -18,4 +18,7 @@
 
 Code-coupled work (one feature, one migration) goes to a single owner with the checkpoint inline. That owner fans out internally after the blocking phase. Parent-level fan-out is for slices that produce independent artifacts (audits, cross-subsystem investigations, competing experiments). Rewrite the checkpoint at phase boundaries. Spawn a fresh owner rather than chaining interrupts.
 
+
+Match supported delegate effort to the job per **poteto-mode**'s Codex delegation guidance. Preserve the configured model or inheritance; do not send unsupported effort or speed flags.
+
 **Reply:** what you built, what you chose and why, the throughput checkpoint, open decisions. Tables for design alternatives.
