@@ -3491,7 +3491,7 @@ function parsePrNumber(value, label = "PR number") {
 }
 
 // plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts
-var REVIEW_THREADS_QUERY = "\nquery ReviewThreads($owner: String!, $repo: String!, $pr: Int!) {\n  repository(owner: $owner, name: $repo) {\n    pullRequest(number: $pr) {\n      reviewThreads(first: 100) {\n        nodes {\n          id\n          isResolved\n          comments(first: 10) {\n            nodes {\n              body\n              createdAt\n              path\n              line\n              author { login }\n            }\n          }\n        }\n      }\n    }\n  }\n}\n";
+var REVIEW_THREADS_QUERY = "\nquery ReviewThreads($owner: String!, $repo: String!, $pr: Int!, $after: String) {\n  repository(owner: $owner, name: $repo) {\n    pullRequest(number: $pr) {\n      reviewThreads(first: 100, after: $after) {\n        pageInfo {\n          hasNextPage\n          endCursor\n        }\n        nodes {\n          id\n          isResolved\n          comments(first: 10) {\n            nodes {\n              body\n              createdAt\n              path\n              line\n              author { login }\n            }\n          }\n        }\n      }\n    }\n  }\n}\n";
 var PR_COMMIT_STATUS_QUERY = "\nquery PrCommitStatuses($owner: String!, $repo: String!, $pr: Int!) {\n  repository(owner: $owner, name: $repo) {\n    pullRequest(number: $pr) {\n      commits(last: 50) {\n        nodes {\n          commit {\n            oid\n            statusCheckRollup {\n              state\n            }\n          }\n        }\n      }\n    }\n  }\n}\n";
 var PR_CHECK_ROLLUP_QUERY = "\nquery PrCheckRollup($owner: String!, $repo: String!, $pr: Int!, $after: String) {\n  repository(owner: $owner, name: $repo) {\n    pullRequest(number: $pr) {\n      commits(last: 1) {\n        nodes {\n          commit {\n            statusCheckRollup {\n              contexts(first: 100, after: $after) {\n                pageInfo {\n                  hasNextPage\n                  endCursor\n                }\n                nodes {\n                  __typename\n                  ... on CheckRun {\n                    name\n                    status\n                    conclusion\n                    detailsUrl\n                  }\n                  ... on StatusContext {\n                    context\n                    state\n                    targetUrl\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}\n";
 var WatcherQueryError = class extends Error {
@@ -3681,22 +3681,23 @@ function parseFastCheck(value) {
   const details = checkDetails(object, "name");
   const state = string(object.state, "check.state").toUpperCase();
   const bucket = string(object.bucket, "check.bucket");
-  if (bucket === "fail" || ["FAILURE", "ERROR", "ACTION_REQUIRED"].includes(state))
+  if (state === "ACTION_REQUIRED") return gateOr("failed", details, state);
+  if (bucket === "fail" || ["FAILURE", "ERROR"].includes(state))
     return { ...details, kind: "failed", reportedState: state };
-  if (bucket === "pending") return pendingOrGate(details, state);
+  if (bucket === "pending") return gateOr("pending", details, state);
   if (bucket === "pass")
     return { ...details, kind: "passed", reportedState: state };
   if (bucket === "skipping")
     return { ...details, kind: "skipped", reportedState: state };
   return { ...details, kind: "failed", reportedState: state };
 }
-function pendingOrGate(details, reportedState) {
+function gateOr(kind, details, reportedState) {
   return details.name === "Code Review Gate" ? {
     ...details,
     kind: "code-review-gate",
     name: "Code Review Gate",
     reportedState
-  } : { ...details, kind: "pending", reportedState };
+  } : { ...details, kind, reportedState };
 }
 function mapRollupNode(value) {
   const object = record(value, "rollup node");
@@ -3711,21 +3712,18 @@ function mapRollupNode(value) {
     const status = typeof object.status === "string" ? object.status.toUpperCase() : "";
     const conclusion = typeof object.conclusion === "string" ? object.conclusion.toUpperCase() : "";
     if (status !== "COMPLETED")
-      return pendingOrGate({ ...details, link }, "PENDING");
+      return gateOr("pending", { ...details, link }, "PENDING");
     if (conclusion === "SUCCESS")
       return { ...details, link, kind: "passed", reportedState: "SUCCESS" };
     if (conclusion === "NEUTRAL" || conclusion === "SKIPPED")
       return { ...details, link, kind: "skipped", reportedState: conclusion };
-    return {
-      ...details,
-      link,
-      kind: "failed",
-      reportedState: conclusion === "ACTION_REQUIRED" ? conclusion : "FAILURE"
-    };
+    if (conclusion === "ACTION_REQUIRED")
+      return gateOr("failed", { ...details, link }, conclusion);
+    return { ...details, link, kind: "failed", reportedState: "FAILURE" };
   }
   const state = typeof object.state === "string" ? object.state.toUpperCase() : "";
   if (state === "PENDING" || state === "EXPECTED")
-    return pendingOrGate({ ...details, link }, "PENDING");
+    return gateOr("pending", { ...details, link }, "PENDING");
   return state === "SUCCESS" ? { ...details, link, kind: "passed", reportedState: state } : { ...details, link, kind: "failed", reportedState: state || "FAILURE" };
 }
 function parseComment(value) {
@@ -3764,11 +3762,12 @@ function passKey(comment) {
   }
   return null;
 }
-function parseReviewThreads(value) {
-  const nodes = list(
-    at(value, ["data", "repository", "pullRequest", "reviewThreads", "nodes"]),
-    "reviewThreads.nodes"
+function parseReviewThreadPage(value) {
+  const reviewThreads = record(
+    at(value, ["data", "repository", "pullRequest", "reviewThreads"]),
+    "reviewThreads"
   );
+  const nodes = list(reviewThreads.nodes, "reviewThreads.nodes");
   const threads = [];
   for (const node of nodes) {
     const thread = record(node, "review thread");
@@ -3784,6 +3783,18 @@ function parseReviewThreads(value) {
       resolved: thread.isResolved
     });
   }
+  const page = record(reviewThreads.pageInfo, "reviewThreads.pageInfo");
+  if (typeof page.hasNextPage !== "boolean")
+    missing("reviewThreads.pageInfo.hasNextPage", page.hasNextPage);
+  const cursor = optionalString(
+    page.endCursor,
+    "reviewThreads.pageInfo.endCursor"
+  );
+  if (page.hasNextPage && !cursor)
+    missing("reviewThreads.pageInfo.endCursor", page.endCursor);
+  return { threads, endCursor: page.hasNextPage && cursor ? cursor : null };
+}
+function buildReviewThreads(threads) {
   const keys = /* @__PURE__ */ new Set();
   let keyless = false;
   for (const thread of threads) {
@@ -3957,10 +3968,10 @@ var GhGitHubReader = class {
     );
     return { checks, endCursor: page.hasNextPage && cursor ? cursor : null };
   }
-  async reviewThreads(context) {
-    return parseReviewThreads(
-      await runJson(graphqlArgs(REVIEW_THREADS_QUERY, context))
-    );
+  async reviewThreadPage(context, after) {
+    const argv = graphqlArgs(REVIEW_THREADS_QUERY, context);
+    if (after !== null) argv.push("-f", `after=${after}`);
+    return parseReviewThreadPage(await runJson(argv));
   }
   async commitRollups(context) {
     const value = await runJson(graphqlArgs(PR_COMMIT_STATUS_QUERY, context));
@@ -3997,6 +4008,27 @@ async function resolveChecks(reader, context) {
   if (fallback !== null) return { source: "graphql-rollup", checks: fallback };
   const suffix = fast.kind === "unusable" ? `fast path exit=${fast.exitCode}; GraphQL rollup was empty${firstLine(fast.stderr) ? `; ${firstLine(fast.stderr)}` : ""}` : "fast path and GraphQL rollup were empty";
   throw new ChecksUnavailable(`could not read PR checks: ${suffix}`);
+}
+async function resolveReviewThreads(reader, context) {
+  const threads = [];
+  const cursors = /* @__PURE__ */ new Set();
+  let after = null;
+  do {
+    const page = await reader.reviewThreadPage(context, after);
+    threads.push(...page.threads);
+    after = page.endCursor;
+    if (after !== null) {
+      if (cursors.has(after))
+        throw new WatcherQueryError({
+          kind: "missing-key",
+          retryable: true,
+          detail: "reviewThreads pagination repeated a cursor instead of advancing",
+          rawValue: after
+        });
+      cursors.add(after);
+    }
+  } while (after !== null);
+  return buildReviewThreads(threads);
 }
 async function resolveContext(args) {
   if (args.pr !== null && args.owner !== null && args.repo !== null)
@@ -4108,7 +4140,7 @@ async function readSnapshot(args) {
     return { kind: "merged", context: args.context, facts };
   if (facts.state === "CLOSED")
     return { kind: "closed", context: args.context, facts };
-  const threads = await args.reader.reviewThreads(args.context);
+  const threads = await resolveReviewThreads(args.reader, args.context);
   const checks = await resolveChecks(args.reader, args.context);
   const failed = nonEmpty(
     checks.checks.filter(

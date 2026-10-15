@@ -11,4 +11,7 @@
 
 This is the one playbook that deletes user state with no code review to catch a slip, so the gates above are the review.
 
+
+Match supported delegate effort to the job per **poteto-mode**'s Codex delegation guidance. Preserve the configured model or inheritance; do not send unsupported effort or speed flags.
+
 **Reply:** `df -h /` before and after with space reclaimed, the worktrees pruned, and a one-line reason for each held back (in-use by which chat, or uncommitted work).
