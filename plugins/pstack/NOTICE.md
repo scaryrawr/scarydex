@@ -10,13 +10,20 @@ The original Cursor 0.15.5 tree at
 silently imported as a new baseline. Repository-wide provenance is recorded in
 `port-provenance.json` at the marketplace root.
 
+The portable update to pstack 0.15.25 is pinned to Cursor commit
+[`6ce45c59b9301a638c1fe1a7b8dc2a82b650898f`](https://github.com/cursor/plugins/commit/6ce45c59b9301a638c1fe1a7b8dc2a82b650898f).
+Its reviewed changes and dispositions are appended in `upstream-sync.json`;
+the original provenance baseline remains immutable.
+
 Codex-specific changes:
 
-- Native `.codex-plugin` metadata and Codex skill discovery.
+- Native `.codex-plugin` metadata and Codex skill discovery, without copying
+  Cursor's root manifest or host-only frontmatter.
 - Project skills under `.agents/skills`, explicit pstack model preferences in
   Codex home, and scoped app history instead of harness transcript scanning.
 - Codex subagent workflows with inherited models rather than Copilot Task,
-  dynamic workflows, or Cursor model slugs and cloud flags.
+  dynamic workflows, or Cursor model slugs and cloud flags. The receiving chat
+  owns the workflow; delegates receive the installed mode path.
 - Agent behavior retained as linked prompt references, not unsupported agent
   registration manifests.
 - Local scripts and artifacts replace Copilot capabilities, status, handoff,
@@ -24,6 +31,11 @@ Codex-specific changes:
 - Preserved contract/plan validation, decision logs, worktree audit, PR watcher,
   and orchestration scripts. The latter two ship as bundled Node helpers
   instead of installing dependencies into the plugin cache.
+- GitHub PR base-chain orchestration discovery replaces its Graphite dependency.
+  Origin's host-specific adapter is excluded. Frontier order, SHA and generation
+  safeguards remain in place.
+- Read-only ketchup catch-ups use existing visual artifacts or supported diagrams,
+  not an assumed visualize tool or unsolicited media capture.
 - Explicit approval and scope boundaries for external writes and deletions.
 
 The `deslop` skill was adapted by ScaryPilot from Cursor’s `cursor-team-kit` and

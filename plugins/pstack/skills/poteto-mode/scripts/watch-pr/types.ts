@@ -104,6 +104,10 @@ export type Check =
 
 export type FailedCheck = Extract<Check, { readonly kind: "failed" }>;
 
+export const isOwnerApprovalGate = (check: Check): boolean =>
+  check.kind === "code-review-gate" &&
+  check.reportedState === "ACTION_REQUIRED";
+
 export type PendingCheck = Extract<Check, { readonly kind: "pending" }>;
 
 export interface CheckRead {
@@ -122,6 +126,12 @@ export interface GitHubMergeRefusal {
   readonly headRollupState: "ERROR" | "FAILURE";
 }
 
+export interface GitHubReviewGate {
+  readonly kind: "review-gate";
+  readonly mergeStateStatus: "BLOCKED";
+  readonly headRollupState: "FAILURE";
+}
+
 export type GitHubMergeAllowed =
   | {
       readonly kind: "allowed";
@@ -136,7 +146,10 @@ export type GitHubMergeAllowed =
       readonly headRollupState: Exclude<RollupState, "ERROR" | "FAILURE">;
     };
 
-export type GitHubMergeAssessment = GitHubMergeAllowed | GitHubMergeRefusal;
+export type GitHubMergeAssessment =
+  | GitHubMergeAllowed
+  | GitHubMergeRefusal
+  | GitHubReviewGate;
 
 interface CiBase {
   readonly source: CheckRead["source"];
@@ -168,7 +181,7 @@ export type CiClean = CiBase & {
   readonly kind: "ci-clean";
   readonly failed: readonly [];
   readonly pending: readonly [];
-  readonly github: GitHubMergeAllowed;
+  readonly github: GitHubMergeAllowed | GitHubReviewGate;
 };
 
 export type CiState = CiFailing | CiGithubRejected | CiPending | CiClean;
@@ -194,7 +207,7 @@ export interface ReadyPr {
   readonly proof: {
     readonly mergeability: "clear";
     readonly threads: readonly [];
-    readonly ci: CiClean;
+    readonly ci: CiClean & { readonly github: GitHubMergeAllowed };
     readonly gate: {
       readonly state: "OPEN";
       readonly reviewDecision: Exclude<ReviewDecision, "CHANGES_REQUESTED">;
@@ -212,6 +225,7 @@ export interface MergedPr {
 export type MergeGateReason =
   | "closed-without-merge"
   | "draft-pr"
+  | "owner-approval-required"
   | "changes-requested";
 
 export type MergeBlocker =
@@ -431,6 +445,15 @@ export interface RollupPage {
   readonly checks: readonly Check[];
   readonly endCursor: string | null;
 }
+export interface RawReviewThread {
+  readonly id: string;
+  readonly firstComment: ReviewComment | null;
+  readonly resolved: boolean;
+}
+export interface ReviewThreadPage {
+  readonly threads: readonly RawReviewThread[];
+  readonly endCursor: string | null;
+}
 
 export interface GitHubReader {
   originRepo(): Promise<Repository | null>;
@@ -442,7 +465,10 @@ export interface GitHubReader {
     context: PrContext,
     after: string | null
   ): Promise<RollupPage>;
-  reviewThreads(context: PrContext): Promise<readonly ReviewThread[]>;
+  reviewThreadPage(
+    context: PrContext,
+    after: string | null
+  ): Promise<ReviewThreadPage>;
   commitRollups(context: PrContext): Promise<readonly CommitRollup[]>;
 }
 

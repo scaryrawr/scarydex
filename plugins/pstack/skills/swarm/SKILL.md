@@ -41,3 +41,5 @@ slice has accepted evidence. Apply the declared race rule and disclose dropouts.
 Return one consolidated table with worker verdicts, evidence, concrete issues,
 and gaps. Missing evidence never counts as a pass. Review changes yourself
 before accepting or integrating them.
+
+Match supported delegate effort to the job per **poteto-mode**'s Codex delegation guidance. Preserve the configured model or inheritance; do not send unsupported effort or speed flags.

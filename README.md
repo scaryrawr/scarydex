@@ -51,6 +51,7 @@ Codex client; no plugin grants additional tool access or bypasses permissions.
 ## Try it
 
 - “Use pstack’s poteto-mode to plan and verify this change.”
+- “Use pstack’s ketchup to catch me up, or sharpen to frame the next task.”
 - “Use better-init to refresh this repo’s AGENTS.md for Codex.”
 - “Use anti-slop to review this TypeScript diff.”
 - “Digivolve the repo guidance if this task exposed a durable correction.”

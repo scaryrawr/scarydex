@@ -19,6 +19,11 @@ current tool schema supports it. Do not pick supposedly equivalent model slugs
 from another host. Same-model independent candidates are valid; disclose the
 absence of model-family diversity.
 
+Job-matched effort guidance is advisory. Set a reasoning-effort control only
+when the current tool exposes it and the caller permits the override; otherwise
+inherit the host's setting. Do not encode effort or speed tiers in invented
+model IDs.
+
 Plan local critical-path work before spawning. Delegate independent sidecars
 and do useful work while they run. Wait only when the next step needs a result.
 Writing workers need disjoint scope and the isolation the current tool provides;
@@ -54,6 +59,24 @@ Orchestration and PR watching use the checked-in, self-contained Node helpers
 or dependency installation. Bun is only a development test runner for their
 retained TypeScript sources. Do not schedule recurring work without the user’s
 authorization. Skills do not create persistent execution by themselves.
+
+`orch.mjs frontier set --repo <checkout> [--prs <n,...>]` resolves a linear GitHub
+PR base chain with `gh`, not Graphite or Origin. It uses `origin/HEAD` for the
+trunk, with existing local `main`/`master` fallbacks, and fails if no default is
+provable. Referenced branches must exist locally so their SHAs can be pinned.
+An optional PR order pin, frontier generations, ledger checks and human gates
+remain in force. Query-limit, ambiguous-chain and malformed-data errors are
+explicit; discovery never merges a PR.
+
+The watcher reports an explicit owner-approval blocker when GitHub's
+`BLOCKED`/`FAILURE` rollup is explained only by an exact `Code Review Gate`
+requiring `ACTION_REQUIRED` approval and otherwise settled passing/skipped
+checks. This is neither READY nor repairable CI, and does not authorize
+bypassing the forge gate. Other failures, pending checks, error rollups and
+unexplained failures remain blockers.
+An acquired `ACTION_REQUIRED` owner gate remains an approval blocker even
+when sampled PR facts report `UNKNOWN`, `UNSTABLE` or `CLEAN`; readiness never
+relies on those independently sampled values to dismiss owner approval.
 
 ## Scope and authorization
 

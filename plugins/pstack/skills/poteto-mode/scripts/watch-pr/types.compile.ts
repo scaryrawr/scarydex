@@ -97,3 +97,19 @@ void refusalIsNotClean;
 void readyWithBlockerExit;
 
 void readyWithoutProof;
+
+const reviewGate = {
+  kind: "review-gate",
+  mergeStateStatus: "BLOCKED",
+  headRollupState: "FAILURE",
+} as const;
+
+// @ts-expect-error An owner-approval gate is not merge authorization.
+const reviewGateIsNotAllowed: GitHubMergeAllowed = reviewGate;
+
+// @ts-expect-error READY must prove allowance, not merely clean CI.
+const reviewGateIsNotReady: ReadyPr = { ...readyPr, proof: { ...readyPr.proof, ci: { ...cleanCi, github: reviewGate } } };
+
+void reviewGateIsNotAllowed;
+
+void reviewGateIsNotReady;

@@ -1,4 +1,5 @@
 import type * as T from "./types.ts";
+import { isOwnerApprovalGate } from "./types.ts";
 
 export const renderJson = (verdict: T.WatcherVerdict): string =>
   `${JSON.stringify(verdict)}\n`;
@@ -46,6 +47,9 @@ function mergeCell(row: T.PrSnapshot): string {
 
   if (row.facts.reviewDecision === "CHANGES_REQUESTED")
     return "⚠️ changes requested";
+
+  if (row.kind === "open" && row.ci.all.some(isOwnerApprovalGate))
+    return "⚠️ owner approval required";
 
   return row.facts.mergeable === "CONFLICTING" ||
     row.facts.mergeStateStatus === "DIRTY" ||
@@ -132,7 +136,9 @@ function renderBlocker(blocker: T.MergeBlocker | StatusQueryBlocker): string {
           ? "restore or remove the closed PR from the queued stack"
           : blocker.reason === "draft-pr"
             ? "mark the PR ready for review before waiting for the merge queue"
-            : "resolve the changes-requested review before waiting for the merge queue";
+            : blocker.reason === "owner-approval-required"
+              ? "obtain owner approval before merging; do not treat this gate as repairable CI"
+              : "resolve the changes-requested review before waiting for the merge queue";
 
       return [
         `BLOCKER: ${blocker.reason}`,
