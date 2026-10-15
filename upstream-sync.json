@@ -267,7 +267,7 @@
       "source": "cursor",
       "plugin": "pstack",
       "path": "pstack",
-      "reviewedThrough": "db4e4ee49588c59d51852100087ec58549f9a000",
+      "reviewedThrough": "1e56b2913469f05101e4ffd4d437c2e6fd2c1b8d",
       "reviews": [
         {
           "commit": "12d587dfb20741cafc376c42c696c5f6e2a64487",
@@ -1835,6 +1835,523 @@
           "evidence": [
             "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
             "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "89b461d5a6cd28d350269da509c3aec797f533f2",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md",
+            "origin-apps/skills/port-github-app-to-origin/scripts/index-origin-spec.py"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "ecb830457e5324dce680e81f71c9d8c206820d12",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "0a71c0cf9500dc3fbe2e49ee812a0c0346ba457f",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/.claude-plugin/plugin.json",
+            "origin-apps/.cursor-plugin/plugin.json",
+            "origin-apps/plugin.json",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "6490acce4d7f28896f2cc1e747b862dc8d538229",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "32bbb4e20c3ae1eb1042adfdbc390eaa2e696e57",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "a8da80c63e9f4641944dc086660124fb05aba2cb",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/discovery.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "e7f7503434b6e7919ae8ce6cf8365a597621ab23",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "f18177954a8f51b5accff72831e2eb78685c3ad2",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "2b2734db1f311659b9156d20e0fa61512b8e59c8",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief.md",
+            "origin-apps/skills/port-github-app-to-origin/references/discovery.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "74af145809e372efd9fd7649b0d69e8d48a28723",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "14989dda0038928f26b3e15fb858d27e6bb70937",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "7624c3f96079351f8113a30dde3343fdbe31eeee",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "551b37a7d5d3275f337ecb484ae96e6ac699f25c",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "5dda5041a4e1abe140b7ab1dfcf81097f9db1542",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "277537cff6b8589da3f48ae798c881003c62fe46",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/skills/origin-api/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "0390402f4dea53c78be71734cd600378b00cd1b6",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. origin-apps changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "77526ffa67f8dafc698d14b5356e6d4fc78c3127",
+          "disposition": "skipped",
+          "reason": "Compared every parent for Merge pull request #423 from anikser/ali/cursor/origin-apps-plugin-05cb. These source changes precede the already integrated Cursor77526ff coverage supplied by ScaryPilot ce2b8cbc; the original Codex adaptations remain intact.",
+          "paths": [
+            ".claude-plugin/marketplace.json",
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "dyl-stack/.cursor-plugin/plugin.json",
+            "dyl-stack/.gitignore",
+            "dyl-stack/LICENSE",
+            "dyl-stack/README.md",
+            "dyl-stack/agents/dyl-agent.md",
+            "dyl-stack/assets/logo.png",
+            "dyl-stack/skills/build-figma/SKILL.md",
+            "dyl-stack/skills/build-figma/references/design-system-discovery.md",
+            "dyl-stack/skills/build-figma/references/failure-lessons.md",
+            "dyl-stack/skills/build-figma/references/visual-judge.md",
+            "dyl-stack/skills/dyl-mode/SKILL.md",
+            "dyl-stack/skills/dyl-mode/playbooks/bug-fix.md",
+            "dyl-stack/skills/dyl-mode/playbooks/feature.md",
+            "dyl-stack/skills/dyl-mode/playbooks/opening-a-pr.md",
+            "dyl-stack/skills/dyl-mode/references/requirements.md",
+            "dyl-stack/skills/dyl-ready-pr/SKILL.md",
+            "dyl-stack/skills/dyl-review/SKILL.md",
+            "dyl-stack/skills/principle-the-algorithm/SKILL.md",
+            "origin-apps/.claude-plugin/plugin.json",
+            "origin-apps/.cursor-plugin/plugin.json",
+            "origin-apps/CHANGELOG.md",
+            "origin-apps/LICENSE",
+            "origin-apps/README.md",
+            "origin-apps/plugin.json",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief.md",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/README.md",
+            "pstack/agents/poteto-agent.md",
+            "pstack/docs/guide/01-setup.md",
+            "pstack/docs/guide/02-poteto-mode.md",
+            "pstack/docs/guide/03-understand.md",
+            "pstack/docs/guide/04-design.md",
+            "pstack/docs/guide/05-build-and-clean.md",
+            "pstack/docs/guide/06-verify-and-ship.md",
+            "pstack/docs/guide/07-overnight.md",
+            "pstack/docs/guide/08-principles.md",
+            "pstack/docs/guide/09-make-it-yours.md",
+            "pstack/docs/guide/10-recipes-and-pitfalls.md",
+            "pstack/docs/guide/README.md",
+            "pstack/skills/architect/SKILL.md",
+            "pstack/skills/architect/references/design-red-flags.md",
+            "pstack/skills/benchmark-checklist/SKILL.md",
+            "pstack/skills/correct/SKILL.md",
+            "pstack/skills/poteto-help/SKILL.md",
+            "pstack/skills/poteto-help/references/prompting.md",
+            "pstack/skills/poteto-help/references/recipes.md",
+            "pstack/skills/poteto-mode/SKILL.md",
+            "pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "pstack/skills/poteto-mode/playbooks/autopilot-stack.md",
+            "pstack/skills/poteto-mode/playbooks/hillclimb.md",
+            "pstack/skills/poteto-mode/playbooks/multi-phase-plan.md",
+            "pstack/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "pstack/skills/poteto-mode/playbooks/perf-issue.md",
+            "pstack/skills/poteto-mode/scripts/check-plan.mjs",
+            "pstack/skills/principle-explain-the-number/SKILL.md",
+            "pstack/skills/swarm/SKILL.md",
+            "pstack/skills/technical-writing/SKILL.md",
+            "pstack/skills/typescript-best-practices/references/patterns.md",
+            "third_party/beehiiv/.cursor-plugin/plugin.json",
+            "third_party/beehiiv/CHANGELOG.md",
+            "third_party/beehiiv/LICENSE",
+            "third_party/beehiiv/README.md",
+            "third_party/beehiiv/assets/logo.png",
+            "third_party/beehiiv/mcp.json",
+            "third_party/buffer/.cursor-plugin/plugin.json",
+            "third_party/buffer/CHANGELOG.md",
+            "third_party/buffer/LICENSE",
+            "third_party/buffer/README.md",
+            "third_party/buffer/assets/logo.png",
+            "third_party/buffer/mcp.json",
+            "third_party/etoro-trading/.cursor-plugin/plugin.json",
+            "third_party/etoro-trading/CHANGELOG.md",
+            "third_party/etoro-trading/README.md",
+            "third_party/etoro-trading/assets/logo.png",
+            "third_party/etoro-trading/mcp.json",
+            "third_party/finance/.cursor-plugin/plugin.json",
+            "third_party/finance/CHANGELOG.md",
+            "third_party/finance/assets/logo.svg",
+            "third_party/google-drive/.cursor-plugin/plugin.json",
+            "third_party/google-drive/CHANGELOG.md",
+            "third_party/google-drive/README.md",
+            "third_party/google-drive/mcp.json",
+            "third_party/google-drive/skills/google-drive/SKILL.md",
+            "third_party/greenhouse/.cursor-plugin/plugin.json",
+            "third_party/greenhouse/CHANGELOG.md",
+            "third_party/greenhouse/LICENSE",
+            "third_party/greenhouse/README.md",
+            "third_party/greenhouse/assets/logo.png",
+            "third_party/greenhouse/mcp.json",
+            "third_party/hubspot/.cursor-plugin/plugin.json",
+            "third_party/hubspot/CHANGELOG.md",
+            "third_party/hubspot/README.md",
+            "third_party/plaud/.cursor-plugin/plugin.json",
+            "third_party/plaud/CHANGELOG.md",
+            "third_party/plaud/LICENSE",
+            "third_party/plaud/README.md",
+            "third_party/plaud/assets/logo.png",
+            "third_party/plaud/mcp.json",
+            "third_party/posthog-mcp/.cursor-plugin/plugin.json",
+            "third_party/posthog-mcp/CHANGELOG.md",
+            "third_party/posthog-mcp/LICENSE",
+            "third_party/posthog-mcp/README.md",
+            "third_party/posthog-mcp/assets/logo.png",
+            "third_party/posthog-mcp/mcp.json",
+            "third_party/shopify-store/.cursor-plugin/plugin.json",
+            "third_party/shopify-store/CHANGELOG.md",
+            "third_party/shopify-store/LICENSE",
+            "third_party/shopify-store/README.md",
+            "third_party/shopify-store/assets/logo.png",
+            "third_party/shopify-store/mcp.json",
+            "third_party/shopify-store/rules/shopify.mdc",
+            "third_party/tinyfish/.cursor-plugin/plugin.json",
+            "third_party/tinyfish/CHANGELOG.md",
+            "third_party/tinyfish/LICENSE",
+            "third_party/tinyfish/README.md",
+            "third_party/tinyfish/assets/logo.png",
+            "third_party/tinyfish/mcp.json",
+            "third_party/todoist/.cursor-plugin/plugin.json",
+            "third_party/todoist/CHANGELOG.md",
+            "third_party/todoist/README.md",
+            "third_party/todoist/assets/logo.png",
+            "third_party/trello/.cursor-plugin/plugin.json",
+            "third_party/trello/CHANGELOG.md",
+            "third_party/trello/LICENSE",
+            "third_party/trello/README.md",
+            "third_party/trello/assets/logo.png",
+            "third_party/trello/mcp.json",
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md",
+            "third_party/x/skills/x-chat/SKILL.md",
+            "third_party/zoom/.cursor-plugin/plugin.json",
+            "third_party/zoom/CHANGELOG.md",
+            "third_party/zoom/README.md",
+            "third_party/zoom/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 2 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "742e96e71ad54ff8db2dcbcfa555711561bd887f",
+          "disposition": "excluded",
+          "reason": "Compared every parent and rename/deletion endpoints. third_party changes have no pstack source or shared imported helper/build input; the separate Cursor plugin and marketplace registrations are excluded from the unchanged inventory.",
+          "paths": [
+            "third_party/statsig/.cursor-plugin/plugin.json",
+            "third_party/statsig/CHANGELOG.md",
+            "third_party/statsig/README.md",
+            "third_party/statsig/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "e5a8186d7b43be8d6ac4452440fbead5f1a51c70",
+          "disposition": "skipped",
+          "reason": "Compared every parent for Merge pull request #480 from hkaur030/codex/statsig-mcp-v3. No additional portable file update is needed: Cursor manifests, docs, vendor model defaults and host registrations are excluded; prior integrated semantics and the adapted fence validator are retained.",
+          "paths": [
+            ".claude-plugin/marketplace.json",
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "origin-apps/.claude-plugin/plugin.json",
+            "origin-apps/.cursor-plugin/plugin.json",
+            "origin-apps/CHANGELOG.md",
+            "origin-apps/LICENSE",
+            "origin-apps/README.md",
+            "origin-apps/plugin.json",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief.md",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/README.md",
+            "pstack/agents/poteto-agent.md",
+            "pstack/docs/guide/01-setup.md",
+            "pstack/docs/guide/02-poteto-mode.md",
+            "pstack/docs/guide/03-understand.md",
+            "pstack/docs/guide/04-design.md",
+            "pstack/docs/guide/05-build-and-clean.md",
+            "pstack/docs/guide/06-verify-and-ship.md",
+            "pstack/docs/guide/07-overnight.md",
+            "pstack/docs/guide/08-principles.md",
+            "pstack/docs/guide/09-make-it-yours.md",
+            "pstack/docs/guide/10-recipes-and-pitfalls.md",
+            "pstack/docs/guide/README.md",
+            "pstack/skills/architect/SKILL.md",
+            "pstack/skills/architect/references/design-red-flags.md",
+            "pstack/skills/benchmark-checklist/SKILL.md",
+            "pstack/skills/correct/SKILL.md",
+            "pstack/skills/poteto-help/SKILL.md",
+            "pstack/skills/poteto-help/references/prompting.md",
+            "pstack/skills/poteto-help/references/recipes.md",
+            "pstack/skills/poteto-mode/SKILL.md",
+            "pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "pstack/skills/poteto-mode/playbooks/autopilot-stack.md",
+            "pstack/skills/poteto-mode/playbooks/hillclimb.md",
+            "pstack/skills/poteto-mode/playbooks/multi-phase-plan.md",
+            "pstack/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "pstack/skills/poteto-mode/playbooks/perf-issue.md",
+            "pstack/skills/poteto-mode/scripts/check-plan.mjs",
+            "pstack/skills/principle-explain-the-number/SKILL.md",
+            "pstack/skills/swarm/SKILL.md",
+            "pstack/skills/technical-writing/SKILL.md",
+            "pstack/skills/typescript-best-practices/references/patterns.md",
+            "third_party/statsig/.cursor-plugin/plugin.json",
+            "third_party/statsig/CHANGELOG.md",
+            "third_party/statsig/README.md",
+            "third_party/statsig/mcp.json",
+            "third_party/todoist/.cursor-plugin/plugin.json",
+            "third_party/todoist/CHANGELOG.md",
+            "third_party/todoist/README.md",
+            "third_party/todoist/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed all 2 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "1e56b2913469f05101e4ffd4d437c2e6fd2c1b8d",
+          "disposition": "ported",
+          "reason": "Ported the changed source paths as their cumulative final 6ce45c59 Codex adaptations, including later refinements independently reviewed before this checkpoint. Three-way port against original Codex tree; preserve local capability and authorization boundaries. Resolved overlapping edits in favor of existing Codex model, scoped-history, authorization and local runtime contracts; adopted portable distillation and verification refinements. Unmapped source metadata, docs or helpers remain outside this port or already satisfy the local contract (pstack/.cursor-plugin/plugin.json). Included the linked in-your-own-words dependency from the same independently reviewed pinned target tree. Included the linked sharpen dependency from the same independently reviewed pinned target tree. Included the linked ketchup dependency from the same independently reviewed pinned target tree.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/skills/poteto-help/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/in-your-own-words/SKILL.md",
+            "plugins/pstack/skills/sharpen/SKILL.md",
+            "plugins/pstack/skills/ketchup/SKILL.md",
+            "plugins/pstack/.codex-plugin/plugin.json"
+          ],
+          "evidence": [
+            "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
+            "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
           ]
         }
       ]
