@@ -8,6 +8,14 @@ import { validatePlanText } from "../plugins/pstack/skills/poteto-mode/scripts/p
 
 const roots = [];
 
+test("pstack bundle manifest never requires optional local dependency installations", async () => {
+  const manifest = JSON.parse(await readFile(new URL("../plugins/pstack/bundle-manifest.json", import.meta.url), "utf8"));
+
+  for (const file of Object.keys(manifest.files)) {
+    assert.ok(!file.split("/").includes("node_modules"), `Rebuild from root dependencies: bundle manifest includes ${file}`);
+  }
+});
+
 afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
