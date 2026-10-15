@@ -267,7 +267,7 @@
       "source": "cursor",
       "plugin": "pstack",
       "path": "pstack",
-      "reviewedThrough": "fc520b24b3af4a842921c8766931940af81313eb",
+      "reviewedThrough": "db4e4ee49588c59d51852100087ec58549f9a000",
       "reviews": [
         {
           "commit": "12d587dfb20741cafc376c42c696c5f6e2a64487",
@@ -1448,6 +1448,388 @@
           "paths": [
             "third_party/todoist/README.md",
             "third_party/todoist/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "49684fa43a07a861f1eb743ea46238c7969924aa",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/todoist/.cursor-plugin/plugin.json",
+            "third_party/todoist/CHANGELOG.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "7022c81efb48d8b5eb15498ce6043a3bd74b694c",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to third_party and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "third_party/todoist/.cursor-plugin/plugin.json",
+            "third_party/todoist/CHANGELOG.md",
+            "third_party/todoist/README.md",
+            "third_party/todoist/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 2 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "23e4138daa01c42d4969f7a5465f82704e64f798",
+          "disposition": "skipped",
+          "reason": "Compared every parent. The pstack changes precede the already integrated Cursor77526ff coverage supplied by ScaryPilot ce2b8cbc; replaying them would overwrite existing Codex adaptations. Other paths do not add pstack runtime dependencies.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/README.md",
+            "pstack/agents/poteto-agent.md",
+            "pstack/docs/guide/08-principles.md",
+            "pstack/docs/guide/README.md",
+            "pstack/skills/benchmark-checklist/SKILL.md",
+            "pstack/skills/poteto-mode/SKILL.md",
+            "pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "pstack/skills/poteto-mode/playbooks/autopilot-stack.md",
+            "pstack/skills/poteto-mode/playbooks/hillclimb.md",
+            "pstack/skills/poteto-mode/playbooks/multi-phase-plan.md",
+            "pstack/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "pstack/skills/poteto-mode/playbooks/perf-issue.md",
+            "pstack/skills/poteto-mode/scripts/check-plan.mjs",
+            "pstack/skills/principle-explain-the-number/SKILL.md",
+            "pstack/skills/swarm/SKILL.md",
+            "pstack/skills/technical-writing/SKILL.md",
+            "pstack/skills/typescript-best-practices/references/patterns.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "9511e60321f7e533a187d62854a3d53a53752874",
+          "disposition": "skipped",
+          "reason": "Compared every parent. The pstack changes precede the already integrated Cursor77526ff coverage supplied by ScaryPilot ce2b8cbc; replaying them would overwrite existing Codex adaptations. Other paths do not add pstack runtime dependencies.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/README.md",
+            "pstack/skills/correct/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "a58628271271837ef5f386adca29c0812683a19a",
+          "disposition": "skipped",
+          "reason": "Compared every parent. The pstack changes precede the already integrated Cursor77526ff coverage supplied by ScaryPilot ce2b8cbc; replaying them would overwrite existing Codex adaptations. Other paths do not add pstack runtime dependencies.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/skills/architect/SKILL.md",
+            "pstack/skills/architect/references/design-red-flags.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "e43c7ee26e0038c6c1fa8380dd34ce86ff94cb2a",
+          "disposition": "skipped",
+          "reason": "Compared every parent. The pstack changes precede the already integrated Cursor77526ff coverage supplied by ScaryPilot ce2b8cbc; replaying them would overwrite existing Codex adaptations. Other paths do not add pstack runtime dependencies.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/skills/benchmark-checklist/SKILL.md",
+            "pstack/skills/poteto-mode/playbooks/hillclimb.md",
+            "pstack/skills/poteto-mode/playbooks/perf-issue.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "4e5b1cf2ccb0ea3716f08c8ee0a5856b5ab93536",
+          "disposition": "skipped",
+          "reason": "Compared every parent. The pstack changes precede the already integrated Cursor77526ff coverage supplied by ScaryPilot ce2b8cbc; replaying them would overwrite existing Codex adaptations. Other paths do not add pstack runtime dependencies.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/README.md",
+            "pstack/docs/guide/01-setup.md",
+            "pstack/docs/guide/02-poteto-mode.md",
+            "pstack/docs/guide/05-build-and-clean.md",
+            "pstack/docs/guide/README.md",
+            "pstack/skills/poteto-help/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "00b52d954a99ff67802cad428ff19218659f76fd",
+          "disposition": "skipped",
+          "reason": "Compared every parent. The pstack changes precede the already integrated Cursor77526ff coverage supplied by ScaryPilot ce2b8cbc; replaying them would overwrite existing Codex adaptations. Other paths do not add pstack runtime dependencies.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/README.md",
+            "pstack/skills/poteto-help/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "807c031086fcf71c88c863b4a4e6938b6785c58f",
+          "disposition": "skipped",
+          "reason": "Compared every parent. The pstack changes precede the already integrated Cursor77526ff coverage supplied by ScaryPilot ce2b8cbc; replaying them would overwrite existing Codex adaptations. Other paths do not add pstack runtime dependencies.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/skills/poteto-help/SKILL.md",
+            "pstack/skills/poteto-help/references/prompting.md",
+            "pstack/skills/poteto-help/references/recipes.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "2cbf58508f40de470d7490b55c51d71241928fa2",
+          "disposition": "skipped",
+          "reason": "Compared every parent. The pstack changes precede the already integrated Cursor77526ff coverage supplied by ScaryPilot ce2b8cbc; replaying them would overwrite existing Codex adaptations. Other paths do not add pstack runtime dependencies.",
+          "paths": [
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/docs/guide/01-setup.md",
+            "pstack/docs/guide/02-poteto-mode.md",
+            "pstack/docs/guide/03-understand.md",
+            "pstack/docs/guide/04-design.md",
+            "pstack/docs/guide/05-build-and-clean.md",
+            "pstack/docs/guide/06-verify-and-ship.md",
+            "pstack/docs/guide/07-overnight.md",
+            "pstack/docs/guide/08-principles.md",
+            "pstack/docs/guide/09-make-it-yours.md",
+            "pstack/docs/guide/10-recipes-and-pitfalls.md",
+            "pstack/docs/guide/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "9a9ea84fb2e1e5239baf8a7990dab129f4732ecc",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to .claude-plugin, .cursor-plugin, README.md, origin-apps and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            ".claude-plugin/marketplace.json",
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "origin-apps/.claude-plugin/plugin.json",
+            "origin-apps/.cursor-plugin/plugin.json",
+            "origin-apps/CHANGELOG.md",
+            "origin-apps/LICENSE",
+            "origin-apps/README.md",
+            "origin-apps/plugin.json",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/discovery.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md",
+            "origin-apps/skills/port-github-app-to-origin/scripts/index-origin-spec.py"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "e0efb7a93e5942af772e4700a4ee6a2b6b26f52e",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to .claude-plugin, .cursor-plugin, README.md, origin-apps and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            ".claude-plugin/marketplace.json",
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "origin-apps/.claude-plugin/plugin.json",
+            "origin-apps/.cursor-plugin/plugin.json",
+            "origin-apps/CHANGELOG.md",
+            "origin-apps/README.md",
+            "origin-apps/plugin.json",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "a2f9147c01bee1713b7dd676ffcbb911e8230f43",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to origin-apps and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/discovery.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "e97c83e73109f85d0202bc135467e5ddfc3eacab",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to .claude-plugin, .cursor-plugin, README.md, origin-apps and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            ".claude-plugin/marketplace.json",
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "origin-apps/.claude-plugin/plugin.json",
+            "origin-apps/.cursor-plugin/plugin.json",
+            "origin-apps/CHANGELOG.md",
+            "origin-apps/README.md",
+            "origin-apps/plugin.json",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/discovery.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "cc906921c14e183f53e117a0890594a3e3487b5f",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to origin-apps and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "3bd5434dc47f691034fca0a033a0374e3d254587",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to origin-apps and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "origin-apps/CHANGELOG.md",
+            "origin-apps/README.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md",
+            "origin-apps/skills/port-github-app-to-origin/scripts/index-origin-spec.py"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "3992065c0c8a09f18af1f2995477fe4815c7078f",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to origin-apps and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "bfd034de172b2eaf25d9f13bd8de52aa0731a4ff",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to origin-apps and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "06ad1fa25685b1efa2529f5db4a7202a910f7ec4",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to origin-apps and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "All 1 parent comparison(s) recorded in the session review-history.json; inspected source paths and added/removed pstack references.",
+            "The pstack port imports helpers and prompt references from plugins/pstack only; other source plugin trees and their host registrations are not installed."
+          ]
+        },
+        {
+          "commit": "db4e4ee49588c59d51852100087ec58549f9a000",
+          "disposition": "excluded",
+          "reason": "Compared every parent, including rename/deletion endpoints. Changes are confined to origin-apps and contain no pstack source, imported shared runtime module or build input. These independent Cursor marketplace, plugin and documentation changes are outside the unchanged eight-plugin inventory.",
+          "paths": [
+            "origin-apps/README.md",
+            "origin-apps/skills/origin-api/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+            "origin-apps/skills/port-github-app-to-origin/references/brief-template.md",
+            "origin-apps/skills/port-github-app-to-origin/references/gap-bar.md",
+            "origin-apps/skills/port-github-app-to-origin/references/origin-isms.md",
+            "origin-apps/skills/port-github-app-to-origin/references/spec-mapping.md"
           ],
           "localPaths": [],
           "evidence": [
