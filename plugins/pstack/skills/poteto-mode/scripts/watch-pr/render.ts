@@ -1,4 +1,5 @@
 import type * as T from "./types.ts";
+import { isOwnerApprovalGate } from "./types.ts";
 
 export const renderJson = (verdict: T.WatcherVerdict): string =>
   `${JSON.stringify(verdict)}\n`;
@@ -47,8 +48,7 @@ function mergeCell(row: T.PrSnapshot): string {
   if (row.facts.reviewDecision === "CHANGES_REQUESTED")
     return "⚠️ changes requested";
 
-  if (row.kind === "open" && row.ci.kind === "ci-clean" &&
-    row.ci.github.kind === "review-gate")
+  if (row.kind === "open" && row.ci.all.some(isOwnerApprovalGate))
     return "⚠️ owner approval required";
 
   return row.facts.mergeable === "CONFLICTING" ||

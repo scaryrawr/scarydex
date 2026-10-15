@@ -3489,6 +3489,7 @@ function parsePrNumber(value, label = "PR number") {
     throw new Error(`${label} must be a positive integer`);
   return value;
 }
+var isOwnerApprovalGate = (check) => check.kind === "code-review-gate" && check.reportedState === "ACTION_REQUIRED";
 
 // plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts
 var REVIEW_THREADS_QUERY = "\nquery ReviewThreads($owner: String!, $repo: String!, $pr: Int!, $after: String) {\n  repository(owner: $owner, name: $repo) {\n    pullRequest(number: $pr) {\n      reviewThreads(first: 100, after: $after) {\n        pageInfo {\n          hasNextPage\n          endCursor\n        }\n        nodes {\n          id\n          isResolved\n          comments(first: 10) {\n            nodes {\n              body\n              createdAt\n              path\n              line\n              author { login }\n            }\n          }\n        }\n      }\n    }\n  }\n}\n";
@@ -4095,10 +4096,8 @@ async function discoverStack(reader, context) {
 // plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts
 function assessGitHubMerge(args) {
   if (args.mergeStateStatus === "BLOCKED") {
-    if (args.headRollupState === "FAILURE" && args.checks.some(
-      (check) => check.kind === "code-review-gate" && check.reportedState === "ACTION_REQUIRED"
-    ) && args.checks.every(
-      (check) => check.kind === "passed" || check.kind === "skipped" || check.kind === "code-review-gate" && check.reportedState === "ACTION_REQUIRED"
+    if (args.headRollupState === "FAILURE" && args.checks.some(isOwnerApprovalGate) && args.checks.every(
+      (check) => check.kind === "passed" || check.kind === "skipped" || isOwnerApprovalGate(check)
     ))
       return {
         kind: "review-gate",
@@ -4233,7 +4232,7 @@ function gateReason(row, allowDraft) {
   if (row.facts.isDraft && !allowDraft) return "draft-pr";
   if (row.facts.reviewDecision === "CHANGES_REQUESTED")
     return "changes-requested";
-  return row.ci.kind === "ci-clean" && row.ci.github.kind === "review-gate" ? "owner-approval-required" : null;
+  return row.ci.all.some(isOwnerApprovalGate) ? "owner-approval-required" : null;
 }
 function gateBlocker(row, allowDraft) {
   const reason = gateReason(row, allowDraft);
@@ -4742,7 +4741,7 @@ function mergeCell(row) {
   if (row.facts.isDraft) return "\u23F8 draft";
   if (row.facts.reviewDecision === "CHANGES_REQUESTED")
     return "\u26A0\uFE0F changes requested";
-  if (row.kind === "open" && row.ci.kind === "ci-clean" && row.ci.github.kind === "review-gate")
+  if (row.kind === "open" && row.ci.all.some(isOwnerApprovalGate))
     return "\u26A0\uFE0F owner approval required";
   return row.facts.mergeable === "CONFLICTING" || row.facts.mergeStateStatus === "DIRTY" || row.facts.mergeStateStatus === "CONFLICTING" ? "\u26A0\uFE0F conflict" : "\u2705";
 }

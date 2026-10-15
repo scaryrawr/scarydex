@@ -10,6 +10,6 @@
     "plugins/omlx-media/src/omlx-client.ts": "e92cfba6a31e70a9245021acd0759ac79412a3158ddead1eee8a82c10c3900ec",
     "plugins/omlx-media/src/tool-schemas.ts": "f06ce5e21f49f1daa7774975f15b8917f92ffdef097cde712da9d8810e05e032",
     "plugins/omlx-media/src/workspace-artifacts.ts": "888218a0879205f2b8c4334e24d4cc1ba640b1cd71f213c2d2be0ac394b31bad",
-    "tools/build.mjs": "4d22b224c63978459a43083731a0b54892c94db65ad5dc4fc3036c7e669aab2f"
+    "tools/build.mjs": "4f350515894e3aca4c9b13eb474870dd1f7b0b7f74619cc76d7924bed63716e4"
   }
 }

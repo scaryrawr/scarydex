@@ -154,6 +154,45 @@ describe("readiness truth table", () => {
 });
 
 describe("snapshot query planning", () => {
+  it("blocks owner approval independently of stale PR facts and head rollups", async () => {
+    const gate = {
+      ...passingCheck("Code Review Gate"),
+      kind: "code-review-gate",
+      name: "Code Review Gate",
+      reportedState: "ACTION_REQUIRED",
+    } as const;
+
+    for (const mergeStateStatus of ["UNKNOWN", "UNSTABLE", "CLEAN"] as const) {
+      for (const state of ["FAILURE", "SUCCESS", "PENDING", null] as const) {
+        for (const source of ["fast", "graphql"] as const) {
+          const snapshot = await readSnapshot({
+            reader: fakeReader({
+              facts: { mergeStateStatus },
+              fastPath: source === "fast"
+                ? { kind: "checks", checks: [passingCheck(), gate] }
+                : { kind: "unusable", exitCode: 1, stderr: "use rollup" },
+              rollupPages: [
+                { checks: [passingCheck()], endCursor: "next" },
+                { checks: [gate], endCursor: null },
+              ],
+              commitRollups: [{ oid: "head", state }],
+            }),
+            context: context(1),
+            pendingHistory: "include",
+            allowDraft: false,
+          });
+          const expected = {
+            kind: "blocker",
+            blocker: { kind: "merge-gate", reason: "owner-approval-required" },
+          };
+          expect(classifyPr(snapshot)).toMatchObject(expected);
+          expect(selectTierMajorStackDecision([snapshot])).toMatchObject(expected);
+          expect(renderStatusTable([snapshot])).toContain("owner approval required");
+        }
+      }
+    }
+  });
+
   it("does not query commit rollups while queued checks are pending", async () => {
     const reader = fakeReader({
       fastPath: { kind: "checks", checks: [pendingCheck()] },

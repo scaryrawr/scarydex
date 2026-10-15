@@ -16,6 +16,28 @@ test("pstack bundle manifest never requires optional local dependency installati
   }
 });
 
+test("bundle generation excludes dependencies at every path depth", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "scarydex-bundle-inputs-"));
+  roots.push(root);
+
+  for (const directory of ["tools", "node_modules/esbuild", "plugins/pstack", "plugins/omlx-media"]) {
+    await mkdir(path.join(root, directory), { recursive: true });
+  }
+
+  await writeFile(path.join(root, "tools/build.mjs"), await readFile(new URL("../tools/build.mjs", import.meta.url)));
+  await writeFile(path.join(root, "package-lock.json"), "{}");
+  await writeFile(path.join(root, "node_modules/esbuild/package.json"), JSON.stringify({ type: "module", exports: "./index.mjs" }));
+  await writeFile(path.join(root, "node_modules/esbuild/index.mjs"), 'export async function build() { return { metafile: { inputs: { "node_modules/missing/index.js": {}, "plugins/pstack/skills/poteto-mode/scripts/node_modules/missing/index.js": {}, "tools/build.mjs": {} }, outputs: {} } }; }\n');
+
+  const result = spawnSync("node", ["tools/build.mjs"], { cwd: root, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+
+  for (const plugin of ["pstack", "omlx-media"]) {
+    const manifest = JSON.parse(await readFile(path.join(root, "plugins", plugin, "bundle-manifest.json"), "utf8"));
+    assert.deepEqual(Object.keys(manifest.files), ["package-lock.json", "tools/build.mjs"]);
+  }
+});
+
 afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });

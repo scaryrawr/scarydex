@@ -18,7 +18,7 @@ async function buildPlugin(plugin, bundles) {
       metafile: true,
     });
 
-    for (const input of Object.keys(result.metafile.inputs)) if (!input.startsWith("node_modules/")) files.add(input);
+    for (const input of Object.keys(result.metafile.inputs)) if (!input.split("/").includes("node_modules")) files.add(input);
 
     for (const output of Object.keys(result.metafile.outputs)) files.add(output);
   }

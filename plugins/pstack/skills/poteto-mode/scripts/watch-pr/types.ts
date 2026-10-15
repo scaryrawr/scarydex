@@ -104,6 +104,10 @@ export type Check =
 
 export type FailedCheck = Extract<Check, { readonly kind: "failed" }>;
 
+export const isOwnerApprovalGate = (check: Check): boolean =>
+  check.kind === "code-review-gate" &&
+  check.reportedState === "ACTION_REQUIRED";
+
 export type PendingCheck = Extract<Check, { readonly kind: "pending" }>;
 
 export interface CheckRead {

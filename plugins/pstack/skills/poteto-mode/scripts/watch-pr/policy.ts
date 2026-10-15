@@ -4,7 +4,7 @@ import {
   resolveReviewThreads,
 } from "./github.ts";
 import type * as T from "./types.ts";
-import { nonEmpty } from "./types.ts";
+import { isOwnerApprovalGate, nonEmpty } from "./types.ts";
 
 export function assessGitHubMerge(args: {
   readonly mergeStateStatus: T.MergeStateStatus;
@@ -14,17 +14,12 @@ export function assessGitHubMerge(args: {
   if (args.mergeStateStatus === "BLOCKED") {
     if (
       args.headRollupState === "FAILURE" &&
-      args.checks.some(
-        (check) =>
-          check.kind === "code-review-gate" &&
-          check.reportedState === "ACTION_REQUIRED"
-      ) &&
+      args.checks.some(isOwnerApprovalGate) &&
       args.checks.every(
         (check) =>
           check.kind === "passed" ||
           check.kind === "skipped" ||
-          (check.kind === "code-review-gate" &&
-            check.reportedState === "ACTION_REQUIRED")
+          isOwnerApprovalGate(check)
       )
     )
       return {
@@ -215,8 +210,7 @@ function gateReason(
   if (row.facts.reviewDecision === "CHANGES_REQUESTED")
     return "changes-requested";
 
-  return row.ci.kind === "ci-clean" &&
-    row.ci.github.kind === "review-gate"
+  return row.ci.all.some(isOwnerApprovalGate)
     ? "owner-approval-required"
     : null;
 }

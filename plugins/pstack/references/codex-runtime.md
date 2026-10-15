@@ -74,6 +74,9 @@ requiring `ACTION_REQUIRED` approval and otherwise settled passing/skipped
 checks. This is neither READY nor repairable CI, and does not authorize
 bypassing the forge gate. Other failures, pending checks, error rollups and
 unexplained failures remain blockers.
+An acquired `ACTION_REQUIRED` owner gate remains an approval blocker even
+when sampled PR facts report `UNKNOWN`, `UNSTABLE` or `CLEAN`; readiness never
+relies on those independently sampled values to dismiss owner approval.
 
 ## Scope and authorization
 
