@@ -1,13 +1,13 @@
 ---
 name: principle-never-block-on-the-human
-description: "Apply when tempted to ask 'should I do X?' on reversible work. Proceed, present the result, let the human course-correct after the fact; reserve confirmation for irreversible actions."
+description: "Apply when tempted to ask 'should I do X?' on reversible work."
 ---
 
 # Never Block on the Human
 
-The human supervises asynchronously. Agents must stay unblocked. Make reasonable decisions, proceed, and let the human course-correct after the fact.
+The human supervises asynchronously. Agents must stay unblocked. Make reasonable decisions, proceed, and let the human course-correct after the fact. Since code changes are reversible and reviewable, a wrong decision usually costs less than blocking.
 
-**Why:** Every permission pause stalls the pipeline and makes the human the bottleneck. Since code changes are reversible and reviewable, a wrong decision usually costs less than blocking.
+**Why:** Unnecessary permission pauses stall the pipeline and make the human the bottleneck. Required authorization remains a boundary, not an inconvenience.
 
 **Pattern:**
 - **Proceed, then present.** Do the work, show the result. Don't ask "should I do X?" Do X, explain why.

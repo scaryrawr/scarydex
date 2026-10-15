@@ -1,20 +1,20 @@
 ---
 name: principle-test-behavior-not-implementation
-description: "Apply when writing, changing, reviewing, or keeping tests in any language. Exercise a caller-visible contract and check an independently specified outcome; avoid assertions tied only to mocks, fixtures, constants, or private steps."
+description: "Apply when writing, changing, reviewing, or keeping tests. Call the code as its users do and assert an independently specified result or effect. Rewrite tests that would pass when the behavior they claim to prove is broken."
 ---
 
 # Test Behavior, Not Implementation
 
-A test should fail when the behavior its caller relies on breaks, not when an incidental implementation detail changes. This applies equally to Go, Rust, Zig, C, C++, and JavaScript/TypeScript. Choose the boundary the consumer actually uses: a function's result or error, a CLI's output and exit status, a file written, a protocol response, or an effect at an external port.
+A test calls the code as its users do and checks an independently specified result or effect. It must fail when that caller's contract breaks, not when an incidental internal step changes. For a value-returning contract, replacing imports with `undefined` or a wrong value should fail the test.
 
 When writing or reviewing a test:
 
-1. Name the behavior and one plausible defect the test must catch. Choose a concrete input that distinguishes correct from incorrect behavior, including a failure case where it matters.
-2. Invoke the subject through its normal caller-facing boundary. Replace only uncontrollable dependencies, such as a clock, network, or filesystem, at an explicit seam; do not mock the subject or its private collaborators.
-3. Assert a specific observable outcome against an independent oracle: a literal example, an external specification, a known fixture produced outside the subject, or a property checked over varied inputs. Do not compute the expected value by calling the same logic again.
-4. Check that the test fails if the named defect is introduced. For a risky or ambiguous test, temporarily inject that defect or mutate the subject and run the focused test, then restore it. If no realistic defect would make the test fail, strengthen it or remove it.
+1. Name the behavior and a plausible defect. Pick a concrete input that separates correct from incorrect behavior.
+2. Invoke the caller-facing boundary. Mock only uncontrollable dependencies at explicit seams, never the subject or its private steps.
+3. Check the literal output, meaningful mock payload, or observable effect against an independent oracle. Never compute the expectation with the subject itself.
+4. For a risky or ambiguous assertion, inject the named defect, run the focused test and restore it. Strengthen or remove a test that catches no realistic defect.
 
-For example, check that `slugify("Hello, World!")` yields `"hello-world"`, not that it called a lowercasing helper. In Go, compare a result and error to a known case; in Rust, assert the `Result` or state seen by the caller; in Zig, use `expectEqual` on the outcome; in C or C++, assert the returned value, output buffer, or externally visible effect. The assertion syntax changes, not the standard of evidence.
+Check that `slugify("Hello, World!")` yields `"hello-world"`, not that it called a lowercasing helper. The rule is language-independent.
 
 **Investigate these weak patterns in any language:**
 

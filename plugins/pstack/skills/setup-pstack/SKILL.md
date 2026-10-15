@@ -45,3 +45,5 @@ interrogate reviewers: auto, auto, auto
 Report the path and explicit choices. Explain that only pstack workflows read
 this file and that subagents inherit the parent unless an allowed override is
 chosen. Do not add always-applied Copilot instructions or edit Codex config.
+
+Discuss effort separately from model identity. Preserve inherited host settings unless the user chooses supported overrides. Use **poteto-mode**'s job-matched effort guidance only through controls the current host actually exposes; do not invent speed suffixes, model slugs or preference fields the runtime does not consume.
