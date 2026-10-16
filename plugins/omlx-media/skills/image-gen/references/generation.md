@@ -70,7 +70,7 @@ Available models are listed at `${OMLX_BASE_URL:-http://127.0.0.1:8000}/v1/model
 ## Tips
 
 - Use `uv run ./scripts/generate.py` and write outputs to an absolute path in the user's workspace.
-- If `uv` fails with `Failed to initialize cache` / `Operation not permitted`, the sandbox cannot write uv's default cache (`~/.cache/uv`). Run `export UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache"` once per session before the first `uv` run, or prefix a single command with `uv --cache-dir "${TMPDIR:-/tmp}/uv-cache" run …`.
+- If `uv` fails with `Failed to initialize cache` / `Operation not permitted`, the sandbox cannot write uv's default cache (`~/.cache/uv`). Run `export UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache"` and the `uv` commands in the same shell invocation. The export does not persist across independent shell-tool calls; for those, use `uv --cache-dir "${TMPDIR:-/tmp}/uv-cache" run …` on every invocation.
 - Use descriptive prompts with subject, setting, style, and mood.
 - For consistent results, specify a seed if supported by the model.
 - Higher `quality` values produce better images but may take longer.

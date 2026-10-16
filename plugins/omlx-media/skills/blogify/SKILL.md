@@ -35,16 +35,19 @@ the input is video.
 
 Some Codex sandboxes cannot write to uv's default cache (`~/.cache/uv`), so every
 `uv` command fails at startup with `Failed to initialize cache` / `Operation not
-permitted` — before any script or dependency install even runs. Before the first
-`uv` command of a session, point the cache at a writable temp location:
+permitted` — before any script or dependency install even runs. Point the cache
+at a writable temp location by running this export and the workflow's `uv`
+commands in the same shell invocation:
 
 ```sh
 export UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache"
 ```
 
-Later `uv` runs in the same sandbox reuse that cache, so only genuinely missing
-packages need network. Prefix a single command instead when you do not want to
-change the shell environment: `uv --cache-dir "${TMPDIR:-/tmp}/uv-cache" run …`.
+The export does not persist across independent shell-tool calls. For those,
+pass the cache directory on every `uv` invocation:
+`uv --cache-dir "${TMPDIR:-/tmp}/uv-cache" run …`.
+Runs pointed at the same cache reuse it, so only genuinely missing packages need
+network.
 
 ## First: get the intent
 

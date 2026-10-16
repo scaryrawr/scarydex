@@ -36,6 +36,8 @@ The Python helpers remain available for standalone skill use. Read
 [references/editing.md](references/editing.md) only if that fallback is needed.
 Run the fallback `uv` commands through a sandbox-writable cache: some Codex
 sandboxes cannot write uv's default cache (`~/.cache/uv`) and every `uv` command
-then fails with `Failed to initialize cache` / `Operation not permitted`. Export
-`UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache"` once per session before the
-first `uv` run, or prefix a single command with `uv --cache-dir "${TMPDIR:-/tmp}/uv-cache" run …`.
+then fails with `Failed to initialize cache` / `Operation not permitted`. Run
+`export UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache"` and the fallback `uv` commands
+in the same shell invocation. The export does not persist across independent
+shell-tool calls; for those, use
+`uv --cache-dir "${TMPDIR:-/tmp}/uv-cache" run …` on every invocation.
