@@ -31,6 +31,24 @@ the input is video.
 - Keep all inputs and outputs in the user's workspace. Pass absolute paths; the
   scripts refuse to write inside the skill directory.
 
+## Sandboxed `uv` cache
+
+Some Codex sandboxes cannot write to uv's default cache (`~/.cache/uv`), so every
+`uv` command fails at startup with `Failed to initialize cache` / `Operation not
+permitted` — before any script or dependency install even runs. Point the cache
+at a writable temp location by running this export and the workflow's `uv`
+commands in the same shell invocation:
+
+```sh
+export UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache"
+```
+
+The export does not persist across independent shell-tool calls. For those,
+pass the cache directory on every `uv` invocation:
+`uv --cache-dir "${TMPDIR:-/tmp}/uv-cache" run …`.
+Runs pointed at the same cache reuse it, so only genuinely missing packages need
+network.
+
 ## First: get the intent
 
 Collect the **output type, audience, tone, and scope** from the prompt or user

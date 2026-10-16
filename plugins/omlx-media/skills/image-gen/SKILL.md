@@ -34,3 +34,10 @@ the environment; default endpoint is `http://127.0.0.1:8000`.
 The Python helpers remain available for standalone skill use. Read
 [references/generation.md](references/generation.md) or
 [references/editing.md](references/editing.md) only if that fallback is needed.
+Run the fallback `uv` commands through a sandbox-writable cache: some Codex
+sandboxes cannot write uv's default cache (`~/.cache/uv`) and every `uv` command
+then fails with `Failed to initialize cache` / `Operation not permitted`. Run
+`export UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache"` and the fallback `uv` commands
+in the same shell invocation. The export does not persist across independent
+shell-tool calls; for those, use
+`uv --cache-dir "${TMPDIR:-/tmp}/uv-cache" run …` on every invocation.
