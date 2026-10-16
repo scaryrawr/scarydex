@@ -93,6 +93,7 @@ Available models are listed at `${OMLX_BASE_URL:-http://127.0.0.1:8000}/v1/model
 ## Tips
 
 - Use `uv run ./scripts/edit.py` and absolute paths for user workspace inputs and outputs.
+- If `uv` fails with `Failed to initialize cache` / `Operation not permitted`, the sandbox cannot write uv's default cache (`~/.cache/uv`). Run `export UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache"` once per session before the first `uv` run, or prefix a single command with `uv --cache-dir "${TMPDIR:-/tmp}/uv-cache" run …`.
 - For structural scene edits, prefer FLUX.2/Klein edit models when available; ERNIE edit models are often better for gentler image-to-image changes.
 - Preserve important subject details explicitly in the prompt: pose, clothing, crop, camera angle, privacy blur, and any objects that must stay fixed.
 - Keep prompts concise but concrete — describe what to preserve and what to replace.

@@ -15,6 +15,11 @@ Do not commit or display credentials. No credentials are embedded in the plugin.
 The `blogify` and Python image fallback helpers additionally need `uv`; video
 workflows need FFmpeg/ffprobe and image tools described in their skills. `uv` can
 install script-declared packages and requires normal network/install approval.
+In sandboxes that cannot write uv's default cache (`~/.cache/uv`), every `uv`
+command fails at startup with `Failed to initialize cache` / `Operation not
+permitted`; export a writable cache before the first `uv` run
+(`export UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache"`) or pass
+`uv --cache-dir "${TMPDIR:-/tmp}/uv-cache"` per command.
 
 ## Usage
 
