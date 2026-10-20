@@ -267,7 +267,7 @@
       "source": "cursor",
       "plugin": "pstack",
       "path": "pstack",
-      "reviewedThrough": "6ce45c59b9301a638c1fe1a7b8dc2a82b650898f",
+      "reviewedThrough": "369321efa9c8f7525e14e64332e16ae3cf2a13d9",
       "reviews": [
         {
           "commit": "12d587dfb20741cafc376c42c696c5f6e2a64487",
@@ -3804,6 +3804,631 @@
           "evidence": [
             "Reviewed all 1 parent comparison(s) from the pinned source history; full parent/path audit is recorded in session review-history.json.",
             "Final artifact source pin 6ce45c59b9301a638c1fe1a7b8dc2a82b650898f; Markdown port-map records per-file upstream commits, Codex decisions and hashes. Runtime stage passed 63 offline orch/watch-pr tests."
+          ]
+        },
+        {
+          "commit": "9729a655b9704b8c1a1f2f73fdc8081d143f671f",
+          "disposition": "excluded",
+          "reason": "WhatsApp Business plugin and its Cursor marketplace/README listing are unrelated to pstack; no shared runtime or build dependency changed.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/whatsapp-business/.cursor-plugin/plugin.json",
+            "third_party/whatsapp-business/CHANGELOG.md",
+            "third_party/whatsapp-business/LICENSE",
+            "third_party/whatsapp-business/README.md",
+            "third_party/whatsapp-business/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (6ce45c59b9301a638c1fe1a7b8dc2a82b650898f) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/9729a655b9704b8c1a1f2f73fdc8081d143f671f."
+          ]
+        },
+        {
+          "commit": "850d7f2e9f5e55dff7eb00a0a479337fe79eb22f",
+          "disposition": "excluded",
+          "reason": "Both merge parents reviewed: only the WhatsApp Business plugin/listing is introduced, with no pstack or shared dependency effect.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/whatsapp-business/.cursor-plugin/plugin.json",
+            "third_party/whatsapp-business/CHANGELOG.md",
+            "third_party/whatsapp-business/LICENSE",
+            "third_party/whatsapp-business/README.md",
+            "third_party/whatsapp-business/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (6ce45c59b9301a638c1fe1a7b8dc2a82b650898f, 9729a655b9704b8c1a1f2f73fdc8081d143f671f) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/850d7f2e9f5e55dff7eb00a0a479337fe79eb22f."
+          ]
+        },
+        {
+          "commit": "e5136d82418d2db3165ea1050d17577cd618cc05",
+          "disposition": "ported",
+          "reason": "Ported premise testing, legitimate-state root-cause handling, retry convergence and behavior-versus-internals guidance, including matching mode/correct references. Retained the existing independent-oracle and defect-injection testing adaptation. Cursor README/guide text is represented by native Codex skills and attribution, not copied as host installation promises.",
+          "paths": [
+            "pstack/README.md",
+            "pstack/docs/guide/08-principles.md",
+            "pstack/skills/correct/SKILL.md",
+            "pstack/skills/poteto-mode/SKILL.md",
+            "pstack/skills/principle-attack-the-premise/SKILL.md",
+            "pstack/skills/principle-fix-root-causes/SKILL.md",
+            "pstack/skills/principle-make-operations-idempotent/SKILL.md",
+            "pstack/skills/principle-test-behavior-not-implementation/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/NOTICE.md",
+            "plugins/pstack/skills/correct/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/SKILL.md",
+            "plugins/pstack/skills/principle-attack-the-premise/SKILL.md",
+            "plugins/pstack/skills/principle-fix-root-causes/SKILL.md",
+            "plugins/pstack/skills/principle-make-operations-idempotent/SKILL.md",
+            "plugins/pstack/skills/principle-test-behavior-not-implementation/SKILL.md"
+          ],
+          "evidence": [
+            "Reviewed every parent (850d7f2e9f5e55dff7eb00a0a479337fe79eb22f) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/e5136d82418d2db3165ea1050d17577cd618cc05.",
+            "Codex adaptation preserves native manifest layout, inherited models, scoped history, bundled helpers and explicit authorization; offline pstack tests and marketplace check validate the port."
+          ]
+        },
+        {
+          "commit": "99743e9c151c8537cbbf1f98bb38f34ef3368453",
+          "disposition": "ported",
+          "reason": "Ported removal of marginal lead-judgment, legacy-API and type-discipline sections. The compact Codex swarm already omits upstream's redundant introduction and repeated result-table sentence; retained its necessary explicit worker-count/capability contract rather than deleting useful adapted instructions.",
+          "paths": [
+            "pstack/README.md",
+            "pstack/skills/interrogate/references/lead-judgment.md",
+            "pstack/skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md",
+            "pstack/skills/principle-type-system-discipline/SKILL.md",
+            "pstack/skills/swarm/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/interrogate/references/lead-judgment.md",
+            "plugins/pstack/skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md",
+            "plugins/pstack/skills/principle-type-system-discipline/SKILL.md"
+          ],
+          "evidence": [
+            "Reviewed every parent (e5136d82418d2db3165ea1050d17577cd618cc05) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/99743e9c151c8537cbbf1f98bb38f34ef3368453.",
+            "Codex adaptation preserves native manifest layout, inherited models, scoped history, bundled helpers and explicit authorization; offline pstack tests and marketplace check validate the port."
+          ]
+        },
+        {
+          "commit": "5c096d236a6ac98d9548affa711fa33c8bbf3ff4",
+          "disposition": "excluded",
+          "reason": "QuickBooks HTTP MCP registration and docs only; not one of the eight shipped plugins and not a pstack dependency.",
+          "paths": [
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (99743e9c151c8537cbbf1f98bb38f34ef3368453) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/5c096d236a6ac98d9548affa711fa33c8bbf3ff4."
+          ]
+        },
+        {
+          "commit": "f506741cb55051574c5166102c32ffc26acb91e4",
+          "disposition": "excluded",
+          "reason": "QuickBooks MCP wording only; unrelated to pstack.",
+          "paths": [
+            "third_party/quickbooks-online/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (5c096d236a6ac98d9548affa711fa33c8bbf3ff4) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/f506741cb55051574c5166102c32ffc26acb91e4."
+          ]
+        },
+        {
+          "commit": "f13e501c163c92949f6878aa172ab8c4ceacc7e8",
+          "disposition": "excluded",
+          "reason": "Every merge parent confirms only QuickBooks MCP registration/docs changes; no shared dependency or pstack change.",
+          "paths": [
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (99743e9c151c8537cbbf1f98bb38f34ef3368453, f506741cb55051574c5166102c32ffc26acb91e4) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/f13e501c163c92949f6878aa172ab8c4ceacc7e8."
+          ]
+        },
+        {
+          "commit": "ed4397c22a287ef61652055d550515e8851c7b2f",
+          "disposition": "excluded",
+          "reason": "QuickBooks MCP revert, including deletion of third_party/quickbooks-online/mcp.json; unrelated to pstack.",
+          "paths": [
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (f13e501c163c92949f6878aa172ab8c4ceacc7e8) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/ed4397c22a287ef61652055d550515e8851c7b2f."
+          ]
+        },
+        {
+          "commit": "f713f14203cd6420cec13cd7c55c32d598dbab68",
+          "disposition": "excluded",
+          "reason": "Both parents confirm the QuickBooks-only revert and MCP deletion; no Codex pstack effect.",
+          "paths": [
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (f13e501c163c92949f6878aa172ab8c4ceacc7e8, ed4397c22a287ef61652055d550515e8851c7b2f) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/f713f14203cd6420cec13cd7c55c32d598dbab68."
+          ]
+        },
+        {
+          "commit": "4d5a9195a0bd1bfd1fe396248676e5f8bfe0194d",
+          "disposition": "excluded",
+          "reason": "QuickBooks MCP reland only; not a pstack dependency.",
+          "paths": [
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (f713f14203cd6420cec13cd7c55c32d598dbab68) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/4d5a9195a0bd1bfd1fe396248676e5f8bfe0194d."
+          ]
+        },
+        {
+          "commit": "871b27661fe5d9a216591ad041692392f62d20c7",
+          "disposition": "excluded",
+          "reason": "Every parent reviewed; merge only relands QuickBooks MCP registration/docs.",
+          "paths": [
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (f713f14203cd6420cec13cd7c55c32d598dbab68, 4d5a9195a0bd1bfd1fe396248676e5f8bfe0194d) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/871b27661fe5d9a216591ad041692392f62d20c7."
+          ]
+        },
+        {
+          "commit": "13483974058498ec5b282e4d0df7a7c84bc7c4c6",
+          "disposition": "excluded",
+          "reason": "QuickBooks-only revert deletes its MCP registration; no pstack or shared build effects.",
+          "paths": [
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (871b27661fe5d9a216591ad041692392f62d20c7) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/13483974058498ec5b282e4d0df7a7c84bc7c4c6."
+          ]
+        },
+        {
+          "commit": "2f8377461fd533f5af782e1fd643783b1067b847",
+          "disposition": "excluded",
+          "reason": "Every parent reviewed; QuickBooks-only revert has no pstack integration effect.",
+          "paths": [
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (871b27661fe5d9a216591ad041692392f62d20c7, 13483974058498ec5b282e4d0df7a7c84bc7c4c6) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/2f8377461fd533f5af782e1fd643783b1067b847."
+          ]
+        },
+        {
+          "commit": "182f2ce414e83224915c190d2f63239c1608d0a5",
+          "disposition": "excluded",
+          "reason": "Adds a generated Claude Code harness, Claude marketplace entry, generator/validator CI and Claude adapter docs. The final source commit explicitly drops its proposed Codex harness. Preserve ScaryDex's independently adapted Codex skills, native manifest and validation instead of copying Claude packaging, model/tool mappings or transcript scanning.",
+          "paths": [
+            ".claude-plugin/marketplace.json",
+            ".gitattributes",
+            ".github/workflows/validate-plugins.yml",
+            "harness/pstack/README.md",
+            "harness/pstack/claude-code/.claude-plugin/plugin.json",
+            "harness/pstack/claude-code/LICENSE",
+            "harness/pstack/claude-code/agents/comment-sicko.md",
+            "harness/pstack/claude-code/agents/poteto-agent.md",
+            "harness/pstack/claude-code/docs/harness/claude-code.md",
+            "harness/pstack/claude-code/plugin.json",
+            "harness/pstack/claude-code/skills/architect/SKILL.md",
+            "harness/pstack/claude-code/skills/architect/references/design-red-flags.md",
+            "harness/pstack/claude-code/skills/architect/references/rationale-template.md",
+            "harness/pstack/claude-code/skills/architect/references/runner-prompt.md",
+            "harness/pstack/claude-code/skills/arena/SKILL.md",
+            "harness/pstack/claude-code/skills/automate-me/SKILL.md",
+            "harness/pstack/claude-code/skills/benchmark-checklist/SKILL.md",
+            "harness/pstack/claude-code/skills/blast-radius/SKILL.md",
+            "harness/pstack/claude-code/skills/bro/SKILL.md",
+            "harness/pstack/claude-code/skills/correct/SKILL.md",
+            "harness/pstack/claude-code/skills/create-verification-skill/SKILL.md",
+            "harness/pstack/claude-code/skills/create-verification-skill/references/feature-map-example/README.md",
+            "harness/pstack/claude-code/skills/create-verification-skill/references/feature-map-example/create-note.md",
+            "harness/pstack/claude-code/skills/create-verification-skill/references/feature-map-example/search.md",
+            "harness/pstack/claude-code/skills/figure-it-out/SKILL.md",
+            "harness/pstack/claude-code/skills/how/SKILL.md",
+            "harness/pstack/claude-code/skills/how/references/explainer-prompt.md",
+            "harness/pstack/claude-code/skills/how/references/explorer-prompt.md",
+            "harness/pstack/claude-code/skills/in-your-own-words/SKILL.md",
+            "harness/pstack/claude-code/skills/interrogate/SKILL.md",
+            "harness/pstack/claude-code/skills/interrogate/references/code-quality-review.md",
+            "harness/pstack/claude-code/skills/interrogate/references/lead-judgment.md",
+            "harness/pstack/claude-code/skills/interrogate/references/reviewer-prompt.md",
+            "harness/pstack/claude-code/skills/interrogate/references/rubric.md",
+            "harness/pstack/claude-code/skills/ketchup/SKILL.md",
+            "harness/pstack/claude-code/skills/maintain-verification-skill/SKILL.md",
+            "harness/pstack/claude-code/skills/make-bot-ui/SKILL.md",
+            "harness/pstack/claude-code/skills/no-comments/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/references/prompting.md",
+            "harness/pstack/claude-code/skills/poteto-help/references/recipes.md",
+            "harness/pstack/claude-code/skills/poteto-mode/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/authoring-a-skill.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/autonomous-run.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/autopilot-full.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/autopilot-stack.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/babysit.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/bug-fix.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/eval.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/feature.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/hillclimb.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/investigation.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/multi-phase-plan.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/orchestrate.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/pause-safely.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/perf-issue.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/prototype.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/refactoring.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/runtime-forensics.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/session-pickup.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/shipping.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/trace-forensics.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/visual-parity.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/worktree-cleanup.md",
+            "harness/pstack/claude-code/skills/poteto-mode/references/bugbot-triage.md",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/bootstrap.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/bun.lock",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/check-plan.mjs",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/check-plan.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/orch/orch.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/orch/store.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/package.json",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/cli.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/cli.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/fakes.test-helper.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/render.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/tsconfig.json",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/types.compile.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/watch-pr",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/worktree-audit.sh",
+            "harness/pstack/claude-code/skills/principle-attack-the-premise/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-boundary-discipline/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-build-the-lever/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-encode-lessons-in-structure/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-exhaust-the-design-space/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-experience-first/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-explain-the-number/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-fix-root-causes/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-foundational-thinking/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-guard-the-context-window/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-laziness-protocol/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-make-operations-idempotent/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-minimize-reader-load/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-model-the-domain/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-never-block-on-the-human/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-outcome-oriented-execution/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-prove-it-works/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-redesign-from-first-principles/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-separate-before-serializing-shared-state/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-sequence-verifiable-units/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-subtract-before-you-add/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-test-behavior-not-implementation/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-type-system-discipline/SKILL.md",
+            "harness/pstack/claude-code/skills/recall/SKILL.md",
+            "harness/pstack/claude-code/skills/reflect/SKILL.md",
+            "harness/pstack/claude-code/skills/reflect/references/divergent-reviewer.md",
+            "harness/pstack/claude-code/skills/reflect/references/judgment-reviewer.md",
+            "harness/pstack/claude-code/skills/reflect/references/synthesizer.md",
+            "harness/pstack/claude-code/skills/reflect/references/tooling-reviewer.md",
+            "harness/pstack/claude-code/skills/setup-pstack/SKILL.md",
+            "harness/pstack/claude-code/skills/sharpen/SKILL.md",
+            "harness/pstack/claude-code/skills/show-me-your-work/SKILL.md",
+            "harness/pstack/claude-code/skills/show-me-your-work/references/decision-log-template.tsv",
+            "harness/pstack/claude-code/skills/show-me-your-work/scripts/log.sh",
+            "harness/pstack/claude-code/skills/swarm/SKILL.md",
+            "harness/pstack/claude-code/skills/tdd/SKILL.md",
+            "harness/pstack/claude-code/skills/teach/SKILL.md",
+            "harness/pstack/claude-code/skills/technical-writing/SKILL.md",
+            "harness/pstack/claude-code/skills/typescript-best-practices/SKILL.md",
+            "harness/pstack/claude-code/skills/typescript-best-practices/references/patterns.md",
+            "harness/pstack/claude-code/skills/unslop/SKILL.md",
+            "harness/pstack/claude-code/skills/why/SKILL.md",
+            "harness/pstack/claude-code/skills/why/references/epistemics.md",
+            "harness/pstack/claude-code/skills/why/references/investigator-prompt.md",
+            "harness/pstack/claude-code/skills/why/references/source-playbook.md",
+            "harness/pstack/claude-code/skills/why/references/sources/code-archaeology.md",
+            "harness/pstack/claude-code/skills/why/references/sources/databricks.md",
+            "harness/pstack/claude-code/skills/why/references/sources/datadog.md",
+            "harness/pstack/claude-code/skills/why/references/sources/incident-postmortem.md",
+            "harness/pstack/claude-code/skills/why/references/sources/linear.md",
+            "harness/pstack/claude-code/skills/why/references/sources/notion.md",
+            "harness/pstack/claude-code/skills/why/references/sources/sentry.md",
+            "harness/pstack/claude-code/skills/why/references/sources/slack.md",
+            "harness/pstack/claude-code/skills/why/references/synthesizer-prompt.md",
+            "pstack/README.md",
+            "pstack/docs/harness/claude-code.md",
+            "scripts/generate-pstack-harness-trees.mjs",
+            "scripts/validate-plugins.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (2f8377461fd533f5af782e1fd643783b1067b847) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/182f2ce414e83224915c190d2f63239c1608d0a5."
+          ]
+        },
+        {
+          "commit": "58994c60919f4e155d09c144266a8a76539d19f0",
+          "disposition": "excluded",
+          "reason": "X scheduled-call scopes/tools and documentation only; unrelated to pstack or its dependencies.",
+          "paths": [
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/README.md",
+            "third_party/x/mcp.json",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (2f8377461fd533f5af782e1fd643783b1067b847) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/58994c60919f4e155d09c144266a8a76539d19f0."
+          ]
+        },
+        {
+          "commit": "fcbb736d6016740a15a14b720f4b1dd39f462c42",
+          "disposition": "excluded",
+          "reason": "X scheduled-call pricing/listing wording in third_party, root marketplace and README only; no shared runtime change.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (58994c60919f4e155d09c144266a8a76539d19f0) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/fcbb736d6016740a15a14b720f4b1dd39f462c42."
+          ]
+        },
+        {
+          "commit": "cdb3c41c9f2f6d41f050e3dc25e15e325493d499",
+          "disposition": "excluded",
+          "reason": "Both parents reviewed: combines X scheduled-call changes with the already excluded Claude harness generator/marketplace. No new portable pstack semantics or Codex dependency.",
+          "paths": [
+            ".claude-plugin/marketplace.json",
+            ".cursor-plugin/marketplace.json",
+            ".gitattributes",
+            ".github/workflows/validate-plugins.yml",
+            "README.md",
+            "harness/pstack/README.md",
+            "harness/pstack/claude-code/.claude-plugin/plugin.json",
+            "harness/pstack/claude-code/LICENSE",
+            "harness/pstack/claude-code/agents/comment-sicko.md",
+            "harness/pstack/claude-code/agents/poteto-agent.md",
+            "harness/pstack/claude-code/docs/harness/claude-code.md",
+            "harness/pstack/claude-code/plugin.json",
+            "harness/pstack/claude-code/skills/architect/SKILL.md",
+            "harness/pstack/claude-code/skills/architect/references/design-red-flags.md",
+            "harness/pstack/claude-code/skills/architect/references/rationale-template.md",
+            "harness/pstack/claude-code/skills/architect/references/runner-prompt.md",
+            "harness/pstack/claude-code/skills/arena/SKILL.md",
+            "harness/pstack/claude-code/skills/automate-me/SKILL.md",
+            "harness/pstack/claude-code/skills/benchmark-checklist/SKILL.md",
+            "harness/pstack/claude-code/skills/blast-radius/SKILL.md",
+            "harness/pstack/claude-code/skills/bro/SKILL.md",
+            "harness/pstack/claude-code/skills/correct/SKILL.md",
+            "harness/pstack/claude-code/skills/create-verification-skill/SKILL.md",
+            "harness/pstack/claude-code/skills/create-verification-skill/references/feature-map-example/README.md",
+            "harness/pstack/claude-code/skills/create-verification-skill/references/feature-map-example/create-note.md",
+            "harness/pstack/claude-code/skills/create-verification-skill/references/feature-map-example/search.md",
+            "harness/pstack/claude-code/skills/figure-it-out/SKILL.md",
+            "harness/pstack/claude-code/skills/how/SKILL.md",
+            "harness/pstack/claude-code/skills/how/references/explainer-prompt.md",
+            "harness/pstack/claude-code/skills/how/references/explorer-prompt.md",
+            "harness/pstack/claude-code/skills/in-your-own-words/SKILL.md",
+            "harness/pstack/claude-code/skills/interrogate/SKILL.md",
+            "harness/pstack/claude-code/skills/interrogate/references/code-quality-review.md",
+            "harness/pstack/claude-code/skills/interrogate/references/lead-judgment.md",
+            "harness/pstack/claude-code/skills/interrogate/references/reviewer-prompt.md",
+            "harness/pstack/claude-code/skills/interrogate/references/rubric.md",
+            "harness/pstack/claude-code/skills/ketchup/SKILL.md",
+            "harness/pstack/claude-code/skills/maintain-verification-skill/SKILL.md",
+            "harness/pstack/claude-code/skills/make-bot-ui/SKILL.md",
+            "harness/pstack/claude-code/skills/no-comments/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/references/prompting.md",
+            "harness/pstack/claude-code/skills/poteto-help/references/recipes.md",
+            "harness/pstack/claude-code/skills/poteto-mode/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/authoring-a-skill.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/autonomous-run.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/autopilot-full.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/autopilot-stack.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/babysit.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/bug-fix.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/eval.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/feature.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/hillclimb.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/investigation.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/multi-phase-plan.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/orchestrate.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/pause-safely.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/perf-issue.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/prototype.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/refactoring.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/runtime-forensics.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/session-pickup.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/shipping.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/trace-forensics.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/visual-parity.md",
+            "harness/pstack/claude-code/skills/poteto-mode/playbooks/worktree-cleanup.md",
+            "harness/pstack/claude-code/skills/poteto-mode/references/bugbot-triage.md",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/bootstrap.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/bun.lock",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/check-plan.mjs",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/check-plan.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/orch/orch.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/orch/store.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/package.json",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/cli.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/cli.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/fakes.test-helper.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/render.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/tsconfig.json",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/types.compile.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/watch-pr",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/worktree-audit.sh",
+            "harness/pstack/claude-code/skills/principle-attack-the-premise/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-boundary-discipline/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-build-the-lever/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-encode-lessons-in-structure/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-exhaust-the-design-space/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-experience-first/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-explain-the-number/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-fix-root-causes/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-foundational-thinking/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-guard-the-context-window/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-laziness-protocol/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-make-operations-idempotent/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-minimize-reader-load/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-model-the-domain/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-never-block-on-the-human/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-outcome-oriented-execution/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-prove-it-works/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-redesign-from-first-principles/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-separate-before-serializing-shared-state/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-sequence-verifiable-units/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-subtract-before-you-add/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-test-behavior-not-implementation/SKILL.md",
+            "harness/pstack/claude-code/skills/principle-type-system-discipline/SKILL.md",
+            "harness/pstack/claude-code/skills/recall/SKILL.md",
+            "harness/pstack/claude-code/skills/reflect/SKILL.md",
+            "harness/pstack/claude-code/skills/reflect/references/divergent-reviewer.md",
+            "harness/pstack/claude-code/skills/reflect/references/judgment-reviewer.md",
+            "harness/pstack/claude-code/skills/reflect/references/synthesizer.md",
+            "harness/pstack/claude-code/skills/reflect/references/tooling-reviewer.md",
+            "harness/pstack/claude-code/skills/setup-pstack/SKILL.md",
+            "harness/pstack/claude-code/skills/sharpen/SKILL.md",
+            "harness/pstack/claude-code/skills/show-me-your-work/SKILL.md",
+            "harness/pstack/claude-code/skills/show-me-your-work/references/decision-log-template.tsv",
+            "harness/pstack/claude-code/skills/show-me-your-work/scripts/log.sh",
+            "harness/pstack/claude-code/skills/swarm/SKILL.md",
+            "harness/pstack/claude-code/skills/tdd/SKILL.md",
+            "harness/pstack/claude-code/skills/teach/SKILL.md",
+            "harness/pstack/claude-code/skills/technical-writing/SKILL.md",
+            "harness/pstack/claude-code/skills/typescript-best-practices/SKILL.md",
+            "harness/pstack/claude-code/skills/typescript-best-practices/references/patterns.md",
+            "harness/pstack/claude-code/skills/unslop/SKILL.md",
+            "harness/pstack/claude-code/skills/why/SKILL.md",
+            "harness/pstack/claude-code/skills/why/references/epistemics.md",
+            "harness/pstack/claude-code/skills/why/references/investigator-prompt.md",
+            "harness/pstack/claude-code/skills/why/references/source-playbook.md",
+            "harness/pstack/claude-code/skills/why/references/sources/code-archaeology.md",
+            "harness/pstack/claude-code/skills/why/references/sources/databricks.md",
+            "harness/pstack/claude-code/skills/why/references/sources/datadog.md",
+            "harness/pstack/claude-code/skills/why/references/sources/incident-postmortem.md",
+            "harness/pstack/claude-code/skills/why/references/sources/linear.md",
+            "harness/pstack/claude-code/skills/why/references/sources/notion.md",
+            "harness/pstack/claude-code/skills/why/references/sources/sentry.md",
+            "harness/pstack/claude-code/skills/why/references/sources/slack.md",
+            "harness/pstack/claude-code/skills/why/references/synthesizer-prompt.md",
+            "pstack/README.md",
+            "pstack/docs/harness/claude-code.md",
+            "scripts/generate-pstack-harness-trees.mjs",
+            "scripts/validate-plugins.mjs",
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/README.md",
+            "third_party/x/mcp.json",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (182f2ce414e83224915c190d2f63239c1608d0a5, fcbb736d6016740a15a14b720f4b1dd39f462c42) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/cdb3c41c9f2f6d41f050e3dc25e15e325493d499."
+          ]
+        },
+        {
+          "commit": "0096d94aa6b2e8e8d76f3c097e59be997d926e5b",
+          "disposition": "excluded",
+          "reason": "TikTok Business plugin assets and root listing only; unrelated to pstack.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/tiktok-for-business/.cursor-plugin/plugin.json",
+            "third_party/tiktok-for-business/CHANGELOG.md",
+            "third_party/tiktok-for-business/LICENSE",
+            "third_party/tiktok-for-business/README.md",
+            "third_party/tiktok-for-business/assets/logo.png",
+            "third_party/tiktok-for-business/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (cdb3c41c9f2f6d41f050e3dc25e15e325493d499) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/0096d94aa6b2e8e8d76f3c097e59be997d926e5b."
+          ]
+        },
+        {
+          "commit": "2284d64a0a26cf587424cbd76bffea228985c254",
+          "disposition": "excluded",
+          "reason": "Both parents reviewed; TikTok plugin/listing merge adds no pstack dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/tiktok-for-business/.cursor-plugin/plugin.json",
+            "third_party/tiktok-for-business/CHANGELOG.md",
+            "third_party/tiktok-for-business/LICENSE",
+            "third_party/tiktok-for-business/README.md",
+            "third_party/tiktok-for-business/assets/logo.png",
+            "third_party/tiktok-for-business/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (cdb3c41c9f2f6d41f050e3dc25e15e325493d499, 0096d94aa6b2e8e8d76f3c097e59be997d926e5b) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/2284d64a0a26cf587424cbd76bffea228985c254."
+          ]
+        },
+        {
+          "commit": "369321efa9c8f7525e14e64332e16ae3cf2a13d9",
+          "disposition": "excluded",
+          "reason": "Gusto plugin and root listing only; unrelated to pstack and not in ScaryDex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/gusto/.cursor-plugin/plugin.json",
+            "third_party/gusto/CHANGELOG.md",
+            "third_party/gusto/LICENSE",
+            "third_party/gusto/README.md",
+            "third_party/gusto/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (2284d64a0a26cf587424cbd76bffea228985c254) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/369321efa9c8f7525e14e64332e16ae3cf2a13d9."
           ]
         }
       ]

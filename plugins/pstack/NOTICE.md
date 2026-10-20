@@ -15,6 +15,12 @@ The portable update to pstack 0.15.25 is pinned to Cursor commit
 Its reviewed changes and dispositions are appended in `upstream-sync.json`;
 the original provenance baseline remains immutable.
 
+The subsequent portable principle refinements are integrated through
+[`99743e9c151c8537cbbf1f98bb38f34ef3368453`](https://github.com/cursor/plugins/commit/99743e9c151c8537cbbf1f98bb38f34ef3368453).
+The Codex testing principle retains its independent-oracle and defect-injection
+guidance while adopting upstream's internal-refactor check. Claude harness
+generation and its marketplace remain outside this port.
+
 Codex-specific changes:
 
 - Native `.codex-plugin` metadata and Codex skill discovery, without copying
