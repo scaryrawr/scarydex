@@ -1,0 +1,16 @@
+{
+  "skill_name": "sharpen",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use sharpen on this prompt: improve our retry queue. Keep the work read-only and do not choose the delivery guarantee for me.",
+      "expected_output": "Only a rewritten prompt that adds expert methods, raw evidence and an outside correctness check without executing the task or deciding the user's delivery guarantee.",
+      "expectations": [
+        "The output is only the rewritten prompt, not an implementation or separate framing report.",
+        "Read-only scope and authorization constraints are preserved.",
+        "The user's behavioral choice remains open.",
+        "The rewrite is deeper rather than adding unrelated scope."
+      ]
+    }
+  ]
+}

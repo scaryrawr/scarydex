@@ -148,10 +148,59 @@ test("new skills remain portable and ketchup cannot manufacture visual evidence"
   assert.match(ketchup, /^---\nname: ketchup\n/);
   assert.match(ketchup, /read-only/i);
   assert.match(ketchup, /already|existing/i);
+  assert.match(ketchup, /Never cut items or shrink them to stay under a word count/);
+  assert.match(ketchup, /each item's risk/);
   assert.doesNotMatch(ketchup, /\/visualize|Task\(|~\/\.cursor/);
   const words = await skill("in-your-own-words");
   assert.match(words, /goals/);
   const sharpen = await skill("sharpen");
-  assert.match(sharpen, /outside check/);
-  assert.match(sharpen, /don't hand back a rewritten prompt|do not.*rewritten prompt/i);
+  assert.match(sharpen, /other than you or me/);
+  assert.match(sharpen, /Return only the rewritten prompt/);
+  assert.match(sharpen, /do not execute the underlying task/);
+  assert.match(sharpen, /never authorization, verification gates or product choices/);
+});
+
+test("formal verification skill contracts preserve scope, failure sensitivity and honest sync records", async () => {
+  const skill = async name => readFile(new URL(`../plugins/pstack/skills/${name}/SKILL.md`, import.meta.url), "utf8");
+  const create = await skill("create-formal-verification-skill");
+  const maintain = await skill("maintain-formal-verification-skill");
+  const setup = await skill("setup-pstack");
+
+  for (const text of [create, maintain]) {
+    assert.match(text, /\.agents\/skills\//);
+    assert.match(text, /isolated scratch copy/);
+    assert.match(text, /sync commit/);
+    assert.match(text, /uncommitted changes/);
+    assert.doesNotMatch(text, /Task\(|\.cursor\/|~\/\.claude|run_dynamic_workflow/);
+  }
+
+  assert.match(create, /TLA\+ is the default/);
+  assert.match(create, /test the real code with generated inputs/);
+  assert.match(create, /property-based testing, not a formal proof/);
+  assert.match(create, /A verify skill that was never run is a draft/);
+  assert.match(create, /do not change product code unless the user asks/i);
+  assert.match(maintain, /Never edit product code/);
+  assert.match(maintain, /Do not move the sync commit for a blocked check/);
+  assert.match(maintain, /old pass was on a stale description/);
+
+  for (const outcome of ["in sync", "updated", "bug", "blocked"]) assert.ok(maintain.includes(`**${outcome}**`));
+
+  for (const name of ["create-verification-skill", "create-formal-verification-skill"]) assert.ok(setup.includes(`../${name}/SKILL.md`));
+  assert.match(setup, /Invoke it only if the user accepts/);
+});
+
+test("pstack behavior eval specifications are well formed without running inference", async () => {
+  for (const name of ["create-formal-verification-skill", "maintain-formal-verification-skill", "sharpen", "ketchup"]) {
+    const data = JSON.parse(await readFile(new URL(`../plugins/pstack/skills/${name}/evals/evals.json`, import.meta.url), "utf8"));
+    assert.equal(data.skill_name, name);
+    assert.ok(data.evals.length > 0);
+    assert.equal(new Set(data.evals.map(item => item.id)).size, data.evals.length);
+
+    for (const item of data.evals) {
+      assert.ok(Number.isInteger(item.id));
+      assert.ok(item.prompt.trim().length > 0);
+      assert.ok(item.expected_output.trim().length > 0);
+      assert.ok(item.expectations.length > 0);
+    }
+  }
 });

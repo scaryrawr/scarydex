@@ -1,6 +1,6 @@
 ---
 name: setup-pstack
-description: Configure pstack’s optional per-role Codex model preferences. Use when asked to configure pstack models or change its role choices, not to alter Codex’s global model settings.
+description: Configure pstack’s optional per-role Codex model preferences and offer project verification skills. Use for pstack setup or role choices, not to alter Codex’s global model settings.
 ---
 
 # Setup pstack
@@ -47,3 +47,9 @@ this file and that subagents inherit the parent unless an allowed override is
 chosen. Do not add always-applied Copilot instructions or edit Codex config.
 
 Discuss effort separately from model identity. Preserve inherited host settings unless the user chooses supported overrides. Use **poteto-mode**'s job-matched effort guidance only through controls the current host actually exposes; do not invent speed suffixes, model slugs or preference fields the runtime does not consume.
+
+## Optional project verification
+
+Check whether the project already has a skill or harness for driving the real app. If none exists, offer once to generate one with [create-verification-skill](../create-verification-skill/SKILL.md). Invoke it only if the user accepts; otherwise move on without pushing.
+
+Then check for a project skill that runs a model checker, proof, or other verifier against named code. If none exists, offer once to generate one with [create-formal-verification-skill](../create-formal-verification-skill/SKILL.md), explaining that it checks one property within stated bounds rather than proving the whole system. Invoke it only if the user accepts. Generated project skills belong under `.agents/skills/`, not in Codex home or the installed plugin.

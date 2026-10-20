@@ -267,7 +267,7 @@
       "source": "cursor",
       "plugin": "pstack",
       "path": "pstack",
-      "reviewedThrough": "16541c6bc1ed6c8d808b2f78a33364003e82b967",
+      "reviewedThrough": "1ba0bc83463e2fc6b24f49a7f73d47af113a0616",
       "reviews": [
         {
           "commit": "12d587dfb20741cafc376c42c696c5f6e2a64487",
@@ -5039,6 +5039,404 @@
           "evidence": [
             "Reviewed every parent (d1715e03a8b1a2f03fdbe336d40c4a56b81f3c8f) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/16541c6bc1ed6c8d808b2f78a33364003e82b967.",
             "Codex adaptation preserves native manifest layout, inherited models, scoped history, bundled helpers and explicit authorization; offline pstack tests and marketplace check validate the port."
+          ]
+        },
+        {
+          "commit": "bc1443790cc980d0ea857663260a831299884508",
+          "disposition": "ported",
+          "reason": "Ported explicit never-cut-or-shrink-items guidance regardless of word count and added a thirty-item catch-up evaluation specification. Retained the Codex read-only and existing-media boundary; model inference is deliberately not run during validation.",
+          "paths": [
+            "harness/pstack/claude-code/skills/ketchup/SKILL.md",
+            "pstack/skills/ketchup/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/ketchup/SKILL.md",
+            "plugins/pstack/skills/ketchup/evals/evals.json"
+          ],
+          "evidence": [
+            "Reviewed every parent (16541c6bc1ed6c8d808b2f78a33364003e82b967) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/bc1443790cc980d0ea857663260a831299884508.",
+            "Codex adaptation preserves native manifest layout, inherited models, scoped history, bundled helpers and explicit authorization; offline pstack tests and marketplace check validate the port."
+          ]
+        },
+        {
+          "commit": "4382e687a50b8d2c5ce4d141d001186589cff8d5",
+          "disposition": "ported",
+          "reason": "Ported formal-verification skill generation into .agents/skills with code-linked properties, failure-sensitivity checks, honest bounds and draft status until exercised. Added local prerequisite/authorization and isolated scratch-copy boundaries instead of writing to the plugin cache or global settings. Added offline contract checks and evaluation specifications.",
+          "paths": [
+            "harness/pstack/claude-code/README.md",
+            "harness/pstack/claude-code/skills/create-formal-verification-skill/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/SKILL.md",
+            "pstack/README.md",
+            "pstack/skills/create-formal-verification-skill/SKILL.md",
+            "pstack/skills/poteto-help/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/create-formal-verification-skill/SKILL.md",
+            "plugins/pstack/skills/create-formal-verification-skill/evals/evals.json",
+            "plugins/pstack/skills/poteto-help/SKILL.md"
+          ],
+          "evidence": [
+            "Reviewed every parent (bc1443790cc980d0ea857663260a831299884508) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/4382e687a50b8d2c5ce4d141d001186589cff8d5.",
+            "Codex adaptation preserves native manifest layout, inherited models, scoped history, bundled helpers and explicit authorization; offline pstack tests and marketplace check validate the port."
+          ]
+        },
+        {
+          "commit": "0b8e952052d482ee6de06deebf14d590d77b1b34",
+          "disposition": "skipped",
+          "reason": "Intermediate upstream 0.15.26 manifest bump is superseded by the reviewed 0.15.28 native Codex release in this cumulative batch. Cursor/root/Claude manifests are not imported.",
+          "paths": [
+            "harness/pstack/claude-code/.claude-plugin/plugin.json",
+            "harness/pstack/claude-code/plugin.json",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (4382e687a50b8d2c5ce4d141d001186589cff8d5) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/0b8e952052d482ee6de06deebf14d590d77b1b34."
+          ]
+        },
+        {
+          "commit": "75fabace38ce507ee044546eaca64167c8c1e21b",
+          "disposition": "skipped",
+          "reason": "Intermediate removal of the sharpen rewrite ban is superseded by the fully reviewed rewrite-only contract at 88d47514 in this same batch; do not ship an ambiguous intermediate execution mode.",
+          "paths": [
+            "harness/pstack/claude-code/skills/sharpen/SKILL.md",
+            "pstack/skills/sharpen/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (0b8e952052d482ee6de06deebf14d590d77b1b34) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/75fabace38ce507ee044546eaca64167c8c1e21b."
+          ]
+        },
+        {
+          "commit": "0148b78c56c72a1b8412055913c79f767095b217",
+          "disposition": "skipped",
+          "reason": "Intermediate upstream 0.15.27 packaging bump is superseded by 0.15.28-codex.1 while preserving the native Codex manifest layout.",
+          "paths": [
+            "harness/pstack/claude-code/.claude-plugin/plugin.json",
+            "harness/pstack/claude-code/plugin.json",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (75fabace38ce507ee044546eaca64167c8c1e21b) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/0148b78c56c72a1b8412055913c79f767095b217."
+          ]
+        },
+        {
+          "commit": "f9be7aa00c2b2bf4b13562143a6918445e06b99d",
+          "disposition": "ported",
+          "reason": "Ported optional once-only app/formal verification offers into Codex setup, plus help and recipe routing. Acceptance is required before generation; model preferences retain Codex semantics. Upstream guide, Claude installation, vendor model and Origin descriptions are represented by concise native documentation rather than copied.",
+          "paths": [
+            "harness/pstack/claude-code/docs/guide/01-setup.md",
+            "harness/pstack/claude-code/docs/guide/02-poteto-mode.md",
+            "harness/pstack/claude-code/docs/guide/06-verify-and-ship.md",
+            "harness/pstack/claude-code/docs/guide/07-overnight.md",
+            "harness/pstack/claude-code/docs/guide/09-make-it-yours.md",
+            "harness/pstack/claude-code/docs/guide/10-recipes-and-pitfalls.md",
+            "harness/pstack/claude-code/docs/guide/README.md",
+            "harness/pstack/claude-code/skills/poteto-help/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/references/recipes.md",
+            "harness/pstack/claude-code/skills/setup-pstack/SKILL.md",
+            "pstack/docs/guide/01-setup.md",
+            "pstack/docs/guide/02-poteto-mode.md",
+            "pstack/docs/guide/06-verify-and-ship.md",
+            "pstack/docs/guide/07-overnight.md",
+            "pstack/docs/guide/09-make-it-yours.md",
+            "pstack/docs/guide/10-recipes-and-pitfalls.md",
+            "pstack/docs/guide/README.md",
+            "pstack/skills/poteto-help/SKILL.md",
+            "pstack/skills/poteto-help/references/recipes.md",
+            "pstack/skills/setup-pstack/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/setup-pstack/SKILL.md",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/poteto-help/references/recipes.md"
+          ],
+          "evidence": [
+            "Reviewed every parent (0148b78c56c72a1b8412055913c79f767095b217) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/f9be7aa00c2b2bf4b13562143a6918445e06b99d.",
+            "Codex adaptation preserves native manifest layout, inherited models, scoped history, bundled helpers and explicit authorization; offline pstack tests and marketplace check validate the port."
+          ]
+        },
+        {
+          "commit": "9c1de271076186815517f38efdc9ee29416d568f",
+          "disposition": "excluded",
+          "reason": "Zoom plugin authentication setup/version wording only; no pstack or shared dependency change.",
+          "paths": [
+            "third_party/zoom/.cursor-plugin/plugin.json",
+            "third_party/zoom/CHANGELOG.md",
+            "third_party/zoom/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (0148b78c56c72a1b8412055913c79f767095b217) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/9c1de271076186815517f38efdc9ee29416d568f."
+          ]
+        },
+        {
+          "commit": "8ad8a41fe418f7c948540641cf1d8649fba99db7",
+          "disposition": "skipped",
+          "reason": "Both parents reviewed: Zoom-only changes and already ported formal-verification setup/help changes. No additional merge-resolution behavior.",
+          "paths": [
+            "harness/pstack/claude-code/docs/guide/01-setup.md",
+            "harness/pstack/claude-code/docs/guide/02-poteto-mode.md",
+            "harness/pstack/claude-code/docs/guide/06-verify-and-ship.md",
+            "harness/pstack/claude-code/docs/guide/07-overnight.md",
+            "harness/pstack/claude-code/docs/guide/09-make-it-yours.md",
+            "harness/pstack/claude-code/docs/guide/10-recipes-and-pitfalls.md",
+            "harness/pstack/claude-code/docs/guide/README.md",
+            "harness/pstack/claude-code/skills/poteto-help/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/references/recipes.md",
+            "harness/pstack/claude-code/skills/setup-pstack/SKILL.md",
+            "pstack/docs/guide/01-setup.md",
+            "pstack/docs/guide/02-poteto-mode.md",
+            "pstack/docs/guide/06-verify-and-ship.md",
+            "pstack/docs/guide/07-overnight.md",
+            "pstack/docs/guide/09-make-it-yours.md",
+            "pstack/docs/guide/10-recipes-and-pitfalls.md",
+            "pstack/docs/guide/README.md",
+            "pstack/skills/poteto-help/SKILL.md",
+            "pstack/skills/poteto-help/references/recipes.md",
+            "pstack/skills/setup-pstack/SKILL.md",
+            "third_party/zoom/.cursor-plugin/plugin.json",
+            "third_party/zoom/CHANGELOG.md",
+            "third_party/zoom/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (f9be7aa00c2b2bf4b13562143a6918445e06b99d, 9c1de271076186815517f38efdc9ee29416d568f) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/8ad8a41fe418f7c948540641cf1d8649fba99db7."
+          ]
+        },
+        {
+          "commit": "0f16be867dae6b55e5d097b7ef3f7b20fd5e567f",
+          "disposition": "excluded",
+          "reason": "Meta Ads plugin and root marketplace/README entries only; outside fixed inventory and not a pstack dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/meta-ads/.cursor-plugin/plugin.json",
+            "third_party/meta-ads/CHANGELOG.md",
+            "third_party/meta-ads/LICENSE",
+            "third_party/meta-ads/README.md",
+            "third_party/meta-ads/assets/logo.png",
+            "third_party/meta-ads/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (8ad8a41fe418f7c948540641cf1d8649fba99db7) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/0f16be867dae6b55e5d097b7ef3f7b20fd5e567f."
+          ]
+        },
+        {
+          "commit": "8838150c6b4829ea3c01782631213776d86df14a",
+          "disposition": "excluded",
+          "reason": "Both parents reviewed; introduces Meta Ads plugin/listing only, without portable pstack or shared dependency effects.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/meta-ads/.cursor-plugin/plugin.json",
+            "third_party/meta-ads/CHANGELOG.md",
+            "third_party/meta-ads/LICENSE",
+            "third_party/meta-ads/README.md",
+            "third_party/meta-ads/assets/logo.png",
+            "third_party/meta-ads/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (8ad8a41fe418f7c948540641cf1d8649fba99db7, 0f16be867dae6b55e5d097b7ef3f7b20fd5e567f) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/8838150c6b4829ea3c01782631213776d86df14a."
+          ]
+        },
+        {
+          "commit": "6b78e9f4e46c75d1697d837e51f07c2692e60b24",
+          "disposition": "ported",
+          "reason": "Ported TLA+ as default for event-order models and generated-input testing of real code when no language verifier exists. Codex explicitly labels that fallback property-based testing, not formal proof, and reports missing tools rather than installing them.",
+          "paths": [
+            "harness/pstack/claude-code/skills/create-formal-verification-skill/SKILL.md",
+            "pstack/skills/create-formal-verification-skill/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/create-formal-verification-skill/SKILL.md"
+          ],
+          "evidence": [
+            "Reviewed every parent (8838150c6b4829ea3c01782631213776d86df14a) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/6b78e9f4e46c75d1697d837e51f07c2692e60b24.",
+            "Codex adaptation preserves native manifest layout, inherited models, scoped history, bundled helpers and explicit authorization; offline pstack tests and marketplace check validate the port."
+          ]
+        },
+        {
+          "commit": "7b353f78f6ec193bdbe48ed8059444eb09b6878e",
+          "disposition": "ported",
+          "reason": "Ported formal-verification maintenance, coverage/sync commit records and drift-versus-bug outcomes; updated creation/help/recipes. Retained product-code scope, proof bounds and failure sensitivity. Added isolated scratch mutations, honest dirty-tree sync handling and unknown introducing-commit reporting. Added offline contract checks and evaluation cases without inference.",
+          "paths": [
+            "harness/pstack/claude-code/README.md",
+            "harness/pstack/claude-code/docs/guide/06-verify-and-ship.md",
+            "harness/pstack/claude-code/docs/guide/09-make-it-yours.md",
+            "harness/pstack/claude-code/skills/create-formal-verification-skill/SKILL.md",
+            "harness/pstack/claude-code/skills/maintain-formal-verification-skill/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/references/recipes.md",
+            "pstack/README.md",
+            "pstack/docs/guide/06-verify-and-ship.md",
+            "pstack/docs/guide/09-make-it-yours.md",
+            "pstack/skills/create-formal-verification-skill/SKILL.md",
+            "pstack/skills/maintain-formal-verification-skill/SKILL.md",
+            "pstack/skills/poteto-help/SKILL.md",
+            "pstack/skills/poteto-help/references/recipes.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/maintain-formal-verification-skill/SKILL.md",
+            "plugins/pstack/skills/maintain-formal-verification-skill/evals/evals.json",
+            "plugins/pstack/skills/create-formal-verification-skill/SKILL.md",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/poteto-help/references/recipes.md"
+          ],
+          "evidence": [
+            "Reviewed every parent (6b78e9f4e46c75d1697d837e51f07c2692e60b24) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/7b353f78f6ec193bdbe48ed8059444eb09b6878e.",
+            "Codex adaptation preserves native manifest layout, inherited models, scoped history, bundled helpers and explicit authorization; offline pstack tests and marketplace check validate the port."
+          ]
+        },
+        {
+          "commit": "d457567332aa6989e753ea289f30ea2bfbc80bc0",
+          "disposition": "ported",
+          "reason": "Bumped the retained native Codex manifest to 0.15.28-codex.1. TLA+ and real-code fallback documentation is integrated in the native skill/README, without importing Cursor or Claude manifests or guide trees.",
+          "paths": [
+            "harness/pstack/claude-code/.claude-plugin/plugin.json",
+            "harness/pstack/claude-code/docs/guide/06-verify-and-ship.md",
+            "harness/pstack/claude-code/plugin.json",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/docs/guide/06-verify-and-ship.md",
+            "pstack/plugin.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/README.md"
+          ],
+          "evidence": [
+            "Reviewed every parent (7b353f78f6ec193bdbe48ed8059444eb09b6878e) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/d457567332aa6989e753ea289f30ea2bfbc80bc0.",
+            "Codex adaptation preserves native manifest layout, inherited models, scoped history, bundled helpers and explicit authorization; offline pstack tests and marketplace check validate the port."
+          ]
+        },
+        {
+          "commit": "15d1c5982a0a9f0c0be35903a894bf788345305d",
+          "disposition": "excluded",
+          "reason": "X livestream/broadcast scopes, tool guidance and plugin listing only; unrelated to pstack.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/mcp.json",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (d457567332aa6989e753ea289f30ea2bfbc80bc0) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/15d1c5982a0a9f0c0be35903a894bf788345305d."
+          ]
+        },
+        {
+          "commit": "42b357be622ddb596d10a650654ca8de87b0a10f",
+          "disposition": "excluded",
+          "reason": "X livestream reconnect instructions only; no pstack or shared dependency effect.",
+          "paths": [
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (15d1c5982a0a9f0c0be35903a894bf788345305d) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/42b357be622ddb596d10a650654ca8de87b0a10f."
+          ]
+        },
+        {
+          "commit": "ddf824aff1e55ba14bd666b30bce3fc69962abe6",
+          "disposition": "excluded",
+          "reason": "Both parents reviewed; only X livestream/scopes changes beyond already reviewed pstack content.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/mcp.json",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (d457567332aa6989e753ea289f30ea2bfbc80bc0, 42b357be622ddb596d10a650654ca8de87b0a10f) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/ddf824aff1e55ba14bd666b30bce3fc69962abe6."
+          ]
+        },
+        {
+          "commit": "88d47514b82e7c44f00f2b2a72ff6dd12158038c",
+          "disposition": "ported",
+          "reason": "Adopted user-confirmed rewrite-only sharpen: expert approach, raw sources, methods/tools and an outside check, leaving human choices and explicit constraints intact. Updated all native help/recipes/README descriptions, attribution and regression/evaluation contracts. No underlying task execution. Preserved Codex manifest layout and excluded generated Claude copies.",
+          "paths": [
+            "harness/pstack/claude-code/.claude-plugin/plugin.json",
+            "harness/pstack/claude-code/README.md",
+            "harness/pstack/claude-code/docs/guide/02-poteto-mode.md",
+            "harness/pstack/claude-code/docs/guide/10-recipes-and-pitfalls.md",
+            "harness/pstack/claude-code/plugin.json",
+            "harness/pstack/claude-code/skills/poteto-help/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/references/recipes.md",
+            "harness/pstack/claude-code/skills/sharpen/SKILL.md",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/README.md",
+            "pstack/docs/guide/02-poteto-mode.md",
+            "pstack/docs/guide/10-recipes-and-pitfalls.md",
+            "pstack/plugin.json",
+            "pstack/skills/poteto-help/SKILL.md",
+            "pstack/skills/poteto-help/references/recipes.md",
+            "pstack/skills/sharpen/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/sharpen/SKILL.md",
+            "plugins/pstack/skills/sharpen/evals/evals.json",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/poteto-help/references/recipes.md",
+            "plugins/pstack/README.md",
+            "plugins/pstack/NOTICE.md"
+          ],
+          "evidence": [
+            "Reviewed every parent (ddf824aff1e55ba14bd666b30bce3fc69962abe6) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/88d47514b82e7c44f00f2b2a72ff6dd12158038c.",
+            "Codex adaptation preserves native manifest layout, inherited models, scoped history, bundled helpers and explicit authorization; offline pstack tests and marketplace check validate the port."
+          ]
+        },
+        {
+          "commit": "6e75ce3b7d452f26eb75d4a99492e3855442b3f3",
+          "disposition": "excluded",
+          "reason": "X broadcast-chat guidance only; no portable pstack or shared dependency changes.",
+          "paths": [
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (88d47514b82e7c44f00f2b2a72ff6dd12158038c) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/6e75ce3b7d452f26eb75d4a99492e3855442b3f3."
+          ]
+        },
+        {
+          "commit": "a66a8931c2dd71f1ed6abf6a52b1898a9f389ae4",
+          "disposition": "excluded",
+          "reason": "Both parents reviewed; X broadcast-chat documentation merge only.",
+          "paths": [
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (88d47514b82e7c44f00f2b2a72ff6dd12158038c, 6e75ce3b7d452f26eb75d4a99492e3855442b3f3) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/a66a8931c2dd71f1ed6abf6a52b1898a9f389ae4."
+          ]
+        },
+        {
+          "commit": "1ba0bc83463e2fc6b24f49a7f73d47af113a0616",
+          "disposition": "excluded",
+          "reason": "X MCP free-tool guide rebuild and deletion of third_party/x/skills/x-api-mcp-guide/references/pricing.md only; no pstack dependency or shared policy change.",
+          "paths": [
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/README.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md",
+            "third_party/x/skills/x-api-mcp-guide/references/pricing.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (a66a8931c2dd71f1ed6abf6a52b1898a9f389ae4) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/1ba0bc83463e2fc6b24f49a7f73d47af113a0616."
           ]
         }
       ]

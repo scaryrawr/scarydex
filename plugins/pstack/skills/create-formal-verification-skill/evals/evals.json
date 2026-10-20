@@ -1,0 +1,27 @@
+{
+  "skill_name": "create-formal-verification-skill",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "In a disposable fixture repository, create two concurrent retry workers sharing a job lease. Use create-formal-verification-skill to check that one job cannot have two owners. Use an already available verifier; do not install tools or modify global configuration.",
+      "expected_output": "A project-local verify skill with code-linked coverage, a sync commit, an explicitly bounded check and evidence that the check detects a broken real-code variant; or a precise missing-tool blocker and a draft label.",
+      "expectations": [
+        "The generated skill is under .agents/skills/ and has matching name and description frontmatter.",
+        "TLA+ is the default considered for event ordering and the tool choice is explained.",
+        "The report names bounds, assumptions and excluded behavior without claiming a whole-system proof.",
+        "Deliberate mutations are confined to an isolated scratch copy and existing work is preserved.",
+        "A missing tool is reported, never silently installed."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Create a disposable parser fixture in a language with no available code-level verifier. Use create-formal-verification-skill to check that malformed input never produces an accepted record, without installing tools.",
+      "expected_output": "Generated inputs exercise the real parser, with an honest property-testing label and failure-sensitivity evidence, not a hand model presented as proof.",
+      "expectations": [
+        "The fallback tests real code instead of a substitute function model.",
+        "Property-based testing is explicitly distinguished from formal proof.",
+        "Existing failures remain findings rather than being hidden by weakened properties or product fixes."
+      ]
+    }
+  ]
+}

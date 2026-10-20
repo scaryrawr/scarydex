@@ -15,17 +15,15 @@ The portable update to pstack 0.15.25 is pinned to Cursor commit
 Its reviewed changes and dispositions are appended in `upstream-sync.json`;
 the original provenance baseline remains immutable.
 
-The subsequent portable principle refinements are integrated through
-[`99743e9c151c8537cbbf1f98bb38f34ef3368453`](https://github.com/cursor/plugins/commit/99743e9c151c8537cbbf1f98bb38f34ef3368453).
-The Codex testing principle retains its independent-oracle and defect-injection
-guidance while adopting upstream's internal-refactor check. Claude harness
-generation and its marketplace remain outside this port.
-
-Catch-up completeness and type-guard examples are integrated through
-[`16541c6bc1ed6c8d808b2f78a33364003e82b967`](https://github.com/cursor/plugins/commit/16541c6bc1ed6c8d808b2f78a33364003e82b967).
-Catch-ups retain the Codex read-only, scoped-history and existing-media boundary.
-Skill-name validation already enforces folder names; help-map coverage now
-checks the shipped commands without importing Cursor's guide or model defaults.
+The subsequent portable pstack 0.15.28 update is integrated through
+[`88d47514b82e7c44f00f2b2a72ff6dd12158038c`](https://github.com/cursor/plugins/commit/88d47514b82e7c44f00f2b2a72ff6dd12158038c).
+It includes premise/root-cause/idempotence refinements, reduced marginal guidance,
+branded-type guards, complete catch-ups, formal-verification creation/maintenance,
+and rewrite-only sharpen. The Codex testing principle retains independent-oracle
+and defect-injection guidance while adopting the internal-refactor check.
+Skill-name and local-link validation plus help-map regression coverage replace
+the upstream docs-versus-tree check. The review ledger distinguishes integrated
+content from unrelated or host-only history.
 
 Codex-specific changes:
 
@@ -49,6 +47,10 @@ Codex-specific changes:
 - Read-only ketchup catch-ups use existing visual artifacts or supported diagrams,
   not an assumed visualize tool or unsolicited media capture.
 - Explicit approval and scope boundaries for external writes and deletions.
+- Formal-verification skills generated under `.agents/skills/`, with tool
+  prerequisites, stated bounds, real-code fallback testing and isolated scratch
+  mutation checks. Maintenance preserves product code, findings and dirty-work
+  evidence rather than claiming an uncommitted tree is covered by a sync commit.
 
 The `deslop` skill was adapted by ScaryPilot from Cursor’s `cursor-team-kit` and
 retains that attribution. Cursor-only `make-bot-ui`, Benny automation pack,
@@ -56,3 +58,6 @@ logos, and Copilot native extensions are not included. GitHub Copilot review-bot
 recognition in the PR watcher remains because it is platform data, not a runtime
 dependency. Existing ScaryPilot sync tooling is not shipped: its ownership and
 extension checks do not describe this port.
+Claude harness trees, their generator/marketplace, and Claude tool/model/history
+mappings are also excluded. The native Codex manifest and runtime mapping remain
+authoritative; no upstream packaging script is executed during porting.

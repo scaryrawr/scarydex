@@ -26,6 +26,7 @@ Check the state that changes the answer, and mention it only when it does:
 
 - No `pstack-models.md` in Codex home (`$CODEX_HOME`, or `~/.codex` when unset) means `/setup-pstack` hasn't run, so every role runs on the inherited parent model.
 - No project verification skill means agents have no scripted way to drive the app. Mention `/create-verification-skill` when the question is about proving a change works.
+- When a race or invariant needs checking beyond tests, mention `/create-formal-verification-skill` if the project has no formal verification skill. When covered code changed after an existing skill's last sync commit, mention `/maintain-formal-verification-skill`. Inspect the actual checks before claiming no property is verified.
 
 When the model rule is missing and it matters, ask whether the user wants to pick a model for each role and a reasoning budget now. It matters when the user is new, the question is about setup or cost, or the answer depends on which models run. Ask at most once per chat. If the need is also unclear, ask both questions together. Offer two choices:
 
@@ -35,7 +36,7 @@ When the model rule is missing and it matters, ask whether the user wants to pic
 ## Get set up
 
 1. Install `pstack@scarydex` from the ScaryDex marketplace, then start a new session.
-2. Run [`/setup-pstack`](../setup-pstack/SKILL.md) when you want per-role model preferences. It maps a model to each role and writes `pstack-models.md` in Codex home. Only pstack workflows read that file.
+2. Run [`/setup-pstack`](../setup-pstack/SKILL.md) when you want per-role model preferences. It maps a model to each role and writes `pstack-models.md` in Codex home. Only pstack workflows read that file. Setup also offers app-verification and formal-verification skills once each when the project lacks them; generation requires acceptance.
 3. Start a real task with `/poteto-mode`, a goal, and a check that can pass or fail.
 
 Installing changes nothing until the user invokes a skill. The [README](../../README.md) has the details. Offer to word their first prompt with them, per [`references/prompting.md`](references/prompting.md).
@@ -58,7 +59,7 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
 |---|---|
 | Do any non-trivial task with rigor | [`/poteto-mode`](../poteto-mode/SKILL.md) |
 | Check that the agent understood their goal and the problem before it starts | [`/in-your-own-words`](../in-your-own-words/SKILL.md) |
-| Aim a task higher before starting: more expert, more outcome-focused, not overspecified | [`/sharpen`](../sharpen/SKILL.md) |
+| Get a prompt rewritten deeper, not bigger, with expert methods, raw sources and an outside check; returns only the prompt without doing the task | [`/sharpen`](../sharpen/SKILL.md) |
 | Know how code works now, or where new code should live | [`/how`](../how/SKILL.md) |
 | Know why code is shaped this way, or where a number came from | [`/why`](../why/SKILL.md) |
 | Understand a change or subsystem, explained plainly | [`/teach`](../teach/SKILL.md) |
@@ -78,6 +79,8 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
 | Hear the last reply again in plain words | [`/bro`](../bro/SKILL.md) |
 | Give agents a scripted way to drive the app and prove behavior | [`/create-verification-skill`](../create-verification-skill/SKILL.md) |
 | Bring a verification skill and its feature map back in line with the app | [`/maintain-verification-skill`](../maintain-verification-skill/SKILL.md) |
+| Check a race, invariant or other property that tests rarely reach, and generate a project-local skill to rerun it | [`/create-formal-verification-skill`](../create-formal-verification-skill/SKILL.md) |
+| Update a formal check after covered code changes, distinguishing verification drift from a product bug | [`/maintain-formal-verification-skill`](../maintain-formal-verification-skill/SKILL.md) |
 | Vet a performance number before reporting or acting on it | [`/benchmark-checklist`](../benchmark-checklist/SKILL.md) |
 | Run a large or cross-cutting change, or one to review after stepping away | [`/figure-it-out`](../figure-it-out/SKILL.md) |
 | Keep a decision log during a run, and review it afterward | [`/show-me-your-work`](../show-me-your-work/SKILL.md) |
