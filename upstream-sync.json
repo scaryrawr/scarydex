@@ -267,7 +267,7 @@
       "source": "cursor",
       "plugin": "pstack",
       "path": "pstack",
-      "reviewedThrough": "1ba0bc83463e2fc6b24f49a7f73d47af113a0616",
+      "reviewedThrough": "29fa9382c9c250d134f6a2f1aa86c01c5f63119d",
       "reviews": [
         {
           "commit": "12d587dfb20741cafc376c42c696c5f6e2a64487",
@@ -5437,6 +5437,61 @@
           "localPaths": [],
           "evidence": [
             "Reviewed every parent (a66a8931c2dd71f1ed6abf6a52b1898a9f389ae4) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/1ba0bc83463e2fc6b24f49a7f73d47af113a0616."
+          ]
+        },
+        {
+          "commit": "05d243df8809efa5021cddc37a46e5bec9e8aa38",
+          "disposition": "excluded",
+          "reason": "X Chat remember-answer sequencing in third_party/x only; no pstack or shared dependency changes.",
+          "paths": [
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (1ba0bc83463e2fc6b24f49a7f73d47af113a0616) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/05d243df8809efa5021cddc37a46e5bec9e8aa38."
+          ]
+        },
+        {
+          "commit": "e1b418c4aa10a19ea44e19d0772085b019fc6d40",
+          "disposition": "excluded",
+          "reason": "X webhooks/Activity API guide removal only; no pstack or shared runtime dependency.",
+          "paths": [
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/README.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (05d243df8809efa5021cddc37a46e5bec9e8aa38) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/e1b418c4aa10a19ea44e19d0772085b019fc6d40."
+          ]
+        },
+        {
+          "commit": "d6d78d8efc5de65e9161c35cdb90260ac7d78e65",
+          "disposition": "excluded",
+          "reason": "X tool-name, public-read and stored-PIN guidance only; unrelated to pstack.",
+          "paths": [
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (e1b418c4aa10a19ea44e19d0772085b019fc6d40) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/d6d78d8efc5de65e9161c35cdb90260ac7d78e65."
+          ]
+        },
+        {
+          "commit": "29fa9382c9c250d134f6a2f1aa86c01c5f63119d",
+          "disposition": "excluded",
+          "reason": "Both parents reviewed through the pinned canonical main head: X MCP guide rebuild, pricing-reference deletion and related X docs only. The merge adds no pstack changes, shared build inputs or policy beyond the fully integrated 88d47514 pstack content.",
+          "paths": [
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/README.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md",
+            "third_party/x/skills/x-api-mcp-guide/references/pricing.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "Reviewed every parent (a66a8931c2dd71f1ed6abf6a52b1898a9f389ae4, d6d78d8efc5de65e9161c35cdb90260ac7d78e65) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/29fa9382c9c250d134f6a2f1aa86c01c5f63119d."
           ]
         }
       ]
