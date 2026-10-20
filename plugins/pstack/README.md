@@ -43,8 +43,9 @@ Codex custom-agent behavior is retained in `references/agents/` as prompts.
 No status, swarm, capabilities, or handoff extension tool is registered. Use
 available Codex subagents and local artifacts instead. A playbook never grants
 permission to commit, publish, merge, delete state, or schedule recurring work.
-Ketchup reuses existing visual evidence; it does not start an app, capture media,
-or generate images to fill a catch-up.
+Ketchup lists every waiting item with its recommendation, evidence and risk so
+the reply itself supports a decision. It reuses existing visual evidence; it
+does not start an app, capture media, or generate images to fill a catch-up.
 
 ## Attribution
 

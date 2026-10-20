@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
@@ -107,6 +107,38 @@ test("plan fences ignore fake headings and checklists without masking subsequent
 
   const nested = "# Plan\n````text\n```\n- [ ] Example only.\n````\n";
   assert.ok(validatePlanText(nested, "basic").findings.length > 0);
+});
+
+test("pstack help routes every shipped command to its installed skill", async () => {
+  const directory = new URL("../plugins/pstack/skills/", import.meta.url);
+  const help = await readFile(new URL("poteto-help/SKILL.md", directory), "utf8");
+
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith("principle-")) continue;
+    const skill = await readFile(new URL(`${entry.name}/SKILL.md`, directory), "utf8");
+
+    assert.match(skill, new RegExp(`^---\\nname: ${entry.name}\\n`));
+
+    if (entry.name !== "poteto-help") assert.ok(help.includes(`../${entry.name}/SKILL.md`), `Missing help route: ${entry.name}`);
+  }
+});
+
+test("the documented branded-type parser accepts valid IDs and rejects malformed input", async () => {
+  const patterns = await readFile(new URL("../plugins/pstack/skills/typescript-best-practices/references/patterns.md", import.meta.url), "utf8");
+  const example = patterns.match(/```ts\n([\s\S]*?)\n```/)[1];
+  const root = await mkdtemp(path.join(os.tmpdir(), "scarydex-brand-example-"));
+  roots.push(root);
+  const file = path.join(root, "brand.ts");
+  await writeFile(file, `import assert from "node:assert/strict";
+function isUUID(input: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(input);
+}
+${example}
+assert.equal(parseAgentId("12345678-1234-1234-1234-123456789abc"), "12345678-1234-1234-1234-123456789abc");
+assert.throws(() => parseAgentId("not-an-id"), /Invalid agent id: not-an-id/);
+`);
+  const result = spawnSync("node", [file], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
 });
 
 test("new skills remain portable and ketchup cannot manufacture visual evidence", async () => {

@@ -21,6 +21,12 @@ The Codex testing principle retains its independent-oracle and defect-injection
 guidance while adopting upstream's internal-refactor check. Claude harness
 generation and its marketplace remain outside this port.
 
+Catch-up completeness and type-guard examples are integrated through
+[`16541c6bc1ed6c8d808b2f78a33364003e82b967`](https://github.com/cursor/plugins/commit/16541c6bc1ed6c8d808b2f78a33364003e82b967).
+Catch-ups retain the Codex read-only, scoped-history and existing-media boundary.
+Skill-name validation already enforces folder names; help-map coverage now
+checks the shipped commands without importing Cursor's guide or model defaults.
+
 Codex-specific changes:
 
 - Native `.codex-plugin` metadata and Codex skill discovery, without copying
