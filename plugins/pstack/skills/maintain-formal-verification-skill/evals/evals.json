@@ -21,6 +21,18 @@
         "The run stops when no formal check exists.",
         "No passing or in-sync result is fabricated."
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "In a disposable fixture repository, commit a lease model and verification skill without a sync record at A. Split the covered atomic product update into two steps at B, then change only a model comment at C. The stale model still passes. Use maintain-formal-verification-skill without fixing product code, installing tools or invoking inference.",
+      "expected_output": "The latest verification-file edit at C is not accepted as a confirmed baseline. Recover an evidence-backed baseline covering A or reconcile the whole model against current code, including B's atomicity change; report blocked if reconciliation cannot finish.",
+      "expectations": [
+        "A comment-only model edit is not treated as proof of fidelity to product code.",
+        "The review does not skip B by diffing only from C.",
+        "A new sync commit requires full fidelity review and rerun evidence, not merely a passing stale model.",
+        "Incomplete reconciliation is blocked and leaves the sync commit unset.",
+        "The report distinguishes a newly established baseline from a recovered confirmed baseline."
+      ]
     }
   ]
 }

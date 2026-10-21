@@ -51,6 +51,8 @@ Codex-specific changes:
   prerequisites, stated bounds, real-code fallback testing and isolated scratch
   mutation checks. Maintenance preserves product code, findings and dirty-work
   evidence rather than claiming an uncommitted tree is covered by a sync commit.
+  Missing sync records require an evidence-backed baseline or full reconciliation
+  with current covered code, never an assumed baseline from a file's last edit.
 
 The `deslop` skill was adapted by ScaryPilot from Cursor’s `cursor-team-kit` and
 retains that attribution. Cursor-only `make-bot-ui`, Benny automation pack,

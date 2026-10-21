@@ -182,6 +182,10 @@ test("formal verification skill contracts preserve scope, failure sensitivity an
   assert.match(maintain, /Never edit product code/);
   assert.match(maintain, /Do not move the sync commit for a blocked check/);
   assert.match(maintain, /old pass was on a stale description/);
+  assert.doesNotMatch(maintain, /use the last commit that changed the verification files/);
+  assert.match(maintain, /Recover a confirmed baseline from evidence/);
+  assert.match(maintain, /reconcile the complete model or harness with all current covered code/);
+  assert.match(maintain, /If full reconciliation cannot be completed, report \*\*blocked\*\*/);
 
   for (const outcome of ["in sync", "updated", "bug", "blocked"]) assert.ok(maintain.includes(`**${outcome}**`));
 
