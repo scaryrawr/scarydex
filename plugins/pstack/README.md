@@ -4,7 +4,13 @@ Rigorous workflows for understanding, design, implementation, review, and proof.
 Start with `poteto-mode`, or invoke focused skills such as `how`, `architect`,
 `swarm`, `interrogate`, `tdd`, `recall`, and `show-me-your-work`.
 Use `ketchup` for a read-only catch-up, `in-your-own-words` to restate the goal,
-and `sharpen` to frame the task before working.
+and `sharpen` to rewrite a prompt before sending it. Sharpen returns only the
+rewritten prompt; it does not execute the task.
+
+Use [create-formal-verification-skill](skills/create-formal-verification-skill/SKILL.md)
+to check one costly, hard-to-test property and generate a project-local skill.
+Use [maintain-formal-verification-skill](skills/maintain-formal-verification-skill/SKILL.md)
+after covered code changes to distinguish verification drift from product bugs.
 
 ## Install and prerequisites
 
@@ -20,6 +26,17 @@ npm dependencies, or writes into the plugin cache. Bun is only the optional
 development test runner for the retained TypeScript sources; its script-local
 `.npmrc` selects the required proxy feed. Graphite remains optional for the
 stack-shipping steps that explicitly use it, not for orchestration discovery.
+
+Formal workflows need a suitable local verifier, with TLA+ the default for
+event-order models. No verifier or model service is bundled or silently installed.
+If no code-level verifier supports the language, generated-input tests exercise
+the real code and are labeled testing, not formal proof. Generated skills live
+under `.agents/skills/`; checks record their coverage, assumptions, bounds and
+last sync commit. Deliberate failure-sensitivity mutations stay in isolated
+scratch copies, not the user's live product tree.
+
+`setup-pstack` offers app-verification and formal-verification skill generation
+once each when the project lacks them. Neither runs unless the user accepts.
 
 ## Helpers
 
@@ -43,8 +60,9 @@ Codex custom-agent behavior is retained in `references/agents/` as prompts.
 No status, swarm, capabilities, or handoff extension tool is registered. Use
 available Codex subagents and local artifacts instead. A playbook never grants
 permission to commit, publish, merge, delete state, or schedule recurring work.
-Ketchup reuses existing visual evidence; it does not start an app, capture media,
-or generate images to fill a catch-up.
+Ketchup lists every waiting item with its recommendation, evidence and risk so
+the reply itself supports a decision. It reuses existing visual evidence; it
+does not start an app, capture media, or generate images to fill a catch-up.
 
 ## Attribution
 
@@ -54,10 +72,12 @@ for comparison, not silently claimed as integrated. The previous content update
 was ScaryPilot commit `ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1`, covering Cursor
 `b0b9c7a..77526ff`.
 
-This Codex port integrates the portable pstack 0.15.25 changes from
-[Cursor commit `6ce45c59`](https://github.com/cursor/plugins/commit/6ce45c59b9301a638c1fe1a7b8dc2a82b650898f).
+This Codex port integrates the portable pstack 0.15.28 changes through
+[Cursor commit `88d47514`](https://github.com/cursor/plugins/commit/88d47514b82e7c44f00f2b2a72ff6dd12158038c),
+following the prior `6ce45c59` integration.
 The append-only `upstream-sync.json` registry records exact reviewed paths,
 adaptations and exclusions. Cursor-only extensions, native workflow tools,
 hosted agents, Grok Bot features, Origin integration, vendor-specific model
-defaults and Cursor guide pages remain outside this port. The upstream root
-Agent Plugins manifest does not replace the existing Codex manifest.
+defaults, Claude harness packaging and Cursor guide pages remain outside this
+port. The upstream root Agent Plugins manifest does not replace the existing
+Codex manifest.

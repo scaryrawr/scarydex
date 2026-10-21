@@ -13,6 +13,7 @@ When writing or reviewing a test:
 2. Invoke the caller-facing boundary. Mock only uncontrollable dependencies at explicit seams, never the subject or its private steps.
 3. Check the literal output, meaningful mock payload, or observable effect against an independent oracle. Never compute the expectation with the subject itself.
 4. For a risky or ambiguous assertion, inject the named defect, run the focused test and restore it. Strengthen or remove a test that catches no realistic defect.
+5. Imagine restructuring the internals without changing any observable result. The test should still pass. Keep tests that catch broken behavior and survive internal refactors.
 
 Check that `slugify("Hello, World!")` yields `"hello-world"`, not that it called a lowercasing helper. The rule is language-independent.
 

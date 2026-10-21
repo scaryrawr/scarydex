@@ -26,7 +26,7 @@ async function fixture() {
 
 test("published catalog, manifests, YAML, links, hooks, and bundle are consistent", async () => {
   const result = await validateMarketplace(root);
-  assert.deepEqual(result, { plugins: EXPECTED_PLUGINS.length, skills: 65 });
+  assert.deepEqual(result, { plugins: EXPECTED_PLUGINS.length, skills: 67 });
   await validateBundle(root);
 });
 
@@ -49,7 +49,7 @@ test("README inventory rejects missing rows even when prose mentions the plugin"
   }
 
   await writeFile(readme, original);
-  assert.deepEqual(await validateMarketplace(dir), { plugins: EXPECTED_PLUGINS.length, skills: 65 });
+  assert.deepEqual(await validateMarketplace(dir), { plugins: EXPECTED_PLUGINS.length, skills: 67 });
 });
 
 test("README inventory rejects unexpected and duplicate table entries", async () => {

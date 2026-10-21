@@ -1,0 +1,17 @@
+{
+  "skill_name": "ketchup",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use ketchup on this simulated chat state: thirty independently named documentation changes, Doc 01 through Doc 30, each waiting for the user to approve publication. Every item has passed its link check, changes wording only, and has low risk. No real URLs or screenshots are available. All thirty still wait on the user; none has been published.",
+      "expected_output": "A read-only catch-up listing all thirty distinct waiting items, grouped under one approval call if useful, with each item's change, evidence, recommendation and low risk. No word cap truncates the list.",
+      "expectations": [
+        "All thirty items appear individually; a count or summary does not replace the list.",
+        "Each item has enough context to decide from the reply alone.",
+        "No URL, screenshot or evidence is invented.",
+        "The reply does not publish, approve, capture media, start apps or run inference.",
+        "Work waiting for approval is not marked done."
+      ]
+    }
+  ]
+}

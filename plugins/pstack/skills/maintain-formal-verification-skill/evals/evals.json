@@ -1,0 +1,38 @@
+{
+  "skill_name": "maintain-formal-verification-skill",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "In a disposable fixture repository, create a verify skill and model at one commit, then split a covered atomic lease update into two steps in the next commit without updating the model. Use maintain-formal-verification-skill to reconcile the check; do not fix product code or install tools.",
+      "expected_output": "A baseline run, history-backed drift analysis, a model update tied to the current code, a rerun and a plain-language bug or updated outcome, with a scratch mutation demonstrating failure sensitivity when the check passes.",
+      "expectations": [
+        "The old passing result is identified as stale when the model no longer describes the code.",
+        "Renames, new writers and changed atomicity are reviewed against covered code.",
+        "Properties change only with evidence that the product promise intentionally changed.",
+        "Product fixes are not mixed into verification updates.",
+        "The sync commit advances only after confirming coverage, and never for a blocked or dirty covered tree."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "In a disposable empty repository with no verify skill, use maintain-formal-verification-skill. Do not create product code, install tools, or change global settings.",
+      "expected_output": "A missing-check explanation pointing to create-formal-verification-skill, with no invented results or unrelated edits.",
+      "expectations": [
+        "The run stops when no formal check exists.",
+        "No passing or in-sync result is fabricated."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "In a disposable fixture repository, commit a lease model and verification skill without a sync record at A. Split the covered atomic product update into two steps at B, then change only a model comment at C. The stale model still passes. Use maintain-formal-verification-skill without fixing product code, installing tools or invoking inference.",
+      "expected_output": "The latest verification-file edit at C is not accepted as a confirmed baseline. Recover an evidence-backed baseline covering A or reconcile the whole model against current code, including B's atomicity change; report blocked if reconciliation cannot finish.",
+      "expectations": [
+        "A comment-only model edit is not treated as proof of fidelity to product code.",
+        "The review does not skip B by diffing only from C.",
+        "A new sync commit requires full fidelity review and rerun evidence, not merely a passing stale model.",
+        "Incomplete reconciliation is blocked and leaves the sync commit unset.",
+        "The report distinguishes a newly established baseline from a recovered confirmed baseline."
+      ]
+    }
+  ]
+}
