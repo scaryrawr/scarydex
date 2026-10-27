@@ -14,7 +14,11 @@ Prioritize executable sources of truth over prose:
    narrow validation commands. Note prerequisites and required ordering.
 4. Map major package boundaries, real entrypoints, generated files, and
    subsystem-specific constraints.
-5. Report contradictions, duplication, stale paths, and guidance unsupported by
+5. Identify evidence for the default project review skill: changed-path-to-test
+   mappings, behavior contracts, and specialized checks. Preserve useful existing
+   checks and distinguish local MCP configuration from access verified for the
+   target review session.
+6. Report contradictions, duplication, stale paths, and guidance unsupported by
    executable configuration.
 
 Use shell commands only for read-only inspection. Do not install dependencies,
@@ -28,6 +32,7 @@ Organize the result as:
 - Candidate portable guidance
 - Candidate Codex-specific or path-scoped guidance
 - Candidate reusable skills or specialist agents
+- Evidence for the default project review skill
 - Conflicts and uncertainties
 
 Include source paths for important claims. Omit generic language or framework

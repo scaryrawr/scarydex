@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
+import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, test } from "node:test";
 import { validatePlanText } from "../plugins/pstack/skills/poteto-mode/scripts/plan-rules.mjs";
@@ -11,7 +10,7 @@ const roots = [];
 afterEach(async () => { for (const dir of roots.splice(0)) await rm(dir, { recursive: true, force: true }); });
 
 async function root() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "scarydex-pstack-"));
+  const dir = await realpath(await mkdtemp(path.join(process.cwd(), ".scarydex-pstack-")));
   roots.push(dir);
 
   return dir;
@@ -34,10 +33,16 @@ test("the receipt CLI validates persisted evidence and rejects missing proof", a
     verifier: "fixture", summary: "Regression passed", evidence: [{ kind: "command", value: "npm test passed" }], createdAt: "2026-10-01T20:00:00Z" };
 
   await writeFile(file, JSON.stringify(receipt));
-  const valid = spawnSync(process.execPath, [validator, "receipt", file], { cwd, encoding: "utf8" });
+  const valid = spawnSync(process.execPath, [validator, "receipt", "receipt.json"], { cwd, encoding: "utf8" });
   assert.equal(valid.status, 0, valid.stderr); assert.match(valid.stdout, /receipt contract valid/);
+  const outside = path.join(await root(), "receipt.json");
+  await writeFile(outside, JSON.stringify(receipt));
+  const escaped = spawnSync(process.execPath, [validator, "receipt", outside], { cwd, encoding: "utf8" });
+
+  assert.equal(escaped.status, 2, escaped.stderr);
+  assert.match(escaped.stderr, /path must stay inside the current workspace/);
   receipt.evidence = []; await writeFile(file, JSON.stringify(receipt));
-  const invalid = spawnSync(process.execPath, [validator, "receipt", file], { encoding: "utf8" });
+  const invalid = spawnSync(process.execPath, [validator, "receipt", "receipt.json"], { cwd, encoding: "utf8" });
   assert.equal(invalid.status, 1); assert.match(invalid.stderr, /evidence.*non-empty array/);
 });
 

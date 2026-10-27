@@ -63,3 +63,23 @@ extension checks do not describe this port.
 Claude harness trees, their generator/marketplace, and Claude tool/model/history
 mappings are also excluded. The native Codex manifest and runtime mapping remain
 authoritative; no upstream packaging script is executed during porting.
+
+The next portable update is reviewed through ScaryPilot commit
+[`53263e5b135e6c1dbab762b81b9165bf73eccb6e`](https://github.com/scaryrawr/scarypilot/commit/53263e5b135e6c1dbab762b81b9165bf73eccb6e).
+It adds statechart from the ScaryPilot upstream-0.15.30 integration, including
+Windows output-folder validation, proportionate acceptance-condition evidence
+and its synthetic eval metadata, workspace-confined artifact reads, a portable
+Node decision log, and a strictly read-only worktree audit. The original import
+and earlier integration records above remain unchanged.
+
+Statechart uses preinstalled Java/TLC and optionally an already available
+Mermaid renderer. It never silently installs those prerequisites. Mapping
+modules execute code and must be inspected before use. Unlisted output files
+and symlinks block folder replacement. The portable suite is retained with
+Node subprocesses under Bun and Codex plan-fixture vocabulary. Full TLC-backed
+coverage is not claimed when Java or the supplied jar is unavailable.
+ScaryPilot's Copilot SDK deletion requires no local extension migration because
+this port already excludes that extension. Its gh-stack/bootstrap installer,
+Copilot agent registration, source sync machinery and CI provisioning are not
+shipped; the existing bundled GitHub discovery and Codex manifest remain intact.
+Later Cursor-only changes are outside this ScaryPilot review.

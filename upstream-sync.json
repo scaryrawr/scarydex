@@ -6,24 +6,873 @@
       "source": "scarypilot",
       "plugin": "anti-slop",
       "path": "plugins/anti-slop",
-      "reviewedThrough": null,
-      "reviews": []
+      "reviewedThrough": "11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+      "reviews": [
+        {
+          "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
+          "disposition": "excluded",
+          "reason": "Only shared Copilot pstack-extension CI and bundle input registration; Codex ships deterministic artifact helpers, not that SDK extension.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/pstack-extension.yml",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/1c85a8237372ffc12106211e4ce0f5b29b5df816",
+            "Parent comparisons: c4668ab72ca25f5a1442b510de8e2ee317770394; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "e35a24f1f17fd2642f215aa04e790411c0d81d66",
+          "disposition": "excluded",
+          "reason": "Only shared registration and documentation for the upstream Ollama decision extension; ScaryDex's original decide plugin is not this sync track.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/e35a24f1f17fd2642f215aa04e790411c0d81d66",
+            "Parent comparisons: ffdb89371d0091325c6258a1c5c21226f41e2456; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "46e27171de6ab1be978e81fde743ad8a6f05f42b",
+          "disposition": "excluded",
+          "reason": "Shared CI and bundle checks register Copilot screen_record tools; no such SDK runtime is registered by the Codex port.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/screen-record-ci.yml",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/46e27171de6ab1be978e81fde743ad8a6f05f42b",
+            "Parent comparisons: e35a24f1f17fd2642f215aa04e790411c0d81d66; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "693ddc234b6d86df02e7726722dcf75f1a7c4ea0",
+          "disposition": "excluded",
+          "reason": "The shared root README documents better-init's new default review skill; it adds no behavior to this plugin.",
+          "paths": [
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/693ddc234b6d86df02e7726722dcf75f1a7c4ea0",
+            "Parent comparisons: 1ddf99fd9487384460a92a7b2edc82633664d9ee; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+          "disposition": "excluded",
+          "reason": "The shared root README changes the upstream pstack version description only; this track has no coupled implementation change.",
+          "paths": [
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+            "Parent comparisons: 693ddc234b6d86df02e7726722dcf75f1a7c4ea0; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+          "disposition": "excluded",
+          "reason": "Shared marketplace, README and smoke checks rename the decision extension to OMLX; the original Codex decide implementation is maintained separately.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+            "Parent comparisons: 1d52a5bbead344c2c87a89c5ffe62ae7b30015b5; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+          "disposition": "deferred",
+          "reason": "The guard, post-guard and scanner normalize Windows diagnostic separators and adjust an offline test. These portable changes need a separate bounded anti-slop proposal; they are not falsely classified as Copilot-only.",
+          "paths": [
+            ".github/workflows/autoresearch-native.yml",
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/plugin-platforms.yml",
+            ".github/workflows/pstack-extension.yml",
+            "README.md",
+            "plugins/anti-slop/README.md",
+            "plugins/anti-slop/hooks/guard.mjs",
+            "plugins/anti-slop/hooks/post-guard.mjs",
+            "plugins/anti-slop/hooks/post-guard.test.mjs",
+            "plugins/anti-slop/plugin.json",
+            "plugins/anti-slop/skills/anti-slop/scripts/scan.mjs",
+            "tools/bundle-hash.mjs",
+            "tools/bundle-hash.test.mjs",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+            "Parent comparisons: f30836f24d411b41f2932e794b570d1d7fcd684a; pinned rename and deletion paths retained verbatim.",
+            "Deferred without changing this plugin to preserve the two-shipped-plugin proposal limit; the cursor must not pass this gap."
+          ]
+        },
+        {
+          "commit": "0967a0efd1a24bb175f091b27846a60aba36f148",
+          "disposition": "excluded",
+          "reason": "Shared README and pstack-extension CI describe the source pstack update; no implementation or dependency change belongs to this plugin.",
+          "paths": [
+            ".github/workflows/pstack-extension.yml",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/0967a0efd1a24bb175f091b27846a60aba36f148",
+            "Parent comparisons: 6ca03c2c788fb2fc143ebce56120bb6a1a865707; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "d8691d47e870fae23121f93b3200dce108eecc2f",
+          "disposition": "excluded",
+          "reason": "Shared changes remove the source pstack SDK extension and rename its CI workflow; ScaryDex already excludes that extension and retains its own native manifests and builds.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/pstack-extension.yml",
+            ".github/workflows/pstack-portable.yml",
+            ".github/workflows/pstack-sync.lock.yml",
+            ".github/workflows/pstack-sync.md",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d8691d47e870fae23121f93b3200dce108eecc2f",
+            "Parent comparisons: 5a4dcb52df440432f80a869bfb95759fe7ff514b; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "ddde39d817c0e4512be641a494cec01fcdef05f0",
+          "disposition": "excluded",
+          "reason": "Shared source-marketplace version and README entries describe pstack 0.15.29, not behavior owned by this plugin.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/ddde39d817c0e4512be641a494cec01fcdef05f0",
+            "Parent comparisons: d8691d47e870fae23121f93b3200dce108eecc2f; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "22651787639f4f311febba8c3c3be6c2626f3cfe",
+          "disposition": "excluded",
+          "reason": "Shared policy, CI and catalog changes remove the Azure paired-review extension; Azure integrations were never shipped in ScaryDex.",
+          "paths": [
+            ".gitattributes",
+            ".github/plugin/marketplace.json",
+            ".github/workflows/azure-devops.yml",
+            ".github/workflows/paired-review-bundle.yml",
+            "AGENTS.md",
+            "README.md",
+            "oxlint.config.ts",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/22651787639f4f311febba8c3c3be6c2626f3cfe",
+            "Parent comparisons: 574cbc9673780d7adfd021596be0ec080a4f7f2d; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "b6c23a703407164ff7890390e4ad6d6e396478aa",
+          "disposition": "excluded",
+          "reason": "Shared README and portable pstack CI changes belong to the upstream pstack release and guide, not this plugin's runtime.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/b6c23a703407164ff7890390e4ad6d6e396478aa",
+            "Parent comparisons: 2df8d23eb2e99e777561fa5d083bcd852f8c5bea; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+          "disposition": "excluded",
+          "reason": "Shared files introduce approval-gated Copilot skill-eval CI and vendored hosted runners; this port does not copy source-repository workflows, credentials or Copilot harness assumptions.",
+          "paths": [
+            ".github/workflows/skill-evals.yml",
+            "AGENTS.md",
+            "tools/skill-evals.mjs",
+            "tools/skill-evals.test.mjs",
+            "tools/skill-evals/README.md",
+            "tools/skill-evals/policy.json",
+            "tools/skill-evals/skill-creator/LICENSE.txt",
+            "tools/skill-evals/skill-creator/NOTICE.md",
+            "tools/skill-evals/skill-creator/provenance.json",
+            "tools/skill-evals/skill-creator/scripts/__init__.py",
+            "tools/skill-evals/skill-creator/scripts/grading.py",
+            "tools/skill-evals/skill-creator/scripts/harnesses.py",
+            "tools/skill-evals/skill-creator/scripts/run_eval.py",
+            "tools/skill-evals/skill-creator/scripts/run_harness_eval.py",
+            "tools/skill-evals/skill-creator/scripts/utils.py",
+            "tools/skill-evals/skill-creator/tests/test_runner.py"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+            "Parent comparisons: 48ff9f7db2da48a5fe2bc9d5bb8e111d934f0824; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+          "disposition": "excluded",
+          "reason": "The shared regression updates ScaryPilot's skill-eval runner metadata checks; that hosted runner is not part of this Codex plugin.",
+          "paths": [
+            "tools/skill-evals.test.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+            "Parent comparisons: 6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+          "disposition": "excluded",
+          "reason": "The shared workflow pins the source portable pstack TLC CI download; source CI is not imported as a plugin capability.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+            "Parent comparisons: d4d3c25a6be8aba97998e245f8d7e45dbbf10087; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        }
+      ]
     },
     {
       "id": "scarypilot/better-init",
       "source": "scarypilot",
       "plugin": "better-init",
       "path": "plugins/better-init",
-      "reviewedThrough": null,
-      "reviews": []
+      "reviewedThrough": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+      "reviews": [
+        {
+          "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
+          "disposition": "excluded",
+          "reason": "Only shared Copilot pstack-extension CI and bundle input registration; Codex ships deterministic artifact helpers, not that SDK extension.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/pstack-extension.yml",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/1c85a8237372ffc12106211e4ce0f5b29b5df816",
+            "Parent comparisons: c4668ab72ca25f5a1442b510de8e2ee317770394; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "e35a24f1f17fd2642f215aa04e790411c0d81d66",
+          "disposition": "excluded",
+          "reason": "Only shared registration and documentation for the upstream Ollama decision extension; ScaryDex's original decide plugin is not this sync track.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/e35a24f1f17fd2642f215aa04e790411c0d81d66",
+            "Parent comparisons: ffdb89371d0091325c6258a1c5c21226f41e2456; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "46e27171de6ab1be978e81fde743ad8a6f05f42b",
+          "disposition": "excluded",
+          "reason": "Shared CI and bundle checks register Copilot screen_record tools; no such SDK runtime is registered by the Codex port.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/screen-record-ci.yml",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/46e27171de6ab1be978e81fde743ad8a6f05f42b",
+            "Parent comparisons: e35a24f1f17fd2642f215aa04e790411c0d81d66; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "693ddc234b6d86df02e7726722dcf75f1a7c4ea0",
+          "disposition": "ported",
+          "reason": "Port the default repository review skill, explicit scope opt-outs, existing-check preservation, research evidence and runnable eval fixtures to .agents/skills. Preserve the existing review owner and do not claim Copilot-hosted discovery or MCP availability.",
+          "paths": [
+            "README.md",
+            "plugins/better-init/README.md",
+            "plugins/better-init/agents/repo-instruction-researcher.agent.md",
+            "plugins/better-init/plugin.json",
+            "plugins/better-init/skills/better-init/SKILL.md",
+            "plugins/better-init/skills/better-init/evals/evals.json",
+            "plugins/better-init/skills/better-init/evals/files/existing-code-review.md",
+            "plugins/better-init/skills/better-init/evals/files/simple-repository/.mcp.json",
+            "plugins/better-init/skills/better-init/evals/files/simple-repository/package.json",
+            "plugins/better-init/skills/better-init/evals/files/simple-repository/src/index.js",
+            "plugins/better-init/skills/better-init/evals/files/simple-repository/test/index.test.js"
+          ],
+          "localPaths": [
+            "plugins/better-init/.codex-plugin/plugin.json",
+            "plugins/better-init/README.md",
+            "plugins/better-init/references/agents/repo-instruction-researcher.md",
+            "plugins/better-init/skills/better-init/SKILL.md",
+            "plugins/better-init/skills/better-init/evals/evals.json",
+            "plugins/better-init/skills/better-init/evals/files/existing-review-contracts.md",
+            "plugins/better-init/skills/better-init/evals/files/simple-repository/.mcp.json",
+            "plugins/better-init/skills/better-init/evals/files/simple-repository/package.json",
+            "plugins/better-init/skills/better-init/evals/files/simple-repository/src/index.js",
+            "plugins/better-init/skills/better-init/evals/files/simple-repository/test/index.test.js"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/693ddc234b6d86df02e7726722dcf75f1a7c4ea0",
+            "Parent comparisons: 1ddf99fd9487384460a92a7b2edc82633664d9ee; pinned rename and deletion paths retained verbatim.",
+            "Adapted the upstream behavior and fixtures to Codex-native project skills; the native manifest is retained and better-init is bumped to 0.2.0.",
+            "Repository marketplace/link checks and offline fixture execution validate packaging; behavioral model evals are not claimed."
+          ]
+        },
+        {
+          "commit": "ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+          "disposition": "excluded",
+          "reason": "The shared root README changes the upstream pstack version description only; this track has no coupled implementation change.",
+          "paths": [
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+            "Parent comparisons: 693ddc234b6d86df02e7726722dcf75f1a7c4ea0; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+          "disposition": "excluded",
+          "reason": "Shared marketplace, README and smoke checks rename the decision extension to OMLX; the original Codex decide implementation is maintained separately.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+            "Parent comparisons: 1d52a5bbead344c2c87a89c5ffe62ae7b30015b5; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+          "disposition": "excluded",
+          "reason": "Shared changes add ScaryPilot extension/platform CI, native Windows ownership builds, bundle hashing and source-marketplace documentation; these host-specific build surfaces are not Codex registrations or dependencies.",
+          "paths": [
+            ".github/workflows/autoresearch-native.yml",
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/plugin-platforms.yml",
+            ".github/workflows/pstack-extension.yml",
+            "README.md",
+            "tools/bundle-hash.mjs",
+            "tools/bundle-hash.test.mjs",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+            "Parent comparisons: f30836f24d411b41f2932e794b570d1d7fcd684a; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "0967a0efd1a24bb175f091b27846a60aba36f148",
+          "disposition": "excluded",
+          "reason": "Shared README and pstack-extension CI describe the source pstack update; no implementation or dependency change belongs to this plugin.",
+          "paths": [
+            ".github/workflows/pstack-extension.yml",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/0967a0efd1a24bb175f091b27846a60aba36f148",
+            "Parent comparisons: 6ca03c2c788fb2fc143ebce56120bb6a1a865707; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "d8691d47e870fae23121f93b3200dce108eecc2f",
+          "disposition": "excluded",
+          "reason": "Shared changes remove the source pstack SDK extension and rename its CI workflow; ScaryDex already excludes that extension and retains its own native manifests and builds.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/pstack-extension.yml",
+            ".github/workflows/pstack-portable.yml",
+            ".github/workflows/pstack-sync.lock.yml",
+            ".github/workflows/pstack-sync.md",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d8691d47e870fae23121f93b3200dce108eecc2f",
+            "Parent comparisons: 5a4dcb52df440432f80a869bfb95759fe7ff514b; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "ddde39d817c0e4512be641a494cec01fcdef05f0",
+          "disposition": "excluded",
+          "reason": "Shared source-marketplace version and README entries describe pstack 0.15.29, not behavior owned by this plugin.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/ddde39d817c0e4512be641a494cec01fcdef05f0",
+            "Parent comparisons: d8691d47e870fae23121f93b3200dce108eecc2f; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "22651787639f4f311febba8c3c3be6c2626f3cfe",
+          "disposition": "excluded",
+          "reason": "Shared policy, CI and catalog changes remove the Azure paired-review extension; Azure integrations were never shipped in ScaryDex.",
+          "paths": [
+            ".gitattributes",
+            ".github/plugin/marketplace.json",
+            ".github/workflows/azure-devops.yml",
+            ".github/workflows/paired-review-bundle.yml",
+            "AGENTS.md",
+            "README.md",
+            "oxlint.config.ts",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/22651787639f4f311febba8c3c3be6c2626f3cfe",
+            "Parent comparisons: 574cbc9673780d7adfd021596be0ec080a4f7f2d; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "b6c23a703407164ff7890390e4ad6d6e396478aa",
+          "disposition": "excluded",
+          "reason": "Shared README and portable pstack CI changes belong to the upstream pstack release and guide, not this plugin's runtime.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/b6c23a703407164ff7890390e4ad6d6e396478aa",
+            "Parent comparisons: 2df8d23eb2e99e777561fa5d083bcd852f8c5bea; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+          "disposition": "ported",
+          "reason": "Add the missing AGENTS.md fixture for the read-only trigger near-miss and its files reference. Do not copy the shared approval-gated Copilot eval runner or CI workflow.",
+          "paths": [
+            ".github/workflows/skill-evals.yml",
+            "AGENTS.md",
+            "plugins/better-init/skills/better-init/evals/files/AGENTS.md",
+            "plugins/better-init/skills/better-init/evals/trigger-evals.json",
+            "tools/skill-evals.mjs",
+            "tools/skill-evals.test.mjs",
+            "tools/skill-evals/README.md",
+            "tools/skill-evals/policy.json",
+            "tools/skill-evals/skill-creator/LICENSE.txt",
+            "tools/skill-evals/skill-creator/NOTICE.md",
+            "tools/skill-evals/skill-creator/provenance.json",
+            "tools/skill-evals/skill-creator/scripts/__init__.py",
+            "tools/skill-evals/skill-creator/scripts/grading.py",
+            "tools/skill-evals/skill-creator/scripts/harnesses.py",
+            "tools/skill-evals/skill-creator/scripts/run_eval.py",
+            "tools/skill-evals/skill-creator/scripts/run_harness_eval.py",
+            "tools/skill-evals/skill-creator/scripts/utils.py",
+            "tools/skill-evals/skill-creator/tests/test_runner.py"
+          ],
+          "localPaths": [
+            "plugins/better-init/skills/better-init/evals/files/AGENTS.md",
+            "plugins/better-init/skills/better-init/evals/trigger-evals.json"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+            "Parent comparisons: 48ff9f7db2da48a5fe2bc9d5bb8e111d934f0824; pinned rename and deletion paths retained verbatim.",
+            "The negative trigger case now supplies its named fixture. Source-repository hosted eval infrastructure remains outside the Codex plugin boundary."
+          ]
+        },
+        {
+          "commit": "d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+          "disposition": "excluded",
+          "reason": "The shared regression updates ScaryPilot's skill-eval runner metadata checks; that hosted runner is not part of this Codex plugin.",
+          "paths": [
+            "tools/skill-evals.test.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+            "Parent comparisons: 6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+          "disposition": "excluded",
+          "reason": "The shared workflow pins the source portable pstack TLC CI download; source CI is not imported as a plugin capability.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+            "Parent comparisons: d4d3c25a6be8aba97998e245f8d7e45dbbf10087; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        }
+      ]
     },
     {
       "id": "scarypilot/digivolution",
       "source": "scarypilot",
       "plugin": "digivolution",
       "path": "plugins/digivolution",
-      "reviewedThrough": null,
-      "reviews": []
+      "reviewedThrough": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+      "reviews": [
+        {
+          "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
+          "disposition": "excluded",
+          "reason": "Only shared Copilot pstack-extension CI and bundle input registration; Codex ships deterministic artifact helpers, not that SDK extension.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/pstack-extension.yml",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/1c85a8237372ffc12106211e4ce0f5b29b5df816",
+            "Parent comparisons: c4668ab72ca25f5a1442b510de8e2ee317770394; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "e35a24f1f17fd2642f215aa04e790411c0d81d66",
+          "disposition": "excluded",
+          "reason": "Only shared registration and documentation for the upstream Ollama decision extension; ScaryDex's original decide plugin is not this sync track.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/e35a24f1f17fd2642f215aa04e790411c0d81d66",
+            "Parent comparisons: ffdb89371d0091325c6258a1c5c21226f41e2456; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "46e27171de6ab1be978e81fde743ad8a6f05f42b",
+          "disposition": "excluded",
+          "reason": "Shared CI and bundle checks register Copilot screen_record tools; no such SDK runtime is registered by the Codex port.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/screen-record-ci.yml",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/46e27171de6ab1be978e81fde743ad8a6f05f42b",
+            "Parent comparisons: e35a24f1f17fd2642f215aa04e790411c0d81d66; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "693ddc234b6d86df02e7726722dcf75f1a7c4ea0",
+          "disposition": "excluded",
+          "reason": "The shared root README documents better-init's new default review skill; it adds no behavior to this plugin.",
+          "paths": [
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/693ddc234b6d86df02e7726722dcf75f1a7c4ea0",
+            "Parent comparisons: 1ddf99fd9487384460a92a7b2edc82633664d9ee; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+          "disposition": "excluded",
+          "reason": "The shared root README changes the upstream pstack version description only; this track has no coupled implementation change.",
+          "paths": [
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+            "Parent comparisons: 693ddc234b6d86df02e7726722dcf75f1a7c4ea0; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+          "disposition": "excluded",
+          "reason": "Shared marketplace, README and smoke checks rename the decision extension to OMLX; the original Codex decide implementation is maintained separately.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+            "Parent comparisons: 1d52a5bbead344c2c87a89c5ffe62ae7b30015b5; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "40120bed0ad013d2061ce059fa599a99cd149e49",
+          "disposition": "excluded",
+          "reason": "The changes update development lockfiles and bundle hashes for Copilot extensions, not the dependency-free Codex skills or hooks.",
+          "paths": [
+            "plugins/digivolution/extensions/digivolution/bundle-manifest.json",
+            "plugins/digivolution/extensions/digivolution/package-lock.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/40120bed0ad013d2061ce059fa599a99cd149e49",
+            "Parent comparisons: dca58e4879701b2b9f14f80e81ed68dbbff9bc49; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+          "disposition": "excluded",
+          "reason": "Shared changes add ScaryPilot extension/platform CI, native Windows ownership builds, bundle hashing and source-marketplace documentation; these host-specific build surfaces are not Codex registrations or dependencies.",
+          "paths": [
+            ".github/workflows/autoresearch-native.yml",
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/plugin-platforms.yml",
+            ".github/workflows/pstack-extension.yml",
+            "README.md",
+            "tools/bundle-hash.mjs",
+            "tools/bundle-hash.test.mjs",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+            "Parent comparisons: f30836f24d411b41f2932e794b570d1d7fcd684a; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "0967a0efd1a24bb175f091b27846a60aba36f148",
+          "disposition": "excluded",
+          "reason": "Shared README and pstack-extension CI describe the source pstack update; no implementation or dependency change belongs to this plugin.",
+          "paths": [
+            ".github/workflows/pstack-extension.yml",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/0967a0efd1a24bb175f091b27846a60aba36f148",
+            "Parent comparisons: 6ca03c2c788fb2fc143ebce56120bb6a1a865707; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "d8691d47e870fae23121f93b3200dce108eecc2f",
+          "disposition": "excluded",
+          "reason": "Shared changes remove the source pstack SDK extension and rename its CI workflow; ScaryDex already excludes that extension and retains its own native manifests and builds.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/pstack-extension.yml",
+            ".github/workflows/pstack-portable.yml",
+            ".github/workflows/pstack-sync.lock.yml",
+            ".github/workflows/pstack-sync.md",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d8691d47e870fae23121f93b3200dce108eecc2f",
+            "Parent comparisons: 5a4dcb52df440432f80a869bfb95759fe7ff514b; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "ddde39d817c0e4512be641a494cec01fcdef05f0",
+          "disposition": "excluded",
+          "reason": "Shared source-marketplace version and README entries describe pstack 0.15.29, not behavior owned by this plugin.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/ddde39d817c0e4512be641a494cec01fcdef05f0",
+            "Parent comparisons: d8691d47e870fae23121f93b3200dce108eecc2f; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "22651787639f4f311febba8c3c3be6c2626f3cfe",
+          "disposition": "excluded",
+          "reason": "Shared policy, CI and catalog changes remove the Azure paired-review extension; Azure integrations were never shipped in ScaryDex.",
+          "paths": [
+            ".gitattributes",
+            ".github/plugin/marketplace.json",
+            ".github/workflows/azure-devops.yml",
+            ".github/workflows/paired-review-bundle.yml",
+            "AGENTS.md",
+            "README.md",
+            "oxlint.config.ts",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/22651787639f4f311febba8c3c3be6c2626f3cfe",
+            "Parent comparisons: 574cbc9673780d7adfd021596be0ec080a4f7f2d; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "b6c23a703407164ff7890390e4ad6d6e396478aa",
+          "disposition": "excluded",
+          "reason": "Shared README and portable pstack CI changes belong to the upstream pstack release and guide, not this plugin's runtime.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/b6c23a703407164ff7890390e4ad6d6e396478aa",
+            "Parent comparisons: 2df8d23eb2e99e777561fa5d083bcd852f8c5bea; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "48ff9f7db2da48a5fe2bc9d5bb8e111d934f0824",
+          "disposition": "excluded",
+          "reason": "The changes rebuild Vite-backed Copilot extensions and bump their source manifests; those extensions and development dependencies are excluded from this Codex track.",
+          "paths": [
+            "plugins/digivolution/extensions/digivolution/bundle-manifest.json",
+            "plugins/digivolution/extensions/digivolution/dist/extension.mjs",
+            "plugins/digivolution/extensions/digivolution/package-lock.json",
+            "plugins/digivolution/extensions/digivolution/package.json",
+            "plugins/digivolution/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/48ff9f7db2da48a5fe2bc9d5bb8e111d934f0824",
+            "Parent comparisons: da5f59dfd7f482df26cbd8e446b4155e1e5c29f7; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+          "disposition": "excluded",
+          "reason": "Shared files introduce approval-gated Copilot skill-eval CI and vendored hosted runners; this port does not copy source-repository workflows, credentials or Copilot harness assumptions.",
+          "paths": [
+            ".github/workflows/skill-evals.yml",
+            "AGENTS.md",
+            "tools/skill-evals.mjs",
+            "tools/skill-evals.test.mjs",
+            "tools/skill-evals/README.md",
+            "tools/skill-evals/policy.json",
+            "tools/skill-evals/skill-creator/LICENSE.txt",
+            "tools/skill-evals/skill-creator/NOTICE.md",
+            "tools/skill-evals/skill-creator/provenance.json",
+            "tools/skill-evals/skill-creator/scripts/__init__.py",
+            "tools/skill-evals/skill-creator/scripts/grading.py",
+            "tools/skill-evals/skill-creator/scripts/harnesses.py",
+            "tools/skill-evals/skill-creator/scripts/run_eval.py",
+            "tools/skill-evals/skill-creator/scripts/run_harness_eval.py",
+            "tools/skill-evals/skill-creator/scripts/utils.py",
+            "tools/skill-evals/skill-creator/tests/test_runner.py"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+            "Parent comparisons: 48ff9f7db2da48a5fe2bc9d5bb8e111d934f0824; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+          "disposition": "excluded",
+          "reason": "The shared regression updates ScaryPilot's skill-eval runner metadata checks; that hosted runner is not part of this Codex plugin.",
+          "paths": [
+            "tools/skill-evals.test.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+            "Parent comparisons: 6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+          "disposition": "excluded",
+          "reason": "The shared workflow pins the source portable pstack TLC CI download; source CI is not imported as a plugin capability.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+            "Parent comparisons: d4d3c25a6be8aba97998e245f8d7e45dbbf10087; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        }
+      ]
     },
     {
       "id": "scarypilot/omlx-media",
@@ -31,22 +880,679 @@
       "plugin": "omlx-media",
       "path": "plugins/omlx-media",
       "reviewedThrough": null,
-      "reviews": []
+      "reviews": [
+        {
+          "commit": "a13dd454ffc9b8de81387c48831283277bfde5c5",
+          "disposition": "deferred",
+          "reason": "Bounded recording transcription and timestamped frame preparation contain useful portable behavior but arrive through SDK tool adapters plus shared media I/O. A separate proposal must expose and test deterministic CLI callers rather than importing Copilot tools.",
+          "paths": [
+            "plugins/omlx-media/README.md",
+            "plugins/omlx-media/extensions/omlx-media/bundle-manifest.json",
+            "plugins/omlx-media/extensions/omlx-media/dist/extension.mjs",
+            "plugins/omlx-media/extensions/omlx-media/package-lock.json",
+            "plugins/omlx-media/extensions/omlx-media/package.json",
+            "plugins/omlx-media/extensions/omlx-media/src/audio-tools.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/domain.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/execute-audio.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/extension.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/frame-tool.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/media-domain.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/media-io.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/omlx-client.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/prepare-frames.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/prepare-recording.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/workspace-artifacts.ts",
+            "plugins/omlx-media/extensions/omlx-media/tests/media-tools.test.ts",
+            "plugins/omlx-media/plugin.json",
+            "plugins/omlx-media/skills/audio/SKILL.md",
+            "plugins/omlx-media/skills/blogify/SKILL.md",
+            "plugins/omlx-media/skills/blogify/evals/evals.json",
+            "plugins/omlx-media/skills/blogify/references/frames.md",
+            "plugins/omlx-media/skills/blogify/references/transcription.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/a13dd454ffc9b8de81387c48831283277bfde5c5",
+            "Parent comparisons: cf3e9b7e20592a85b098608bb9637d474c127073; pinned rename and deletion paths retained verbatim.",
+            "Deferred without changing this plugin to preserve the two-shipped-plugin proposal limit; the cursor must not pass this gap."
+          ]
+        },
+        {
+          "commit": "c4668ab72ca25f5a1442b510de8e2ee317770394",
+          "disposition": "excluded",
+          "reason": "The optional grounded-note implementation depends on Copilot dynamic-workflow registration and hosted writer/checker workers, which this skill-and-CLI port does not register. Keep the existing skill-guided grounded authoring path without claiming workflow parity.",
+          "paths": [
+            "plugins/omlx-media/README.md",
+            "plugins/omlx-media/extensions/omlx-media/bundle-manifest.json",
+            "plugins/omlx-media/extensions/omlx-media/dist/extension.mjs",
+            "plugins/omlx-media/extensions/omlx-media/package-lock.json",
+            "plugins/omlx-media/extensions/omlx-media/package.json",
+            "plugins/omlx-media/extensions/omlx-media/src/extension.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/grounded-note.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/grounded-registration.ts",
+            "plugins/omlx-media/extensions/omlx-media/tests/grounded-note.test.ts",
+            "plugins/omlx-media/extensions/omlx-media/tests/grounded-registration.test.ts",
+            "plugins/omlx-media/plugin.json",
+            "plugins/omlx-media/skills/blogify/SKILL.md",
+            "plugins/omlx-media/skills/blogify/references/grounded-note.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/c4668ab72ca25f5a1442b510de8e2ee317770394",
+            "Parent comparisons: a13dd454ffc9b8de81387c48831283277bfde5c5; pinned rename and deletion paths retained verbatim.",
+            "Inspected blogify's new dynamic_workflows_manage/run_dynamic_workflow instructions, separate transcript-transmission consent and extension registration paths."
+          ]
+        },
+        {
+          "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
+          "disposition": "excluded",
+          "reason": "Only shared Copilot pstack-extension CI and bundle input registration; Codex ships deterministic artifact helpers, not that SDK extension.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/pstack-extension.yml",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/1c85a8237372ffc12106211e4ce0f5b29b5df816",
+            "Parent comparisons: c4668ab72ca25f5a1442b510de8e2ee317770394; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "e35a24f1f17fd2642f215aa04e790411c0d81d66",
+          "disposition": "excluded",
+          "reason": "Only shared registration and documentation for the upstream Ollama decision extension; ScaryDex's original decide plugin is not this sync track.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/e35a24f1f17fd2642f215aa04e790411c0d81d66",
+            "Parent comparisons: ffdb89371d0091325c6258a1c5c21226f41e2456; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "46e27171de6ab1be978e81fde743ad8a6f05f42b",
+          "disposition": "excluded",
+          "reason": "Shared CI and bundle checks register Copilot screen_record tools; no such SDK runtime is registered by the Codex port.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/screen-record-ci.yml",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/46e27171de6ab1be978e81fde743ad8a6f05f42b",
+            "Parent comparisons: e35a24f1f17fd2642f215aa04e790411c0d81d66; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "693ddc234b6d86df02e7726722dcf75f1a7c4ea0",
+          "disposition": "excluded",
+          "reason": "The shared root README documents better-init's new default review skill; it adds no behavior to this plugin.",
+          "paths": [
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/693ddc234b6d86df02e7726722dcf75f1a7c4ea0",
+            "Parent comparisons: 1ddf99fd9487384460a92a7b2edc82633664d9ee; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+          "disposition": "excluded",
+          "reason": "The shared root README changes the upstream pstack version description only; this track has no coupled implementation change.",
+          "paths": [
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+            "Parent comparisons: 693ddc234b6d86df02e7726722dcf75f1a7c4ea0; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+          "disposition": "excluded",
+          "reason": "Shared marketplace, README and smoke checks rename the decision extension to OMLX; the original Codex decide implementation is maintained separately.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+            "Parent comparisons: 1d52a5bbead344c2c87a89c5ffe62ae7b30015b5; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+          "disposition": "deferred",
+          "reason": "The README clarifies local Apple-Silicon inference versus remote HTTP clients and separate transmission consent. Preserve this portable documentation update for the next media proposal, which must also reconcile native preparation guidance.",
+          "paths": [
+            ".github/workflows/autoresearch-native.yml",
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/plugin-platforms.yml",
+            ".github/workflows/pstack-extension.yml",
+            "README.md",
+            "plugins/omlx-media/README.md",
+            "tools/bundle-hash.mjs",
+            "tools/bundle-hash.test.mjs",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+            "Parent comparisons: f30836f24d411b41f2932e794b570d1d7fcd684a; pinned rename and deletion paths retained verbatim.",
+            "Deferred without changing this plugin to preserve the two-shipped-plugin proposal limit; the cursor must not pass this gap."
+          ]
+        },
+        {
+          "commit": "0967a0efd1a24bb175f091b27846a60aba36f148",
+          "disposition": "excluded",
+          "reason": "Shared README and pstack-extension CI describe the source pstack update; no implementation or dependency change belongs to this plugin.",
+          "paths": [
+            ".github/workflows/pstack-extension.yml",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/0967a0efd1a24bb175f091b27846a60aba36f148",
+            "Parent comparisons: 6ca03c2c788fb2fc143ebce56120bb6a1a865707; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "d8691d47e870fae23121f93b3200dce108eecc2f",
+          "disposition": "excluded",
+          "reason": "Shared changes remove the source pstack SDK extension and rename its CI workflow; ScaryDex already excludes that extension and retains its own native manifests and builds.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/pstack-extension.yml",
+            ".github/workflows/pstack-portable.yml",
+            ".github/workflows/pstack-sync.lock.yml",
+            ".github/workflows/pstack-sync.md",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d8691d47e870fae23121f93b3200dce108eecc2f",
+            "Parent comparisons: 5a4dcb52df440432f80a869bfb95759fe7ff514b; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "ddde39d817c0e4512be641a494cec01fcdef05f0",
+          "disposition": "excluded",
+          "reason": "Shared source-marketplace version and README entries describe pstack 0.15.29, not behavior owned by this plugin.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/ddde39d817c0e4512be641a494cec01fcdef05f0",
+            "Parent comparisons: d8691d47e870fae23121f93b3200dce108eecc2f; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "22651787639f4f311febba8c3c3be6c2626f3cfe",
+          "disposition": "excluded",
+          "reason": "Shared policy, CI and catalog changes remove the Azure paired-review extension; Azure integrations were never shipped in ScaryDex.",
+          "paths": [
+            ".gitattributes",
+            ".github/plugin/marketplace.json",
+            ".github/workflows/azure-devops.yml",
+            ".github/workflows/paired-review-bundle.yml",
+            "AGENTS.md",
+            "README.md",
+            "oxlint.config.ts",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/22651787639f4f311febba8c3c3be6c2626f3cfe",
+            "Parent comparisons: 574cbc9673780d7adfd021596be0ec080a4f7f2d; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "b6c23a703407164ff7890390e4ad6d6e396478aa",
+          "disposition": "excluded",
+          "reason": "Shared README and portable pstack CI changes belong to the upstream pstack release and guide, not this plugin's runtime.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/b6c23a703407164ff7890390e4ad6d6e396478aa",
+            "Parent comparisons: 2df8d23eb2e99e777561fa5d083bcd852f8c5bea; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+          "disposition": "excluded",
+          "reason": "Shared files introduce approval-gated Copilot skill-eval CI and vendored hosted runners; this port does not copy source-repository workflows, credentials or Copilot harness assumptions.",
+          "paths": [
+            ".github/workflows/skill-evals.yml",
+            "AGENTS.md",
+            "tools/skill-evals.mjs",
+            "tools/skill-evals.test.mjs",
+            "tools/skill-evals/README.md",
+            "tools/skill-evals/policy.json",
+            "tools/skill-evals/skill-creator/LICENSE.txt",
+            "tools/skill-evals/skill-creator/NOTICE.md",
+            "tools/skill-evals/skill-creator/provenance.json",
+            "tools/skill-evals/skill-creator/scripts/__init__.py",
+            "tools/skill-evals/skill-creator/scripts/grading.py",
+            "tools/skill-evals/skill-creator/scripts/harnesses.py",
+            "tools/skill-evals/skill-creator/scripts/run_eval.py",
+            "tools/skill-evals/skill-creator/scripts/run_harness_eval.py",
+            "tools/skill-evals/skill-creator/scripts/utils.py",
+            "tools/skill-evals/skill-creator/tests/test_runner.py"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+            "Parent comparisons: 48ff9f7db2da48a5fe2bc9d5bb8e111d934f0824; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+          "disposition": "excluded",
+          "reason": "The shared regression updates ScaryPilot's skill-eval runner metadata checks; that hosted runner is not part of this Codex plugin.",
+          "paths": [
+            "tools/skill-evals.test.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+            "Parent comparisons: 6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+          "disposition": "excluded",
+          "reason": "The shared workflow pins the source portable pstack TLC CI download; source CI is not imported as a plugin capability.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+            "Parent comparisons: d4d3c25a6be8aba97998e245f8d7e45dbbf10087; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        }
+      ]
     },
     {
       "id": "scarypilot/screen-record",
       "source": "scarypilot",
       "plugin": "screen-record",
       "path": "plugins/screen-record",
-      "reviewedThrough": null,
-      "reviews": []
+      "reviewedThrough": "e35a24f1f17fd2642f215aa04e790411c0d81d66",
+      "reviews": [
+        {
+          "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
+          "disposition": "excluded",
+          "reason": "Only shared Copilot pstack-extension CI and bundle input registration; Codex ships deterministic artifact helpers, not that SDK extension.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/pstack-extension.yml",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/1c85a8237372ffc12106211e4ce0f5b29b5df816",
+            "Parent comparisons: c4668ab72ca25f5a1442b510de8e2ee317770394; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "e35a24f1f17fd2642f215aa04e790411c0d81d66",
+          "disposition": "excluded",
+          "reason": "Only shared registration and documentation for the upstream Ollama decision extension; ScaryDex's original decide plugin is not this sync track.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/e35a24f1f17fd2642f215aa04e790411c0d81d66",
+            "Parent comparisons: ffdb89371d0091325c6258a1c5c21226f41e2456; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "46e27171de6ab1be978e81fde743ad8a6f05f42b",
+          "disposition": "deferred",
+          "reason": "The change combines excluded Copilot capture-tool registration with portable CLI recording-identity, recovery and Windows window-selection changes. Review and port the standalone CLI and its actual callers in a separate screen-record proposal; do not claim native-tool parity.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/screen-record-ci.yml",
+            "plugins/screen-record/README.md",
+            "plugins/screen-record/extensions/screen-record/bundle-manifest.json",
+            "plugins/screen-record/extensions/screen-record/dist/extension.mjs",
+            "plugins/screen-record/extensions/screen-record/extension.mjs",
+            "plugins/screen-record/extensions/screen-record/package-lock.json",
+            "plugins/screen-record/extensions/screen-record/package.json",
+            "plugins/screen-record/extensions/screen-record/src/domain.ts",
+            "plugins/screen-record/extensions/screen-record/src/extension.ts",
+            "plugins/screen-record/extensions/screen-record/src/tools.ts",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/ffmpeg.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/legacy-worker.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/lock-failure.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/media-subprocess.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/missing-root-tool.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/setup-failure.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/spawn-failure.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/stop-exit-race.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/worker-startup-failure.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/output.test.ts",
+            "plugins/screen-record/extensions/screen-record/tests/recording.test.ts",
+            "plugins/screen-record/extensions/screen-record/tools/check-bundle.mjs",
+            "plugins/screen-record/extensions/screen-record/tools/test-contracts.mjs",
+            "plugins/screen-record/extensions/screen-record/tsconfig.json",
+            "plugins/screen-record/extensions/screen-record/tsdown.config.mjs",
+            "plugins/screen-record/plugin.json",
+            "plugins/screen-record/skills/screen-record/SKILL.md",
+            "plugins/screen-record/skills/screen-record/evals/evals.json",
+            "plugins/screen-record/skills/screen-record/references/editing.md",
+            "plugins/screen-record/skills/screen-record/references/windows.md",
+            "plugins/screen-record/skills/screen-record/scripts/screen-record.mjs",
+            "plugins/screen-record/skills/screen-record/scripts/windows-enumerate.ps1",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/46e27171de6ab1be978e81fde743ad8a6f05f42b",
+            "Parent comparisons: e35a24f1f17fd2642f215aa04e790411c0d81d66; pinned rename and deletion paths retained verbatim.",
+            "Deferred without changing this plugin to preserve the two-shipped-plugin proposal limit; the cursor must not pass this gap."
+          ]
+        },
+        {
+          "commit": "1ddf99fd9487384460a92a7b2edc82633664d9ee",
+          "disposition": "excluded",
+          "reason": "Only the excluded SDK extension's subprocess fixture and recording contract tests change heartbeat-finalization timing; no shipped standalone recorder implementation changes in this commit.",
+          "paths": [
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/media-subprocess.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/recording.test.ts"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/1ddf99fd9487384460a92a7b2edc82633664d9ee",
+            "Parent comparisons: 46e27171de6ab1be978e81fde743ad8a6f05f42b; pinned rename and deletion paths retained verbatim.",
+            "Both changed paths are under plugins/screen-record/extensions/screen-record/tests; inspected the fixture marker and contract wait changes."
+          ]
+        },
+        {
+          "commit": "693ddc234b6d86df02e7726722dcf75f1a7c4ea0",
+          "disposition": "excluded",
+          "reason": "The shared root README documents better-init's new default review skill; it adds no behavior to this plugin.",
+          "paths": [
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/693ddc234b6d86df02e7726722dcf75f1a7c4ea0",
+            "Parent comparisons: 1ddf99fd9487384460a92a7b2edc82633664d9ee; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+          "disposition": "excluded",
+          "reason": "The shared root README changes the upstream pstack version description only; this track has no coupled implementation change.",
+          "paths": [
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+            "Parent comparisons: 693ddc234b6d86df02e7726722dcf75f1a7c4ea0; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+          "disposition": "excluded",
+          "reason": "Shared marketplace, README and smoke checks rename the decision extension to OMLX; the original Codex decide implementation is maintained separately.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+            "Parent comparisons: 1d52a5bbead344c2c87a89c5ffe62ae7b30015b5; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+          "disposition": "excluded",
+          "reason": "Shared changes add ScaryPilot extension/platform CI, native Windows ownership builds, bundle hashing and source-marketplace documentation; these host-specific build surfaces are not Codex registrations or dependencies.",
+          "paths": [
+            ".github/workflows/autoresearch-native.yml",
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/plugin-platforms.yml",
+            ".github/workflows/pstack-extension.yml",
+            "README.md",
+            "tools/bundle-hash.mjs",
+            "tools/bundle-hash.test.mjs",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+            "Parent comparisons: f30836f24d411b41f2932e794b570d1d7fcd684a; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "0967a0efd1a24bb175f091b27846a60aba36f148",
+          "disposition": "excluded",
+          "reason": "Shared README and pstack-extension CI describe the source pstack update; no implementation or dependency change belongs to this plugin.",
+          "paths": [
+            ".github/workflows/pstack-extension.yml",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/0967a0efd1a24bb175f091b27846a60aba36f148",
+            "Parent comparisons: 6ca03c2c788fb2fc143ebce56120bb6a1a865707; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "d8691d47e870fae23121f93b3200dce108eecc2f",
+          "disposition": "excluded",
+          "reason": "Shared changes remove the source pstack SDK extension and rename its CI workflow; ScaryDex already excludes that extension and retains its own native manifests and builds.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/pstack-extension.yml",
+            ".github/workflows/pstack-portable.yml",
+            ".github/workflows/pstack-sync.lock.yml",
+            ".github/workflows/pstack-sync.md",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d8691d47e870fae23121f93b3200dce108eecc2f",
+            "Parent comparisons: 5a4dcb52df440432f80a869bfb95759fe7ff514b; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "ddde39d817c0e4512be641a494cec01fcdef05f0",
+          "disposition": "excluded",
+          "reason": "Shared source-marketplace version and README entries describe pstack 0.15.29, not behavior owned by this plugin.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/ddde39d817c0e4512be641a494cec01fcdef05f0",
+            "Parent comparisons: d8691d47e870fae23121f93b3200dce108eecc2f; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "574cbc9673780d7adfd021596be0ec080a4f7f2d",
+          "disposition": "deferred",
+          "reason": "The before/after evidence-video standard, producer prompt and comparison fixtures are portable. Defer the coupled skill/reference/eval update rather than exceeding the two-plugin proposal bound or importing its unrelated extension bundle bump.",
+          "paths": [
+            "plugins/screen-record/README.md",
+            "plugins/screen-record/agents/demo-producer.agent.md",
+            "plugins/screen-record/extensions/screen-record/bundle-manifest.json",
+            "plugins/screen-record/extensions/screen-record/package-lock.json",
+            "plugins/screen-record/extensions/screen-record/package.json",
+            "plugins/screen-record/plugin.json",
+            "plugins/screen-record/skills/screen-record/SKILL.md",
+            "plugins/screen-record/skills/screen-record/evals/evals.json",
+            "plugins/screen-record/skills/screen-record/evals/files/evidence-review.json",
+            "plugins/screen-record/skills/screen-record/evals/files/independent-clocks.json",
+            "plugins/screen-record/skills/screen-record/evals/files/paired-evidence.json",
+            "plugins/screen-record/skills/screen-record/evals/files/presentation-briefs.json",
+            "plugins/screen-record/skills/screen-record/references/editing.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/574cbc9673780d7adfd021596be0ec080a4f7f2d",
+            "Parent comparisons: ddde39d817c0e4512be641a494cec01fcdef05f0; pinned rename and deletion paths retained verbatim.",
+            "Deferred without changing this plugin to preserve the two-shipped-plugin proposal limit; the cursor must not pass this gap."
+          ]
+        },
+        {
+          "commit": "22651787639f4f311febba8c3c3be6c2626f3cfe",
+          "disposition": "excluded",
+          "reason": "Shared policy, CI and catalog changes remove the Azure paired-review extension; Azure integrations were never shipped in ScaryDex.",
+          "paths": [
+            ".gitattributes",
+            ".github/plugin/marketplace.json",
+            ".github/workflows/azure-devops.yml",
+            ".github/workflows/paired-review-bundle.yml",
+            "AGENTS.md",
+            "README.md",
+            "oxlint.config.ts",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/22651787639f4f311febba8c3c3be6c2626f3cfe",
+            "Parent comparisons: 574cbc9673780d7adfd021596be0ec080a4f7f2d; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "b6c23a703407164ff7890390e4ad6d6e396478aa",
+          "disposition": "excluded",
+          "reason": "Shared README and portable pstack CI changes belong to the upstream pstack release and guide, not this plugin's runtime.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/b6c23a703407164ff7890390e4ad6d6e396478aa",
+            "Parent comparisons: 2df8d23eb2e99e777561fa5d083bcd852f8c5bea; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+          "disposition": "excluded",
+          "reason": "Shared files introduce approval-gated Copilot skill-eval CI and vendored hosted runners; this port does not copy source-repository workflows, credentials or Copilot harness assumptions.",
+          "paths": [
+            ".github/workflows/skill-evals.yml",
+            "AGENTS.md",
+            "tools/skill-evals.mjs",
+            "tools/skill-evals.test.mjs",
+            "tools/skill-evals/README.md",
+            "tools/skill-evals/policy.json",
+            "tools/skill-evals/skill-creator/LICENSE.txt",
+            "tools/skill-evals/skill-creator/NOTICE.md",
+            "tools/skill-evals/skill-creator/provenance.json",
+            "tools/skill-evals/skill-creator/scripts/__init__.py",
+            "tools/skill-evals/skill-creator/scripts/grading.py",
+            "tools/skill-evals/skill-creator/scripts/harnesses.py",
+            "tools/skill-evals/skill-creator/scripts/run_eval.py",
+            "tools/skill-evals/skill-creator/scripts/run_harness_eval.py",
+            "tools/skill-evals/skill-creator/scripts/utils.py",
+            "tools/skill-evals/skill-creator/tests/test_runner.py"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+            "Parent comparisons: 48ff9f7db2da48a5fe2bc9d5bb8e111d934f0824; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+          "disposition": "excluded",
+          "reason": "The shared regression updates ScaryPilot's skill-eval runner metadata checks; that hosted runner is not part of this Codex plugin.",
+          "paths": [
+            "tools/skill-evals.test.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+            "Parent comparisons: 6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+          "disposition": "excluded",
+          "reason": "The shared workflow pins the source portable pstack TLC CI download; source CI is not imported as a plugin capability.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+            "Parent comparisons: d4d3c25a6be8aba97998e245f8d7e45dbbf10087; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        }
+      ]
     },
     {
       "id": "scarypilot/pstack",
       "source": "scarypilot",
       "plugin": "pstack",
       "path": "external_plugins/pstack",
-      "reviewedThrough": "ce2b8cbcaa4f29a35f47adbb15adc84f07d6a4c1",
+      "reviewedThrough": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
       "reviews": [
         {
           "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
@@ -259,6 +1765,607 @@
             "cursor b0b9c7a..HEAD three-way content audit per skill file against the local port.",
             "bun run check, bun run typecheck, and bun test pass on the merged tree."
           ]
+        },
+        {
+          "commit": "11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+          "disposition": "excluded",
+          "reason": "Shared marketplace, README and smoke checks rename the decision extension to OMLX; the original Codex decide implementation is maintained separately.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+            "Parent comparisons: 1d52a5bbead344c2c87a89c5ffe62ae7b30015b5; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "dca58e4879701b2b9f14f80e81ed68dbbff9bc49",
+          "disposition": "skipped",
+          "reason": "The local 0.15.28 Codex baseline already integrates the portable 0.15.14-0.15.15 neutral multi-model wording and newer skill content. Re-importing ScaryPilot's older documentation, Copilot manifest or sync ledger would regress the existing Codex adaptation.",
+          "paths": [
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/docs/guide/04-design.md",
+            "external_plugins/pstack/docs/guide/README.md",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/architect/references/runner-prompt.md",
+            "external_plugins/pstack/skills/blast-radius/SKILL.md",
+            "external_plugins/pstack/skills/poteto-help/SKILL.md",
+            "external_plugins/pstack/tools/pstack-sync.test.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/dca58e4879701b2b9f14f80e81ed68dbbff9bc49",
+            "Parent comparisons: 11f9de4b3b101fae7115d0f99e85f4aa55b5216d; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent 11f9de4b3b101fae7115d0f99e85f4aa55b5216d: NOTICE/README, plugin version, architect runner wording, blast-radius wording, help and upstream-sync policy changes.",
+            "Local plugins/pstack/README.md and NOTICE.md retain the later 0.15.28 integration and Codex model-inheritance boundary."
+          ]
+        },
+        {
+          "commit": "40120bed0ad013d2061ce059fa599a99cd149e49",
+          "disposition": "excluded",
+          "reason": "The only direct pstack changes update the dependency lock and bundle hash for the excluded Copilot SDK extension. No portable skill/helper behavior changes. Other plugin dependency updates are outside this pstack port.",
+          "paths": [
+            "external_plugins/pstack/extensions/pstack/bundle-manifest.json",
+            "external_plugins/pstack/extensions/pstack/package-lock.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/40120bed0ad013d2061ce059fa599a99cd149e49",
+            "Parent comparisons: dca58e4879701b2b9f14f80e81ed68dbbff9bc49; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent dca58e4879701b2b9f14f80e81ed68dbbff9bc49: external_plugins/pstack/extensions/pstack/package-lock.json and bundle-manifest.json only.",
+            "Local pstack has no extensions directory or SDK registration; .codex-plugin/plugin.json remains authoritative."
+          ]
+        },
+        {
+          "commit": "6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+          "disposition": "ported",
+          "reason": "Port the dependency-free cross-platform Node decision-log writer and route the skill to it while retaining the POSIX fallback. Preserve local bundled GitHub PR base-chain discovery rather than introducing ScaryPilot's gh-stack dependency or bootstrap installs. Exclude SDK capability changes, extension bundles and native-resource CI/shared tooling.",
+          "paths": [
+            ".github/workflows/autoresearch-native.yml",
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/plugin-platforms.yml",
+            ".github/workflows/pstack-extension.yml",
+            "README.md",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/extensions/pstack/bundle-manifest.json",
+            "external_plugins/pstack/extensions/pstack/dist/extension.mjs",
+            "external_plugins/pstack/extensions/pstack/package-lock.json",
+            "external_plugins/pstack/extensions/pstack/package.json",
+            "external_plugins/pstack/extensions/pstack/src/capabilities.ts",
+            "external_plugins/pstack/extensions/pstack/src/types.ts",
+            "external_plugins/pstack/extensions/pstack/tests/artifact-fixtures.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/artifact-validator.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/capabilities.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/contracts.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/handoff.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/pinned-swarm.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/plan-validator.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/snapshot.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/workspace-hash.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/workspace-reader.test.ts",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/poteto-mode/SKILL.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/autopilot-stack.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/babysit.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/orchestrate.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/shipping.md",
+            "external_plugins/pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "external_plugins/pstack/skills/poteto-mode/scripts/orch/orch.ts",
+            "external_plugins/pstack/skills/poteto-mode/scripts/orch/store.ts",
+            "external_plugins/pstack/skills/poteto-mode/scripts/package.json",
+            "external_plugins/pstack/skills/poteto-mode/scripts/tsconfig.json",
+            "external_plugins/pstack/skills/pstack-schema-validate/SKILL.md",
+            "external_plugins/pstack/skills/show-me-your-work/SKILL.md",
+            "external_plugins/pstack/skills/show-me-your-work/scripts/log.mjs",
+            "external_plugins/pstack/skills/swarm/SKILL.md",
+            "external_plugins/pstack/tools/log.test.mjs",
+            "external_plugins/pstack/tools/pstack-plan.test.mjs",
+            "external_plugins/pstack/upstream-sync.json",
+            "tools/bundle-hash.mjs",
+            "tools/bundle-hash.test.mjs",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/show-me-your-work/SKILL.md",
+            "plugins/pstack/skills/show-me-your-work/scripts/log.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+            "Parent comparisons: f30836f24d411b41f2932e794b570d1d7fcd684a; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent f30836f24d411b41f2932e794b570d1d7fcd684a, including pstack package metadata, orchestration adapter changes, log.mjs, show-me-your-work instructions and root bundle-checker coupling.",
+            "tests/pstack-update.test.mjs invokes the actual Node CLI with Unicode/spaced paths, verifies append-only rows, all cell sanitization, one header and failure without log mutation.",
+            "No upstream installer, extension or sync script was executed; existing Codex orchestration .mjs bundles are retained."
+          ]
+        },
+        {
+          "commit": "0967a0efd1a24bb175f091b27846a60aba36f148",
+          "disposition": "ported",
+          "reason": "Port the strictly read-only POSIX worktree audit: no fetch, no scratch file, correct spaced worktree paths, pinned local base commit, stale-ref warning and robust argument validation. Other portable 0.15.25 skill/watch improvements are already represented in the later local baseline; retain local watcher owner-approval safeguards, pagination and Codex mappings.",
+          "paths": [
+            ".github/workflows/pstack-extension.yml",
+            "README.md",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/agents/poteto-agent.agent.md",
+            "external_plugins/pstack/docs/guide/README.md",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/architect/SKILL.md",
+            "external_plugins/pstack/skills/arena/SKILL.md",
+            "external_plugins/pstack/skills/benchmark-checklist/SKILL.md",
+            "external_plugins/pstack/skills/create-verification-skill/SKILL.md",
+            "external_plugins/pstack/skills/figure-it-out/SKILL.md",
+            "external_plugins/pstack/skills/how/SKILL.md",
+            "external_plugins/pstack/skills/how/references/explorer-prompt.md",
+            "external_plugins/pstack/skills/in-your-own-words/SKILL.md",
+            "external_plugins/pstack/skills/in-your-own-words/evals/evals.json",
+            "external_plugins/pstack/skills/interrogate/SKILL.md",
+            "external_plugins/pstack/skills/interrogate/references/reviewer-prompt.md",
+            "external_plugins/pstack/skills/interrogate/references/rubric.md",
+            "external_plugins/pstack/skills/ketchup/SKILL.md",
+            "external_plugins/pstack/skills/ketchup/evals/evals.json",
+            "external_plugins/pstack/skills/poteto-help/SKILL.md",
+            "external_plugins/pstack/skills/poteto-help/references/recipes.md",
+            "external_plugins/pstack/skills/poteto-mode/SKILL.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/autopilot-stack.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/opening-a-pr.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/trace-forensics.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/worktree-cleanup.md",
+            "external_plugins/pstack/skills/poteto-mode/scripts/watch-pr/fakes.test-helper.ts",
+            "external_plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "external_plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "external_plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "external_plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "external_plugins/pstack/skills/poteto-mode/scripts/watch-pr/render.ts",
+            "external_plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.compile.ts",
+            "external_plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "external_plugins/pstack/skills/poteto-mode/scripts/worktree-audit.sh",
+            "external_plugins/pstack/skills/principle-build-the-lever/SKILL.md",
+            "external_plugins/pstack/skills/principle-explain-the-number/SKILL.md",
+            "external_plugins/pstack/skills/principle-fix-root-causes/SKILL.md",
+            "external_plugins/pstack/skills/principle-minimize-reader-load/SKILL.md",
+            "external_plugins/pstack/skills/principle-model-the-domain/SKILL.md",
+            "external_plugins/pstack/skills/principle-never-block-on-the-human/SKILL.md",
+            "external_plugins/pstack/skills/principle-redesign-from-first-principles/SKILL.md",
+            "external_plugins/pstack/skills/principle-subtract-before-you-add/SKILL.md",
+            "external_plugins/pstack/skills/principle-type-system-discipline/SKILL.md",
+            "external_plugins/pstack/skills/reflect/SKILL.md",
+            "external_plugins/pstack/skills/reflect/references/divergent-reviewer.md",
+            "external_plugins/pstack/skills/reflect/references/judgment-reviewer.md",
+            "external_plugins/pstack/skills/reflect/references/synthesizer.md",
+            "external_plugins/pstack/skills/reflect/references/tooling-reviewer.md",
+            "external_plugins/pstack/skills/sharpen/SKILL.md",
+            "external_plugins/pstack/skills/sharpen/evals/evals.json",
+            "external_plugins/pstack/skills/technical-writing/SKILL.md",
+            "external_plugins/pstack/skills/unslop/SKILL.md",
+            "external_plugins/pstack/skills/why/SKILL.md",
+            "external_plugins/pstack/skills/why/references/epistemics.md",
+            "external_plugins/pstack/skills/why/references/investigator-prompt.md",
+            "external_plugins/pstack/skills/why/references/sources/datadog.md",
+            "external_plugins/pstack/skills/why/references/sources/sentry.md",
+            "external_plugins/pstack/skills/why/references/synthesizer-prompt.md",
+            "external_plugins/pstack/tools/pstack-sync.test.mjs",
+            "external_plugins/pstack/tools/worktree-audit.test.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/poteto-mode/scripts/worktree-audit.sh"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/0967a0efd1a24bb175f091b27846a60aba36f148",
+            "Parent comparisons: 6ca03c2c788fb2fc143ebce56120bb6a1a865707; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent 6ca03c2c788fb2fc143ebce56120bb6a1a865707 and compared worktree-audit.sh and watcher sources against the existing local adaptation.",
+            "Offline tests preserve the remote-default/explicit-base behavior and prove no git fetch is invoked while a Unicode/spaced worktree path survives intact.",
+            "Upstream pstack-extension workflow only adds helper/audit validation; it does not introduce a runtime dependency for the portable audit."
+          ]
+        },
+        {
+          "commit": "d8691d47e870fae23121f93b3200dce108eecc2f",
+          "disposition": "ported",
+          "reason": "Port workspace-confined artifact reads and their real CLI/path-swap regression coverage. Inputs must be regular files inside the approved working directory without symlink components; evidence references remain inert data. Unsupported platforms fail closed. SDK deletion is already satisfied locally; preserve Codex manifests, prompt references and bundled helpers rather than importing Copilot agent registration or source CI/sync infrastructure.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/pstack-extension.yml",
+            ".github/workflows/pstack-portable.yml",
+            ".github/workflows/pstack-sync.lock.yml",
+            ".github/workflows/pstack-sync.md",
+            "README.md",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/docs/guide/01-setup.md",
+            "external_plugins/pstack/docs/guide/02-poteto-mode.md",
+            "external_plugins/pstack/docs/guide/03-understand.md",
+            "external_plugins/pstack/docs/guide/04-design.md",
+            "external_plugins/pstack/docs/guide/06-verify-and-ship.md",
+            "external_plugins/pstack/docs/guide/07-overnight.md",
+            "external_plugins/pstack/docs/guide/10-recipes-and-pitfalls.md",
+            "external_plugins/pstack/extensions/pstack/bundle-manifest.json",
+            "external_plugins/pstack/extensions/pstack/dist/extension.mjs",
+            "external_plugins/pstack/extensions/pstack/extension.mjs",
+            "external_plugins/pstack/extensions/pstack/package-lock.json",
+            "external_plugins/pstack/extensions/pstack/package.json",
+            "external_plugins/pstack/extensions/pstack/src/capabilities.ts",
+            "external_plugins/pstack/extensions/pstack/src/command.ts",
+            "external_plugins/pstack/extensions/pstack/src/extension-context.ts",
+            "external_plugins/pstack/extensions/pstack/src/extension.ts",
+            "external_plugins/pstack/extensions/pstack/src/handoff.ts",
+            "external_plugins/pstack/extensions/pstack/src/io.ts",
+            "external_plugins/pstack/extensions/pstack/src/orch-reader.ts",
+            "external_plugins/pstack/extensions/pstack/src/receipt.ts",
+            "external_plugins/pstack/extensions/pstack/src/register.ts",
+            "external_plugins/pstack/extensions/pstack/src/service.ts",
+            "external_plugins/pstack/extensions/pstack/src/snapshot.ts",
+            "external_plugins/pstack/extensions/pstack/src/tools/capabilities.ts",
+            "external_plugins/pstack/extensions/pstack/src/tools/common.ts",
+            "external_plugins/pstack/extensions/pstack/src/tools/handoff.ts",
+            "external_plugins/pstack/extensions/pstack/src/tools/inspect-worktrees.ts",
+            "external_plugins/pstack/extensions/pstack/src/tools/record-verification.ts",
+            "external_plugins/pstack/extensions/pstack/src/tools/status.ts",
+            "external_plugins/pstack/extensions/pstack/src/tools/validate-artifact.ts",
+            "external_plugins/pstack/extensions/pstack/src/tools/validate-plan.ts",
+            "external_plugins/pstack/extensions/pstack/src/types.ts",
+            "external_plugins/pstack/extensions/pstack/src/watch-reader.ts",
+            "external_plugins/pstack/extensions/pstack/src/workflows/index.ts",
+            "external_plugins/pstack/extensions/pstack/src/workflows/swarm.ts",
+            "external_plugins/pstack/extensions/pstack/src/workspace-reader.ts",
+            "external_plugins/pstack/extensions/pstack/src/worktrees.ts",
+            "external_plugins/pstack/extensions/pstack/tests/artifact-fixtures.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/artifact-validator.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/capabilities.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/contracts.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/extension.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/handoff-invalid.json",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/handoff-valid.json",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/plan-basic-valid.md",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/plan-invalid.md",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/plan-verified-stack-valid.md",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/receipt-invalid.json",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/receipt-valid.json",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/snapshot-invalid.json",
+            "external_plugins/pstack/extensions/pstack/tests/fixtures/snapshot-valid.json",
+            "external_plugins/pstack/extensions/pstack/tests/handoff.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/orch-reader.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/pinned-swarm.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/plan-validator.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/receipt.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/snapshot.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/swarm-workflow.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/workspace-hash.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/workspace-reader.test.ts",
+            "external_plugins/pstack/extensions/pstack/tests/worktrees.test.ts",
+            "external_plugins/pstack/extensions/pstack/tsconfig.json",
+            "external_plugins/pstack/extensions/pstack/tsdown.config.mjs",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/poteto-help/SKILL.md",
+            "external_plugins/pstack/skills/poteto-help/references/recipes.md",
+            "external_plugins/pstack/skills/poteto-mode/SKILL.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/orchestrate.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/pause-safely.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/session-pickup.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/worktree-cleanup.md",
+            "external_plugins/pstack/skills/pstack-schema-validate/SKILL.md",
+            "external_plugins/pstack/skills/pstack-schema-validate/scripts/validate.mjs",
+            "external_plugins/pstack/skills/pstack-schema-validate/scripts/workspace-reader.mjs",
+            "external_plugins/pstack/skills/pstack-schema-validate/tests/support.mjs",
+            "external_plugins/pstack/skills/pstack-schema-validate/tests/validation.test.mjs",
+            "external_plugins/pstack/skills/pstack-schema-validate/tests/workspace-reader.test.mjs",
+            "external_plugins/pstack/skills/swarm/SKILL.md",
+            "external_plugins/pstack/tools/pstack-plan.test.mjs",
+            "external_plugins/pstack/tools/pstack-sync.mjs",
+            "external_plugins/pstack/tools/pstack-sync.test.mjs",
+            "external_plugins/pstack/upstream-sync.json",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/pstack-schema-validate/SKILL.md",
+            "plugins/pstack/skills/pstack-schema-validate/scripts/validate.mjs",
+            "plugins/pstack/skills/pstack-schema-validate/scripts/workspace-reader.mjs",
+            "plugins/pstack/skills/pstack-schema-validate/tests/support.mjs",
+            "plugins/pstack/skills/pstack-schema-validate/tests/validation.test.mjs",
+            "plugins/pstack/skills/pstack-schema-validate/tests/workspace-reader.test.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d8691d47e870fae23121f93b3200dce108eecc2f",
+            "Parent comparisons: 5a4dcb52df440432f80a869bfb95759fe7ff514b; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent 5a4dcb52df440432f80a869bfb95759fe7ff514b, all direct extension deletions, workspace-reader implementation/tests and pstack-extension.yml to pstack-portable.yml rename.",
+            "Root bundle check/smoke changes only remove pstack SDK registration expectations; local portable runtime requires none of those extension tools.",
+            "Ported tests exercise inside/outside paths, artifact/ancestor symlinks, ancestor swaps, descriptor closure, all contracts and exact CLI findings.",
+            "Adapted fixture vocabulary to Parallel Codex workers and updated existing receipt caller test to validate from the approved fixture workspace."
+          ]
+        },
+        {
+          "commit": "ddde39d817c0e4512be641a494cec01fcdef05f0",
+          "disposition": "skipped",
+          "reason": "Its portable 0.15.26-0.15.29 formal verification, complete catch-up, sharpen-only rewrite, test-contract and review-noise reductions are already integrated in the local 0.15.28 Codex content. Local formal-maintenance instructions additionally preserve evidence-backed baseline recovery and dirty-work honesty. Do not overwrite them with older Copilot-specific source mappings.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/docs/guide/01-setup.md",
+            "external_plugins/pstack/docs/guide/02-poteto-mode.md",
+            "external_plugins/pstack/docs/guide/03-understand.md",
+            "external_plugins/pstack/docs/guide/05-build-and-clean.md",
+            "external_plugins/pstack/docs/guide/06-verify-and-ship.md",
+            "external_plugins/pstack/docs/guide/07-overnight.md",
+            "external_plugins/pstack/docs/guide/08-principles.md",
+            "external_plugins/pstack/docs/guide/09-make-it-yours.md",
+            "external_plugins/pstack/docs/guide/10-recipes-and-pitfalls.md",
+            "external_plugins/pstack/docs/guide/README.md",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/correct/SKILL.md",
+            "external_plugins/pstack/skills/create-formal-verification-skill/SKILL.md",
+            "external_plugins/pstack/skills/interrogate/references/lead-judgment.md",
+            "external_plugins/pstack/skills/ketchup/SKILL.md",
+            "external_plugins/pstack/skills/maintain-formal-verification-skill/SKILL.md",
+            "external_plugins/pstack/skills/poteto-help/SKILL.md",
+            "external_plugins/pstack/skills/poteto-help/references/recipes.md",
+            "external_plugins/pstack/skills/poteto-mode/SKILL.md",
+            "external_plugins/pstack/skills/principle-attack-the-premise/SKILL.md",
+            "external_plugins/pstack/skills/principle-fix-root-causes/SKILL.md",
+            "external_plugins/pstack/skills/principle-make-operations-idempotent/SKILL.md",
+            "external_plugins/pstack/skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md",
+            "external_plugins/pstack/skills/principle-test-behavior-not-implementation/SKILL.md",
+            "external_plugins/pstack/skills/principle-type-system-discipline/SKILL.md",
+            "external_plugins/pstack/skills/setup-pstack/SKILL.md",
+            "external_plugins/pstack/skills/sharpen/SKILL.md",
+            "external_plugins/pstack/skills/sharpen/evals/evals.json",
+            "external_plugins/pstack/skills/swarm/SKILL.md",
+            "external_plugins/pstack/skills/typescript-best-practices/SKILL.md",
+            "external_plugins/pstack/skills/typescript-best-practices/references/patterns.md",
+            "external_plugins/pstack/tools/pstack-sync.test.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/ddde39d817c0e4512be641a494cec01fcdef05f0",
+            "Parent comparisons: d8691d47e870fae23121f93b3200dce108eecc2f; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent d8691d47e870fae23121f93b3200dce108eecc2f and compared correct, interrogate lead judgment, swarm, testing principle, formal skills, sharpen and setup.",
+            "Local lead-judgment already omits the five-findings cap; correct already rejects tests sensitive only to internals; existing pstack-update formal/sharpen/catch-up regression contracts pass."
+          ]
+        },
+        {
+          "commit": "22651787639f4f311febba8c3c3be6c2626f3cfe",
+          "disposition": "excluded",
+          "reason": "Shared policy, CI and catalog changes remove the Azure paired-review extension; Azure integrations were never shipped in ScaryDex.",
+          "paths": [
+            ".gitattributes",
+            ".github/plugin/marketplace.json",
+            ".github/workflows/azure-devops.yml",
+            ".github/workflows/paired-review-bundle.yml",
+            "AGENTS.md",
+            "README.md",
+            "oxlint.config.ts",
+            "tools/check-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/22651787639f4f311febba8c3c3be6c2626f3cfe",
+            "Parent comparisons: 574cbc9673780d7adfd021596be0ec080a4f7f2d; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "2df8d23eb2e99e777561fa5d083bcd852f8c5bea",
+          "disposition": "ported",
+          "reason": "Adopt original acceptance conditions and smallest adequate direct caller-facing checks as the default completion gate, with honest observed/blocked results and separate capture/privacy approvals. Route feature/fix/refactor playbooks and poteto-mode to that principle. Retain the synthetic behavior/discovery eval metadata and fixtures, but adapt evaluator documentation not to assume or launch a Copilot-only harness.",
+          "paths": [
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/docs/guide/06-verify-and-ship.md",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/poteto-mode/SKILL.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/feature.md",
+            "external_plugins/pstack/skills/poteto-mode/playbooks/refactoring.md",
+            "external_plugins/pstack/skills/principle-prove-it-works/SKILL.md",
+            "external_plugins/pstack/skills/principle-prove-it-works/evals/README.md",
+            "external_plugins/pstack/skills/principle-prove-it-works/evals/evals.json",
+            "external_plugins/pstack/skills/principle-prove-it-works/evals/files/README.md",
+            "external_plugins/pstack/skills/principle-prove-it-works/evals/files/export.py",
+            "external_plugins/pstack/skills/principle-prove-it-works/evals/files/result.json",
+            "external_plugins/pstack/skills/principle-prove-it-works/evals/files/settings.py",
+            "external_plugins/pstack/skills/principle-prove-it-works/evals/files/style.css",
+            "external_plugins/pstack/skills/principle-prove-it-works/evals/trigger-evals.json",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/poteto-mode/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/feature.md",
+            "plugins/pstack/skills/poteto-mode/playbooks/refactoring.md",
+            "plugins/pstack/skills/principle-prove-it-works/SKILL.md",
+            "plugins/pstack/skills/principle-prove-it-works/evals/README.md",
+            "plugins/pstack/skills/principle-prove-it-works/evals/evals.json",
+            "plugins/pstack/skills/principle-prove-it-works/evals/files/README.md",
+            "plugins/pstack/skills/principle-prove-it-works/evals/files/export.py",
+            "plugins/pstack/skills/principle-prove-it-works/evals/files/result.json",
+            "plugins/pstack/skills/principle-prove-it-works/evals/files/settings.py",
+            "plugins/pstack/skills/principle-prove-it-works/evals/files/style.css",
+            "plugins/pstack/skills/principle-prove-it-works/evals/trigger-evals.json"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/2df8d23eb2e99e777561fa5d083bcd852f8c5bea",
+            "Parent comparisons: 33e43ad60ac9bc5c37c2ad3808a220548c9c6859; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent 33e43ad60ac9bc5c37c2ad3808a220548c9c6859, skill/playbook changes, all synthetic fixture paths and consent-gated evidence guidance.",
+            "tests/pstack-update.test.mjs validates eval structure and resolves every referenced fixture without inference.",
+            "No real media capture, inference, upload, publication or extra verification agent is required or performed."
+          ]
+        },
+        {
+          "commit": "b6c23a703407164ff7890390e4ad6d6e396478aa",
+          "disposition": "ported",
+          "reason": "Port the self-contained upstream-0.15.30 statechart skill, .mjs scripts, output-folder model, Mermaid fixtures and dependency-free regressions; add its help route and local usage/prerequisite documentation. Preserve ScaryPilot's explicit existing-Java/TLC and no-install rendering boundary. Do not copy Copilot guides, source manifests, CI provisioning or later unplanned Cursor renderer/provisioning changes.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "README.md",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/docs/guide/06-verify-and-ship.md",
+            "external_plugins/pstack/docs/guide/README.md",
+            "external_plugins/pstack/docs/guide/quick-start.md",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/poteto-help/SKILL.md",
+            "external_plugins/pstack/skills/statechart/SKILL.md",
+            "external_plugins/pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/compare-charts.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/lib.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.cfg",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.tla",
+            "external_plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/sync.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/test/upload.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/tlc-to-chart.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/NOTICE.md",
+            "plugins/pstack/README.md",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/statechart/SKILL.md",
+            "plugins/pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "plugins/pstack/skills/statechart/scripts/compare-charts.mjs",
+            "plugins/pstack/skills/statechart/scripts/lib.mjs",
+            "plugins/pstack/skills/statechart/scripts/model/OutputFolder.cfg",
+            "plugins/pstack/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "plugins/pstack/skills/statechart/scripts/model/OutputFolder.tla",
+            "plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "plugins/pstack/skills/statechart/scripts/test/sync.mmd",
+            "plugins/pstack/skills/statechart/scripts/test/upload.mmd",
+            "plugins/pstack/skills/statechart/scripts/tlc-to-chart.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/b6c23a703407164ff7890390e4ad6d6e396478aa",
+            "Parent comparisons: 2df8d23eb2e99e777561fa5d083bcd852f8c5bea; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent 2df8d23eb2e99e777561fa5d083bcd852f8c5bea, statechart subprocess/import boundaries, overwrite inventory checks, mapping-code trust warning and new upstream TLC provisioning step.",
+            "Ported tests run actual Node subprocesses even under Bun, preserving CLI NODE_OPTIONS/error handling and Node test self-checks.",
+            "84 targeted tests pass and 43 TLC-dependent tests skip explicitly without an installed/supplied TLC jar. Dependency-free coverage includes parsers, generated TLA/config/maps, CLI errors, output preservation and missing-tool failure.",
+            "No TLC jar, renderer, browser runtime, Java distribution or plugin was installed."
+          ]
+        },
+        {
+          "commit": "da5f59dfd7f482df26cbd8e446b4155e1e5c29f7",
+          "disposition": "ported",
+          "reason": "Include the statechart Windows output-folder validation fix: use lstatSync with throwIfNoEntry:false so an ordinary missing folder is distinguished from unexpected filesystem failures without depending on platform-specific error.path formatting.",
+          "paths": [
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/da5f59dfd7f482df26cbd8e446b4155e1e5c29f7",
+            "Parent comparisons: b6c23a703407164ff7890390e4ad6d6e396478aa; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent b6c23a703407164ff7890390e4ad6d6e396478aa: statechart foreign-output classifier and matching missing-folder/error regressions.",
+            "The pinned imported statechart implementation and regression suite contain this fix; Windows execution itself is not claimed from this macOS run."
+          ]
+        },
+        {
+          "commit": "48ff9f7db2da48a5fe2bc9d5bb8e111d934f0824",
+          "disposition": "skipped",
+          "reason": "Direct pstack behavior is unchanged: the only statechart code delta is one blank line plus version/notice/sync bookkeeping. The imported pinned statechart already contains that formatting. Vite dependency/bundle updates are for unrelated excluded Copilot extensions, not this dependency-free pstack runtime.",
+          "paths": [
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/48ff9f7db2da48a5fe2bc9d5bb8e111d934f0824",
+            "Parent comparisons: da5f59dfd7f482df26cbd8e446b4155e1e5c29f7; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent da5f59dfd7f482df26cbd8e446b4155e1e5c29f7, exact statechart hunk and plugin metadata changes.",
+            "No root/shared runtime inputs change for pstack; no new package dependencies are required."
+          ]
+        },
+        {
+          "commit": "6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+          "disposition": "excluded",
+          "reason": "Shared files introduce approval-gated Copilot skill-eval CI and vendored hosted runners; this port does not copy source-repository workflows, credentials or Copilot harness assumptions.",
+          "paths": [
+            ".github/workflows/skill-evals.yml",
+            "AGENTS.md",
+            "tools/skill-evals.mjs",
+            "tools/skill-evals.test.mjs",
+            "tools/skill-evals/README.md",
+            "tools/skill-evals/policy.json",
+            "tools/skill-evals/skill-creator/LICENSE.txt",
+            "tools/skill-evals/skill-creator/NOTICE.md",
+            "tools/skill-evals/skill-creator/provenance.json",
+            "tools/skill-evals/skill-creator/scripts/__init__.py",
+            "tools/skill-evals/skill-creator/scripts/grading.py",
+            "tools/skill-evals/skill-creator/scripts/harnesses.py",
+            "tools/skill-evals/skill-creator/scripts/run_eval.py",
+            "tools/skill-evals/skill-creator/scripts/run_harness_eval.py",
+            "tools/skill-evals/skill-creator/scripts/utils.py",
+            "tools/skill-evals/skill-creator/tests/test_runner.py"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52",
+            "Parent comparisons: 48ff9f7db2da48a5fe2bc9d5bb8e111d934f0824; pinned rename and deletion paths retained verbatim.",
+            "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+          "disposition": "ported",
+          "reason": "Retain the restored expected_output metadata for every proof-principle eval and the explicit distinction between intended output metadata and actual evidence. Keep local existing test infrastructure rather than copying the upstream root inventory test.",
+          "paths": [
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/principle-prove-it-works/evals/README.md",
+            "external_plugins/pstack/skills/principle-prove-it-works/evals/evals.json",
+            "external_plugins/pstack/upstream-sync.json",
+            "tools/skill-evals.test.mjs"
+          ],
+          "localPaths": [
+            "plugins/pstack/skills/principle-prove-it-works/evals/README.md",
+            "plugins/pstack/skills/principle-prove-it-works/evals/evals.json"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/d4d3c25a6be8aba97998e245f8d7e45dbbf10087",
+            "Parent comparisons: 6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent 6a6a66ec64cbaeba8ee56dea01e92939bf1b8b52, all eight expected_output additions, eval README and tools/skill-evals.test.mjs coupling.",
+            "Existing pstack eval-contract regression now covers principle-prove-it-works and checks all listed fixture paths without running inference."
+          ]
+        },
+        {
+          "commit": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+          "disposition": "ported",
+          "reason": "Document stable TLC 1.7.4 as the reviewed reference rather than the mutable rolling 1.8.0 prerelease. Keep tool acquisition explicit and external; do not copy source CI provisioning or its sync-policy-specific regression into this Codex plugin.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/tools/pstack-sync.test.mjs"
+          ],
+          "localPaths": [
+            "plugins/pstack/README.md"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+            "Parent comparisons: d4d3c25a6be8aba97998e245f8d7e45dbbf10087; pinned rename and deletion paths retained verbatim.",
+            "Inspected parent d4d3c25a6be8aba97998e245f8d7e45dbbf10087, pstack-portable workflow release/checksum change, plugin README explanation and source pstack-sync test.",
+            "Local README reports the stable reference, missing-tool skips and no silent prerequisite installation; TLC-backed coverage is not claimed."
+          ]
         }
       ]
     },
@@ -267,7 +2374,7 @@
       "source": "cursor",
       "plugin": "pstack",
       "path": "pstack",
-      "reviewedThrough": "29fa9382c9c250d134f6a2f1aa86c01c5f63119d",
+      "reviewedThrough": "fa7facd69d3d250ef708d01dcd4b53234c4f44e8",
       "reviews": [
         {
           "commit": "12d587dfb20741cafc376c42c696c5f6e2a64487",
@@ -5492,6 +7599,438 @@
           "localPaths": [],
           "evidence": [
             "Reviewed every parent (a66a8931c2dd71f1ed6abf6a52b1898a9f389ae4, d6d78d8efc5de65e9161c35cdb90260ac7d78e65) using exact rename/deletion metadata and shared policy/build diffs; source https://github.com/cursor/plugins/commit/29fa9382c9c250d134f6a2f1aa86c01c5f63119d."
+          ]
+        },
+        {
+          "commit": "d1cd3d8f62342113ecbddbb6df0976bb9d4660d1",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/jobber and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/jobber/.cursor-plugin/plugin.json",
+            "third_party/jobber/CHANGELOG.md",
+            "third_party/jobber/LICENSE",
+            "third_party/jobber/README.md",
+            "third_party/jobber/assets/logo.png",
+            "third_party/jobber/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/d1cd3d8f62342113ecbddbb6df0976bb9d4660d1",
+            "Parent comparisons: 29fa9382c9c250d134f6a2f1aa86c01c5f63119d; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "111cf6a16b11cc822782c1585859af4a580a2490",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/jobber and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/jobber/.cursor-plugin/plugin.json",
+            "third_party/jobber/CHANGELOG.md",
+            "third_party/jobber/LICENSE",
+            "third_party/jobber/README.md",
+            "third_party/jobber/assets/logo.png",
+            "third_party/jobber/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/111cf6a16b11cc822782c1585859af4a580a2490",
+            "Parent comparisons: 29fa9382c9c250d134f6a2f1aa86c01c5f63119d, d1cd3d8f62342113ecbddbb6df0976bb9d4660d1; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "da851fbb04bcda5912e217022c4d9894ff5a367f",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/x and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/README.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/da851fbb04bcda5912e217022c4d9894ff5a367f",
+            "Parent comparisons: 29fa9382c9c250d134f6a2f1aa86c01c5f63119d; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "e96ac89fee4cd92fbb4925b9d97dd9a8729d1c57",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/x and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/e96ac89fee4cd92fbb4925b9d97dd9a8729d1c57",
+            "Parent comparisons: da851fbb04bcda5912e217022c4d9894ff5a367f; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "f738765047aaebec7e16a50d08a0776a05ec1b22",
+          "disposition": "excluded",
+          "reason": "Changes concern third-party listing descriptions and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/f738765047aaebec7e16a50d08a0776a05ec1b22",
+            "Parent comparisons: e96ac89fee4cd92fbb4925b9d97dd9a8729d1c57; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "190d28736eff128ec94f502a22c7fe0c4b56cd37",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/jobber, third_party/x and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/jobber/.cursor-plugin/plugin.json",
+            "third_party/jobber/CHANGELOG.md",
+            "third_party/jobber/LICENSE",
+            "third_party/jobber/README.md",
+            "third_party/jobber/assets/logo.png",
+            "third_party/jobber/mcp.json",
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/README.md",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/190d28736eff128ec94f502a22c7fe0c4b56cd37",
+            "Parent comparisons: 111cf6a16b11cc822782c1585859af4a580a2490, f738765047aaebec7e16a50d08a0776a05ec1b22; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "436a95b9ddf70dce9d15caf4b8f4e394f9a1c1ad",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/databricks-genie-one and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/databricks-genie-one/.cursor-plugin/plugin.json",
+            "third_party/databricks-genie-one/CHANGELOG.md",
+            "third_party/databricks-genie-one/LICENSE",
+            "third_party/databricks-genie-one/README.md",
+            "third_party/databricks-genie-one/assets/logo.png",
+            "third_party/databricks-genie-one/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/436a95b9ddf70dce9d15caf4b8f4e394f9a1c1ad",
+            "Parent comparisons: 190d28736eff128ec94f502a22c7fe0c4b56cd37; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "fb4f183cb04fa59f3ecdaa15456383ffa2d3f502",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/databricks-genie-one and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            "third_party/databricks-genie-one/README.md",
+            "third_party/databricks-genie-one/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/fb4f183cb04fa59f3ecdaa15456383ffa2d3f502",
+            "Parent comparisons: 436a95b9ddf70dce9d15caf4b8f4e394f9a1c1ad; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "adeec11f7c7a863a73eb850ddaed0968270c9e97",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/databricks-genie-one and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/databricks-genie-one/.cursor-plugin/plugin.json",
+            "third_party/databricks-genie-one/CHANGELOG.md",
+            "third_party/databricks-genie-one/LICENSE",
+            "third_party/databricks-genie-one/README.md",
+            "third_party/databricks-genie-one/assets/logo.png",
+            "third_party/databricks-genie-one/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/adeec11f7c7a863a73eb850ddaed0968270c9e97",
+            "Parent comparisons: 190d28736eff128ec94f502a22c7fe0c4b56cd37, fb4f183cb04fa59f3ecdaa15456383ffa2d3f502; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "36f6c1e87b78a148622896f9b31130c84f6d382b",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/databricks-genie-one and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            "third_party/databricks-genie-one/.cursor-plugin/plugin.json",
+            "third_party/databricks-genie-one/CHANGELOG.md",
+            "third_party/databricks-genie-one/README.md",
+            "third_party/databricks-genie-one/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/36f6c1e87b78a148622896f9b31130c84f6d382b",
+            "Parent comparisons: adeec11f7c7a863a73eb850ddaed0968270c9e97; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "1541ad72393f5a771eb45d99e1b6276e3636c3ea",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/databricks-genie-one and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            "third_party/databricks-genie-one/.cursor-plugin/plugin.json",
+            "third_party/databricks-genie-one/CHANGELOG.md",
+            "third_party/databricks-genie-one/README.md",
+            "third_party/databricks-genie-one/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/1541ad72393f5a771eb45d99e1b6276e3636c3ea",
+            "Parent comparisons: adeec11f7c7a863a73eb850ddaed0968270c9e97, 36f6c1e87b78a148622896f9b31130c84f6d382b; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "1b5e36c42b6a16dbf2e480f6c7b0514d340573f9",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/quickbooks-online and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/skills/LICENSE",
+            "third_party/quickbooks-online/skills/analyze-payroll-cost/SKILL.md",
+            "third_party/quickbooks-online/skills/business-health-check/SKILL.md",
+            "third_party/quickbooks-online/skills/chase-overdue-invoices/SKILL.md",
+            "third_party/quickbooks-online/skills/email-to-estimate-invoice/SKILL.md",
+            "third_party/quickbooks-online/skills/industry-benchmark/SKILL.md",
+            "third_party/quickbooks-online/skills/lending/SKILL.md",
+            "third_party/quickbooks-online/skills/payroll-employee-onboarding/SKILL.md",
+            "third_party/quickbooks-online/skills/payroll-help/SKILL.md",
+            "third_party/quickbooks-online/skills/quickbooks-setup/SKILL.md",
+            "third_party/quickbooks-online/skills/set-base-pay/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/1b5e36c42b6a16dbf2e480f6c7b0514d340573f9",
+            "Parent comparisons: 1541ad72393f5a771eb45d99e1b6276e3636c3ea; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "5dba0b8d0bb778182411b2544f7a801d1529aef1",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/quickbooks-online and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/skills/LICENSE",
+            "third_party/quickbooks-online/skills/analyze-payroll-cost/SKILL.md",
+            "third_party/quickbooks-online/skills/business-health-check/SKILL.md",
+            "third_party/quickbooks-online/skills/chase-overdue-invoices/SKILL.md",
+            "third_party/quickbooks-online/skills/email-to-estimate-invoice/SKILL.md",
+            "third_party/quickbooks-online/skills/industry-benchmark/SKILL.md",
+            "third_party/quickbooks-online/skills/lending/SKILL.md",
+            "third_party/quickbooks-online/skills/payroll-employee-onboarding/SKILL.md",
+            "third_party/quickbooks-online/skills/payroll-help/SKILL.md",
+            "third_party/quickbooks-online/skills/quickbooks-setup/SKILL.md",
+            "third_party/quickbooks-online/skills/set-base-pay/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/5dba0b8d0bb778182411b2544f7a801d1529aef1",
+            "Parent comparisons: 1541ad72393f5a771eb45d99e1b6276e3636c3ea, 1b5e36c42b6a16dbf2e480f6c7b0514d340573f9; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "82b7afaf5cd05fff30a2b5e42960f57b225e2cf7",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/quickbooks-online and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/skills/LICENSE",
+            "third_party/quickbooks-online/skills/analyze-payroll-cost/SKILL.md",
+            "third_party/quickbooks-online/skills/business-health-check/SKILL.md",
+            "third_party/quickbooks-online/skills/chase-overdue-invoices/SKILL.md",
+            "third_party/quickbooks-online/skills/email-to-estimate-invoice/SKILL.md",
+            "third_party/quickbooks-online/skills/industry-benchmark/SKILL.md",
+            "third_party/quickbooks-online/skills/lending/SKILL.md",
+            "third_party/quickbooks-online/skills/payroll-employee-onboarding/SKILL.md",
+            "third_party/quickbooks-online/skills/payroll-help/SKILL.md",
+            "third_party/quickbooks-online/skills/quickbooks-setup/SKILL.md",
+            "third_party/quickbooks-online/skills/set-base-pay/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/82b7afaf5cd05fff30a2b5e42960f57b225e2cf7",
+            "Parent comparisons: 5dba0b8d0bb778182411b2544f7a801d1529aef1; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "699e1e7488c53c05ca13409f40da83cd37682091",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/quickbooks-online and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/quickbooks-online/README.md",
+            "third_party/quickbooks-online/skills/LICENSE",
+            "third_party/quickbooks-online/skills/analyze-payroll-cost/SKILL.md",
+            "third_party/quickbooks-online/skills/business-health-check/SKILL.md",
+            "third_party/quickbooks-online/skills/chase-overdue-invoices/SKILL.md",
+            "third_party/quickbooks-online/skills/email-to-estimate-invoice/SKILL.md",
+            "third_party/quickbooks-online/skills/industry-benchmark/SKILL.md",
+            "third_party/quickbooks-online/skills/lending/SKILL.md",
+            "third_party/quickbooks-online/skills/payroll-employee-onboarding/SKILL.md",
+            "third_party/quickbooks-online/skills/payroll-help/SKILL.md",
+            "third_party/quickbooks-online/skills/quickbooks-setup/SKILL.md",
+            "third_party/quickbooks-online/skills/set-base-pay/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/699e1e7488c53c05ca13409f40da83cd37682091",
+            "Parent comparisons: 5dba0b8d0bb778182411b2544f7a801d1529aef1, 82b7afaf5cd05fff30a2b5e42960f57b225e2cf7; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "017da53ffe3e987a4e16a4ebeeca90ed4cde97e8",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/google-cloud-bigquery and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            "third_party/google-cloud-bigquery/.cursor-plugin/plugin.json",
+            "third_party/google-cloud-bigquery/CHANGELOG.md",
+            "third_party/google-cloud-bigquery/README.md",
+            "third_party/google-cloud-bigquery/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/017da53ffe3e987a4e16a4ebeeca90ed4cde97e8",
+            "Parent comparisons: 699e1e7488c53c05ca13409f40da83cd37682091; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "23bc01d64cf47489418ba27532d07bc8d41db362",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/google-cloud-bigquery and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            "third_party/google-cloud-bigquery/.cursor-plugin/plugin.json",
+            "third_party/google-cloud-bigquery/CHANGELOG.md",
+            "third_party/google-cloud-bigquery/README.md",
+            "third_party/google-cloud-bigquery/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/23bc01d64cf47489418ba27532d07bc8d41db362",
+            "Parent comparisons: 017da53ffe3e987a4e16a4ebeeca90ed4cde97e8; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "a3a6c0556a586b84c22bd2f35904bfaa6318568f",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/google-cloud-bigquery and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            "third_party/google-cloud-bigquery/.cursor-plugin/plugin.json",
+            "third_party/google-cloud-bigquery/CHANGELOG.md",
+            "third_party/google-cloud-bigquery/README.md",
+            "third_party/google-cloud-bigquery/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/a3a6c0556a586b84c22bd2f35904bfaa6318568f",
+            "Parent comparisons: 699e1e7488c53c05ca13409f40da83cd37682091, 23bc01d64cf47489418ba27532d07bc8d41db362; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "d27bff41981366ca47893066f61e86eae6442360",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/lark and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/lark/.cursor-plugin/plugin.json",
+            "third_party/lark/CHANGELOG.md",
+            "third_party/lark/LICENSE",
+            "third_party/lark/README.md",
+            "third_party/lark/assets/logo.png",
+            "third_party/lark/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/d27bff41981366ca47893066f61e86eae6442360",
+            "Parent comparisons: 699e1e7488c53c05ca13409f40da83cd37682091; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "fa7facd69d3d250ef708d01dcd4b53234c4f44e8",
+          "disposition": "excluded",
+          "reason": "Changes concern third_party/feishu, third_party/lark and Cursor marketplace listings, not pstack. These integrations remain outside the eight-plugin Codex inventory.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/feishu/.cursor-plugin/plugin.json",
+            "third_party/feishu/CHANGELOG.md",
+            "third_party/feishu/LICENSE",
+            "third_party/feishu/README.md",
+            "third_party/feishu/assets/logo.png",
+            "third_party/feishu/mcp.json",
+            "third_party/lark/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/fa7facd69d3d250ef708d01dcd4b53234c4f44e8",
+            "Parent comparisons: d27bff41981366ca47893066f61e86eae6442360; pinned rename and deletion paths retained verbatim.",
+            "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
+            "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
           ]
         }
       ]

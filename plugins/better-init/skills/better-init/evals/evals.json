@@ -5,11 +5,12 @@
       "id": 1,
       "name": "minimal-codex-guidance",
       "prompt": "Initialize this small repository for Codex. Inspect the build and test scripts and write only useful guidance.",
-      "expected_output": "A concise AGENTS.md with verified commands and no unnecessary configuration.",
+      "expected_output": "A concise AGENTS.md plus a grounded project review skill, with no unnecessary configuration.",
       "files": [],
       "expectations": [
         "Commands are verified from executable sources.",
-        "No Copilot-specific files or Codex user configuration are generated."
+        "No Copilot-specific files or Codex user configuration are generated.",
+        ".agents/skills/code-review/SKILL.md maps changed paths to verified behavior, tests, and applicable validation without duplicating AGENTS.md."
       ]
     },
     {
@@ -32,7 +33,8 @@
       "expectations": [
         "services/payments/AGENTS.md owns package-specific requirements.",
         "Generated-code restrictions are placed at the narrowest useful scope.",
-        "No .github/instructions showcase files are created."
+        "No .github/instructions showcase files are created.",
+        "A project review skill references the scoped payments and generated-code guidance without duplicating it."
       ]
     },
     {
@@ -43,7 +45,8 @@
       "files": [],
       "expectations": [
         "The skill\u2019s name matches its directory and its description identifies the task.",
-        "Template paths and validation commands are verified."
+        "Template paths and validation commands are verified.",
+        "The default project review skill is included alongside the requested package workflow."
       ]
     },
     {
@@ -67,6 +70,42 @@
       "expectations": [
         "The result accounts for same-directory override precedence.",
         "No redundant instruction surface is created."
+      ]
+    },
+    {
+      "id": 7,
+      "name": "explicit-instructions-only-scope",
+      "prompt": "Use better-init to create only AGENTS.md. Verified facts: src/index.js is the entrypoint, test/ holds tests, and npm test runs node --test. Do not edit any other instruction, skill, agent, or configuration file.",
+      "expected_output": "Only AGENTS.md is generated because explicit scope overrides the default review skill.",
+      "files": [],
+      "expectations": [
+        "AGENTS.md describes the supplied entrypoint, test directory, and command.",
+        "No review skill or other instruction surface is created."
+      ]
+    },
+    {
+      "id": 8,
+      "name": "preserve-existing-review-owner",
+      "prompt": "Use better-init for a general guidance refresh of the supplied simple-repository fixture. The supplied existing-review-contracts.md represents its existing .agents/skills/review-contracts/SKILL.md, which owns review guidance. Preserve its compatibility check. The target hosted reviewer has no confirmed access to the local incident MCP service. Read both fixtures and write refreshed guidance to the output directory using repository-relative paths. Do not modify the fixtures.",
+      "expected_output": "AGENTS.md and the existing owning review skill are refreshed without adding a duplicate code-review skill.",
+      "files": ["evals/files/simple-repository", "evals/files/existing-review-contracts.md"],
+      "expectations": [
+        "The existing exact greeting output check is preserved.",
+        "The owning review skill maps src/index.js to test/index.test.js and applicable validation.",
+        "No duplicate .agents/skills/code-review/SKILL.md is created.",
+        "No hosted MCP access is inferred from local configuration."
+      ]
+    },
+    {
+      "id": 9,
+      "name": "contributor-focus-keeps-default-review",
+      "prompt": "Initialize Codex guidance for the supplied simple-repository fixture, prioritizing contributor workflow and fast validation. No instructions exist. Read the fixture and write resulting guidance to the output directory using repository-relative paths. Do not modify the fixture.",
+      "expected_output": "AGENTS.md and a concise project review skill are created despite the contributor-workflow focus.",
+      "files": ["evals/files/simple-repository"],
+      "expectations": [
+        ".agents/skills/code-review/SKILL.md exists with name: code-review and a pull-request-review description.",
+        "The review skill maps greeting changes to the existing test and verified validation.",
+        "No specialized requirements, extra agents, or unverified tool access are invented."
       ]
     }
   ]

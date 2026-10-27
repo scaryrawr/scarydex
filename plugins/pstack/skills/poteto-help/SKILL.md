@@ -81,6 +81,7 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
 | Bring a verification skill and its feature map back in line with the app | [`/maintain-verification-skill`](../maintain-verification-skill/SKILL.md) |
 | Check a race, invariant or other property that tests rarely reach, and generate a project-local skill to rerun it | [`/create-formal-verification-skill`](../create-formal-verification-skill/SKILL.md) |
 | Update a formal check after covered code changes, distinguishing verification drift from a product bug | [`/maintain-formal-verification-skill`](../maintain-formal-verification-skill/SKILL.md) |
+| Draw a TLA+ model or agreed Mermaid chart as observable states and numbered bug paths | [`/statechart`](../statechart/SKILL.md) |
 | Vet a performance number before reporting or acting on it | [`/benchmark-checklist`](../benchmark-checklist/SKILL.md) |
 | Run a large or cross-cutting change, or one to review after stepping away | [`/figure-it-out`](../figure-it-out/SKILL.md) |
 | Keep a decision log during a run, and review it afterward | [`/show-me-your-work`](../show-me-your-work/SKILL.md) |

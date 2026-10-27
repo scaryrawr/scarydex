@@ -11,6 +11,9 @@ Use [create-formal-verification-skill](skills/create-formal-verification-skill/S
 to check one costly, hard-to-test property and generate a project-local skill.
 Use [maintain-formal-verification-skill](skills/maintain-formal-verification-skill/SKILL.md)
 after covered code changes to distinguish verification drift from product bugs.
+Use [statechart](skills/statechart/SKILL.md) to turn a TLA+ model into observable
+states and numbered bug paths, or an agreed Mermaid chart into a TLA+ skeleton.
+The portable scripts do not install Java, TLC or rendering dependencies.
 
 ## Install and prerequisites
 
@@ -46,8 +49,11 @@ Resolve these paths from the installed plugin root:
 - `skills/pstack-schema-validate/scripts/validate.mjs`: snapshot, receipt, handoff,
   and plan contracts. Use its help/usage contract, not a general JSON validator.
 - `skills/show-me-your-work/scripts/log.sh`: durable decision-trail entries.
+- `skills/show-me-your-work/scripts/log.mjs`: portable Node decision-trail writer.
 - `skills/poteto-mode/scripts/worktree-audit.sh`: read-only POSIX worktree audit.
   Use `--base <ref>` when the integration branch differs from the remote default.
+  The audit uses local refs only, never fetches, and preserves worktree paths
+  containing spaces. Remote-tracking refs can be stale.
 - `skills/poteto-mode/scripts/orch/orch.mjs`: optional durable program store.
   `frontier set --repo <checkout> [--prs <n,...>]` discovers a linear GitHub PR
   base chain, pins local branch SHAs, and checks an optional PR order pin.
@@ -55,6 +61,14 @@ Resolve these paths from the installed plugin root:
 - `skills/poteto-mode/scripts/watch-pr/watch-pr.mjs`: optional GitHub PR watcher.
   Review threads are paginated so unresolved findings beyond the first 100 are
   not missed.
+
+Artifact validation confines inputs to regular, non-symlink files inside the
+current workspace on macOS and Linux. It fails closed elsewhere; evidence
+references inside artifacts remain data, not files to read or commands to run.
+
+Ordinary feature, fix and refactoring completion uses the smallest adequate
+caller-facing check and reports its observed result or exact verification gap.
+This does not require a full suite, extra agent, app launch or media capture.
 
 Codex custom-agent behavior is retained in `references/agents/` as prompts.
 No status, swarm, capabilities, or handoff extension tool is registered. Use
@@ -81,3 +95,13 @@ hosted agents, Grok Bot features, Origin integration, vendor-specific model
 defaults, Claude harness packaging and Cursor guide pages remain outside this
 port. The upstream root Agent Plugins manifest does not replace the existing
 Codex manifest.
+
+The subsequent ScaryPilot review through
+[`53263e5b`](https://github.com/scaryrawr/scarypilot/commit/53263e5b135e6c1dbab762b81b9165bf73eccb6e)
+ports its portable statechart integration, workspace-confined validator,
+read-only worktree audit, Node decision log and proportionate completion gate.
+The statechart copy includes the Windows output-folder validation fix and
+dependency-free regression tests. TLC-backed checks require existing Java and
+an explicitly supplied `TLA2TOOLS` jar; without them those tests report skips.
+The reviewed stable TLC reference is 1.7.4, not the replaceable 1.8.0 prerelease.
+This does not claim integration of later Cursor statechart or renderer releases.

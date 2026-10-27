@@ -10,6 +10,10 @@ Run the bundled validator rather than inspecting pstack artifacts by eye. The CL
 ## Commands
 
 Resolve `scripts/validate.mjs` relative to this skill directory.
+Keep the working directory at the approved workspace. Inputs must be regular files
+inside that workspace, without traversal, URLs or symlink components.
+Confined validation requires macOS or Linux and fails closed on other platforms.
+Artifact evidence references are validated as data, never read or executed.
 
 ```sh
 node scripts/validate.mjs snapshot <snapshot.json>

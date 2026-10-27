@@ -61,7 +61,7 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
 
 **Verification**
 
-- **Prove It Works.** After a task, before declaring done. Verify against the real artifact, not a proxy or "it compiles".
+- **Prove It Works.** Implementing, fixing, changing behavior or refactoring. Check the original acceptance condition on the real artifact and return proportionate evidence by default, or name the blocked verification gap.
 - **Fix Root Causes.** Debugging. Trace each symptom back to the first place the system went wrong and fix it there. A guard is a fix only when the state it handles is legitimate.
 - **Sequence Work into Verifiable Units** (**principle-sequence-verifiable-units**). Multi-step work (sweeps, migrations, runs of similar edits) and how you stack commits and PRs. Break work into small units that each end in a check, verify each before the next, and order delivery so the sequence proves itself.
 - **Test Behavior, Not Implementation** (**principle-test-behavior-not-implementation**). Writing, changing, reviewing, or keeping a test in any language. Exercise a caller-visible contract, assert an independently specified outcome, and check that a plausible defect makes the test fail while an internal refactor does not.
