@@ -240,9 +240,11 @@ function resolve(item) {
   const hits = [];
 
   for (const [ri, x] of vars.entries()) {
+    if (x.states.has(item) && x.composites.has(item))
+      throw new Error(`ambiguous state and composite caption "${item}"; give each its own caption`);
     const inside = x.states.has(item)
       ? [item]
-      : [...x.states].filter((s) => s.startsWith(`${item}.`));
+      : x.composites.get(item) ?? [];
 
     if (inside.length) hits.push({ ri, inside });
   }

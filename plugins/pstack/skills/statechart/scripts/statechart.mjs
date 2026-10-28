@@ -429,7 +429,7 @@ function check(tools, model, { work, out }, expected) {
   const shown = (file) => rel(path.join(out, "tlc", path.basename(file)));
 
   const traces = rules.map((rule) => {
-    const file = path.join(tlcDir, `${name}-${rule}`);
+    const file = path.join(tlcDir, `${name}-${encodeURIComponent(rule)}`);
     const cfg = `${cfgWithoutRules}INVARIANT ${rule}\nCONSTRAINT ${rule}\n`;
     let result = run(cfg, file, { workers: "auto" });
 
@@ -445,7 +445,7 @@ function check(tools, model, { work, out }, expected) {
   });
 
   const temporal = properties.map((property) => {
-    const file = path.join(tlcDir, `${name}-${property}`);
+    const file = path.join(tlcDir, `${name}-${encodeURIComponent(property)}`);
     const { stdout } = run(`${cfgWithoutRules}PROPERTY ${property}\n`, file, { workers: "auto" });
     const broken = BROKEN_PROPERTY.test(stdout);
     console.log(

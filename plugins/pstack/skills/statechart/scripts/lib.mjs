@@ -95,7 +95,9 @@ export function parseValue(text) {
       for (;;) {
         const k = value();
         eat(":>");
-        fn[typeof k === "string" ? k : JSON.stringify(k)] = value();
+        Object.defineProperty(fn, typeof k === "string" ? k : JSON.stringify(k), {
+          value: value(), enumerable: true, configurable: true, writable: true,
+        });
         ws();
 
         if (peek("@@")) {
@@ -749,7 +751,7 @@ export function parseMermaid(text) {
     if (
       !line ||
       line.startsWith("%%") ||
-      /^(stateDiagram|direction|classDef|class |note)/.test(line)
+      /^(?:stateDiagram(?:-v2)?|direction|classDef|class|note)(?:\s|$)/.test(line)
     )
       continue;
     let m = /^state\s+"([^"]*)"\s+as\s+([A-Za-z_]\w*)\s*(\{)?\s*$/.exec(line);
@@ -821,7 +823,7 @@ export function parseMermaid(text) {
     );
 
   function region(p) {
-    const out = { states: new Set(), initial: new Set(), transitions: [] };
+    const out = { states: new Set(), initial: new Set(), transitions: [], composites: new Map() };
     const info = new Map();
     const declaredInRegion = new Set();
     (function collect(q) {
@@ -878,6 +880,9 @@ export function parseMermaid(text) {
             `${display(c.name)} splits into regions below the top level; make each region a top-level region`,
           );
         const inner = states(c.parts[0], `${full}.`, depth + 1);
+        if (out.composites.has(full))
+          throw new Error(`ambiguous composite caption "${full}"; give each its own caption`);
+        out.composites.set(full, inner);
 
         const initial = c.parts[0].transitions
           .filter((t) => t.from === "[*]")

@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
-import { afterEach, test } from "node:test";
+import { after, afterEach, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import {
@@ -35,15 +35,20 @@ const here = dirname(fileURLToPath(import.meta.url));
 const scripts = dirname(here);
 const nodeExecutable = process.versions.bun ? "node" : process.execPath;
 const directories = [];
+const sharedDirectories = [];
 
-function mkdtempSync(prefix) {
+function mkdtempSync(prefix, { shared = false } = {}) {
   const directory = createDirectory(prefix);
-  directories.push(directory);
+  (shared ? sharedDirectories : directories).push(directory);
   return directory;
 }
 
 afterEach(() => {
   for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
+});
+
+after(() => {
+  for (const directory of sharedDirectories.splice(0)) rmSync(directory, { recursive: true, force: true });
 });
 
 const fixture = (name) => readFileSync(join(here, name), "utf8");
@@ -295,6 +300,29 @@ x = 1
     { action: null, vars: { x: 0 } },
     { action: "Inc", vars: { x: 1 } },
   ]);
+});
+
+test("TLC function keys are own data properties, including __proto__", () => {
+  const first = parseValue('("__proto__" :> 1 @@ "constructor" :> 3)');
+  const second = parseValue('("__proto__" :> 2 @@ "constructor" :> 3)');
+  assert.equal(Object.getPrototypeOf(first), Object.prototype);
+  assert.equal(Object.hasOwn(first, "__proto__"), true);
+  assert.equal(first.__proto__, 1);
+  assert.equal(first.constructor, 3);
+  assert.notEqual(stateKey({ x: first }), stateKey({ x: second }));
+});
+
+test("state identifiers beginning with directive keywords keep their transitions", () => {
+  for (const id of ["notes", "directional", "classDefault", "stateDiagrammer"]) {
+    const { regions } = parseMermaid(`stateDiagram-v2
+direction LR
+classDef saved fill:#fff
+class Saved saved
+note right of Saved : saved
+[*] --> ${id}
+${id} --> Saved : save`);
+    assert.deepEqual(edges(regions.Main), [`${id} -> Saved : save`]);
+  }
 });
 
 test("TLC control escapes survive value, graph and trace parsing without merging states", () => {
@@ -585,6 +613,42 @@ test("a never line names a state exactly, or every state inside a composite", ()
     readFileSync(join(dir, "C.map.mjs"), "utf8"),
     /^export const readerActions = \[\];$/m,
   );
+});
+
+test("never rules use declared composite descendants, not dotted caption prefixes", () => {
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  writeFileSync(join(dir, "c.mmd"), `stateDiagram-v2
+state "Payment.failed" as Failed
+state Payment {
+  [*] --> Pending
+  Pending --> Done : finish
+}
+[*] --> Failed
+Failed --> Payment : retry
+%% never NoPayment: Payment
+%% never NoFailure: Payment.failed
+`);
+  const r = node("chart-to-tla.mjs", ["c.mmd", "--module", "C"], dir);
+  assert.equal(r.status, 0, r.stderr);
+  const spec = readFileSync(join(dir, "C.tla"), "utf8");
+  assert.match(spec, /^NoPayment == ~\(main \\in \{"Payment.Pending", "Payment.Done"\}\)$/m);
+  assert.match(spec, /^NoFailure == ~\(main = "Payment.failed"\)$/m);
+});
+
+test("never rules refuse captions shared by a leaf and a composite", () => {
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  writeFileSync(join(dir, "c.mmd"), `stateDiagram-v2
+state "Payment" as Leaf
+state Payment {
+  [*] --> Pending
+}
+[*] --> Leaf
+Leaf --> Payment : retry
+%% never NoPayment: Payment
+`);
+  const r = node("chart-to-tla.mjs", ["c.mmd", "--module", "C"], dir);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /ambiguous.*Payment/);
 });
 
 const door = `stateDiagram-v2
@@ -3139,6 +3203,38 @@ const writeLamp = (dir) => {
   return join(dir, "Lamp-statechart");
 };
 
+test("invariant and property names stay within the TLC output directory", () => {
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  writeLamp(dir);
+  const tmp = join(dir, "tmp");
+  mkdirSync(tmp);
+  const victim = join(tmp, "victim.cfg");
+  writeFileSync(victim, "keep me\n");
+  const java = join(dir, "java");
+  writeFileSync(java, `#!/usr/bin/env node
+import fs from "node:fs";
+const args = process.argv.slice(2);
+const dump = args.indexOf("-dump");
+if (dump !== -1)
+  fs.writeFileSync(args[dump + 2], 'strict digraph DiskGraph {\\n1 [label="/\\\\\\\\ on = FALSE",style = filled]\\n}\\n');
+console.log("Model checking completed. No error has been found.");
+`, { mode: 0o755 });
+  const jar = join(dir, "tla2tools.jar");
+  writeFileSync(jar, "");
+
+  for (const kind of ["INVARIANT", "PROPERTY"]) {
+    const rule = "../../../../victim";
+    writeFileSync(join(dir, "Lamp.cfg"), `SPECIFICATION Spec\n${kind} ${rule}\n`);
+    const r = node("statechart.mjs", ["from-spec", "Lamp.tla"], dir, {
+      JAVA: java, TLA2TOOLS: jar, TMPDIR: tmp,
+    });
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(readFileSync(victim, "utf8"), "keep me\n");
+    const cfg = join(dir, "Lamp-statechart", "tlc", `Lamp-${encodeURIComponent(rule)}.cfg`);
+    assert.match(readFileSync(cfg, "utf8"), new RegExp(kind));
+  }
+});
+
 test("config strings and nested comments retain their exact meaning in every TLC run", needsTlc, () => {
   const dir = mkdtempSync(join(tmpdir(), "statechart-"));
   const out = writeLamp(dir);
@@ -3397,7 +3493,7 @@ ssize_t readlink(const char *path, char *buf, size_t size) {
 
 const hidingPreload = (() => {
   if (spawnSync(unshare[0], [...unshare.slice(1), "true"]).status !== 0) return null;
-  const dir = mkdtempSync(join(tmpdir(), "statechart-preload-"));
+  const dir = mkdtempSync(join(tmpdir(), "statechart-preload-"), { shared: true });
   writeFileSync(join(dir, "hide.c"), hidePidNamespace);
   const so = join(dir, "hide.so");
   const cc = spawnSync("cc", ["-shared", "-fPIC", "-o", so, join(dir, "hide.c"), "-ldl"]);
@@ -3481,13 +3577,20 @@ int rename(const char *from, const char *to) {
 const failingRenames = (() => {
   if (process.platform !== "linux") return null;
 
-  const dir = mkdtempSync(join(tmpdir(), "statechart-preload-"));
+  const dir = mkdtempSync(join(tmpdir(), "statechart-preload-"), { shared: true });
   writeFileSync(join(dir, "rename.c"), failRenames);
   const so = join(dir, "rename.so");
   const cc = spawnSync("cc", ["-shared", "-fPIC", "-o", so, join(dir, "rename.c"), "-ldl"]);
 
   return cc.status === 0 ? so : null;
 })();
+
+test("compiled preload fixtures survive per-test cleanup", {
+  skip: !hidingPreload && !failingRenames && "no compiled Linux preloads",
+}, () => {
+  for (const preload of [hidingPreload, failingRenames].filter(Boolean))
+    assert.ok(existsSync(preload), `shared preload was removed: ${preload}`);
+});
 
 test(
   "a run whose rename fails after it moves the output folder aside puts the folder back, or says where it is",

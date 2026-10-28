@@ -78,6 +78,10 @@ modules execute code and must be inspected before use. Unlisted output files
 and symlinks block folder replacement. The portable suite is retained with
 Node subprocesses under Bun and Codex plan-fixture vocabulary. Full TLC-backed
 coverage is not claimed when Java or the supplied jar is unavailable.
+Local statechart corrections confine rule-derived filenames, resolve composite
+membership from declared hierarchy, preserve arbitrary TLC function keys and
+directive-prefixed state identifiers, and retain shared Linux test preloads
+until suite teardown.
 ScaryPilot's Copilot SDK deletion requires no local extension migration because
 this port already excludes that extension. Its gh-stack/bootstrap installer,
 Copilot agent registration, source sync machinery and CI provisioning are not
