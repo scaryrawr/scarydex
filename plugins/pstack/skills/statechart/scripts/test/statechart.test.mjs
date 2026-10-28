@@ -26,6 +26,7 @@ import {
   ruleSentences,
   splitRules,
   stateKey,
+  tlaDependencies,
   tlcOutputWarning,
   uncitedConditions,
 } from "../lib.mjs";
@@ -310,6 +311,17 @@ test("TLC function keys are own data properties, including __proto__", () => {
   assert.equal(first.__proto__, 1);
   assert.equal(first.constructor, 3);
   assert.notEqual(stateKey({ x: first }), stateKey({ x: second }));
+});
+
+test("local TLA module references ignore nested comments and strings", () => {
+  assert.deepEqual(tlaDependencies(`---- MODULE M ----
+EXTENDS (* comment (* EXTENDS Hidden *) *) Naturals,
+  Shared
+\\* INSTANCE Ignored
+Quoted == "INSTANCE NotAModule EXTENDS NorThisOne"
+Nested == INSTANCE Other WITH x <- 1
+LOCAL INSTANCE Shared
+====`), ["Naturals", "Shared", "Other"]);
 });
 
 test("state identifiers beginning with directive keywords keep their transitions", () => {
@@ -3234,6 +3246,67 @@ console.log("Model checking completed. No error has been found.");
     assert.match(readFileSync(cfg, "utf8"), new RegExp(kind));
   }
 });
+
+for (const mode of ["from-spec", "from-chart", "--fixed", "--against"]) {
+  test(`${mode} refuses publication after a transitive local TLA dependency changes`, () => {
+    const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+    const out = writeLamp(dir);
+    const tmp = ownTmp(dir, "tmp");
+    const secondDir = ownTmp(dir, "second");
+    const modelDir = mode.startsWith("--") ? secondDir : dir;
+    const spec = readFileSync(join(dir, "Lamp.tla"), "utf8")
+      .replace("VARIABLE on", "EXTENDS Wrapper\nVARIABLE on")
+      .replace("====", "Safe == TRUE\n====");
+    writeFileSync(join(dir, "Lamp.cfg"), "SPECIFICATION Spec\nINVARIANT Safe\n");
+    writeFileSync(join(modelDir, "Wrapper.tla"),
+      "---- MODULE Wrapper ----\nInner == INSTANCE Leaf\n====\n");
+    const dependency = join(modelDir, "Leaf.tla");
+    writeFileSync(dependency, "---- MODULE Leaf ----\nValue == 1\n====\n");
+    let args;
+
+    if (mode.startsWith("--")) {
+      writeFileSync(join(dir, "Lamp.tla"),
+        readFileSync(join(dir, "Lamp.tla"), "utf8").replace("====", "Safe == TRUE\n===="));
+      writeFileSync(join(secondDir, "LampOther.tla"), spec.replace("MODULE Lamp", "MODULE LampOther"));
+      writeFileSync(join(secondDir, "LampOther.cfg"), "SPECIFICATION Spec\nINVARIANT Safe\n");
+      args = ["from-spec", "Lamp.tla", mode, join("second", "LampOther.tla")];
+    } else {
+      writeFileSync(join(dir, "Lamp.tla"), spec);
+      writeFileSync(join(dir, "lamp.mmd"), "stateDiagram-v2\n[*] --> Off\n");
+      args = mode === "from-chart"
+        ? [mode, "lamp.mmd", "--module", "Lamp"]
+        : [mode, "Lamp.tla"];
+    }
+
+    const java = join(dir, "java");
+    writeFileSync(java, `#!/usr/bin/env node
+import fs from "node:fs";
+const args = process.argv.slice(2);
+const dump = args.indexOf("-dump");
+if (dump !== -1) {
+  fs.writeFileSync(args[dump + 2], 'strict digraph DiskGraph {\\n1 [label="/\\\\\\\\ on = FALSE",style = filled]\\n}\\n');
+  if (process.env.CHANGE_DEPENDENCY)
+    fs.appendFileSync(process.env.CHANGE_DEPENDENCY, "\\\\* changed during TLC\\n");
+}
+console.log("Model checking completed. No error has been found.");
+`, { mode: 0o755 });
+    const jar = join(dir, "tla2tools.jar");
+    writeFileSync(jar, "");
+    const env = { JAVA: java, TLA2TOOLS: jar, TMPDIR: tmp, CHANGE_DEPENDENCY: "" };
+    const unrelated = join(dir, "Unrelated.tla");
+    writeFileSync(unrelated, "---- MODULE Unrelated ----\nValue == 1\n====\n");
+    const first = node("statechart.mjs", args, dir, { ...env, CHANGE_DEPENDENCY: unrelated });
+    assert.equal(first.status, 0, first.stderr);
+    const chart = readFileSync(join(out, "chart.mmd"), "utf8");
+    const changed = node("statechart.mjs", args, dir, {
+      ...env, CHANGE_DEPENDENCY: dependency,
+    });
+    assert.equal(changed.status, 2, changed.stderr);
+    assert.match(changed.stderr, /Leaf\.tla changed while this run read it/);
+    assert.equal(readFileSync(join(out, "chart.mmd"), "utf8"), chart);
+    assert.deepEqual(staged(dir), []);
+  });
+}
 
 test("config strings and nested comments retain their exact meaning in every TLC run", needsTlc, () => {
   const dir = mkdtempSync(join(tmpdir(), "statechart-"));

@@ -13,6 +13,7 @@ import {
   parseDot,
   PRIMES_OR_UNCHANGED,
   splitRules,
+  tlaDependencies,
   tlaVariables,
   tlcOutputWarning,
   uncitedConditions,
@@ -799,6 +800,25 @@ function snapshot(files, inputs = new Map()) {
   return inputs;
 }
 
+function snapshotModels(specs, inputs) {
+  for (const spec of specs.filter(Boolean)) {
+    const dir = path.dirname(path.resolve(spec));
+    const seen = new Set();
+
+    const visit = (file) => {
+      if (seen.has(file)) return;
+      seen.add(file);
+      snapshot([file], inputs);
+      if (!fs.existsSync(file)) return;
+
+      for (const name of tlaDependencies(fs.readFileSync(file, "utf8")))
+        visit(path.join(dir, `${name}.tla`));
+    };
+
+    visit(path.resolve(spec));
+  }
+}
+
 async function inWorkFolder(body) {
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "statechart-"));
   fs.mkdirSync(path.join(work, "tlc"));
@@ -1003,6 +1023,7 @@ async function fromSpec(input, { "expect-broken": expected, ...flags }) {
   const cfg = flags.config ?? cfgOf(input);
   const otherCfg = secondCfg(cfg, flags);
   const inputs = snapshot([input, cfg, map, flags.fixed ?? flags.against, otherCfg]);
+  snapshotModels([input, flags.fixed ?? flags.against], inputs);
   const second = secondModel(input, otherCfg, flags);
   const model = readInput(input, cfg, expected);
   const out = outDir(flags.out, input, name);
@@ -1060,6 +1081,7 @@ async function fromChart(input, { "expect-broken": expected, ...flags }) {
   }
 
   snapshot([spec, cfgOf(spec), map], inputs);
+  snapshotModels([spec], inputs);
   const tools = findTools();
   const model = readInput(spec, cfgOf(spec), expected);
   const out = outDir(flags.out, input, name);

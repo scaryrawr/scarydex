@@ -82,6 +82,8 @@ Local statechart corrections confine rule-derived filenames, resolve composite
 membership from declared hierarchy, preserve arbitrary TLC function keys and
 directive-prefixed state identifiers, and retain shared Linux test preloads
 until suite teardown.
+Input-change protection also fingerprints transitive local TLA+ modules referenced
+by `EXTENDS` and `INSTANCE`, including fixed and comparison models, before TLC runs.
 ScaryPilot's Copilot SDK deletion requires no local extension migration because
 this port already excludes that extension. Its gh-stack/bootstrap installer,
 Copilot agent registration, source sync machinery and CI provisioning are not

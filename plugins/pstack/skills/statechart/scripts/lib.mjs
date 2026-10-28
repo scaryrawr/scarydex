@@ -252,6 +252,19 @@ function splitCommentsKeepingOffsets(text) {
   return { code, notes };
 }
 
+export function tlaDependencies(text) {
+  const { code } = splitCommentsKeepingOffsets(text);
+  const source = code.replace(/"(?:[^"\\]|\\.)*"/g, '""');
+  const modules = new Set();
+
+  for (const match of source.matchAll(/\bEXTENDS\s+(\w+(?:\s*,\s*\w+)*)/g))
+    for (const name of match[1].split(/\s*,\s*/)) modules.add(name);
+
+  for (const match of source.matchAll(/\bINSTANCE\s+(\w+)/g)) modules.add(match[1]);
+
+  return [...modules];
+}
+
 const CFG_KEYWORD =
   /^(SPECIFICATION|INIT|NEXT|CONSTANTS?|INVARIANTS?|PROPERTY|PROPERTIES|SYMMETRY|VIEW|CONSTRAINTS?|ACTION_CONSTRAINTS?|CHECK_DEADLOCK|POSTCONDITION|ALIAS)$/;
 
