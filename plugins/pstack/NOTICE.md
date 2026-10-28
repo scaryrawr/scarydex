@@ -86,6 +86,9 @@ Input-change protection also fingerprints transitive local TLA+ modules referenc
 by `EXTENDS` and `INSTANCE`, including fixed and comparison models, before TLC runs.
 TLC model values and non-string function keys are explicitly unsupported: parsing
 stops rather than conflating them with string values or keys in state identities.
+Graph/trace variables, parallel-region captions and guard state lists preserve
+prototype-named keys as own properties instead of invoking inherited setters or
+reading inherited values.
 ScaryPilot's Copilot SDK deletion requires no local extension migration because
 this port already excludes that extension. Its gh-stack/bootstrap installer,
 Copilot agent registration, source sync machinery and CI provisioning are not

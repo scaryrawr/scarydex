@@ -166,16 +166,16 @@ function parseState(text) {
     else conjuncts[conjuncts.length - 1] += ` ${line.trim()}`;
   }
 
-  const vars = {};
+  const vars = [];
 
   for (const c of conjuncts) {
     const eq = c.indexOf(" = ");
 
     if (eq < 0) continue;
-    vars[c.slice(0, eq).trim()] = parseValue(c.slice(eq + 3));
+    vars.push([c.slice(0, eq).trim(), parseValue(c.slice(eq + 3))]);
   }
 
-  return vars;
+  return Object.fromEntries(vars);
 }
 
 export const isRecord = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -994,7 +994,9 @@ export function parseMermaid(text) {
       const [r, ids] = region(holder ? holder.parts[0] : p);
 
       if (Object.hasOwn(regions, name)) throw new Error(`duplicate region name: ${name}`);
-      regions[name] = r;
+      Object.defineProperty(regions, name, {
+        value: r, enumerable: true, configurable: true, writable: true,
+      });
 
       for (const [id, { all }] of ids) owners.set(id, { name, all });
     }
@@ -1023,7 +1025,11 @@ export function parseMermaid(text) {
           throw new Error(
             `a %% when line names ${display(id)}, which is in the step's own region; a guard reads other regions`,
           );
-        states[at.name] = [...new Set([...(states[at.name] ?? []), ...at.all])].sort();
+        const previous = Object.hasOwn(states, at.name) ? states[at.name] : [];
+        Object.defineProperty(states, at.name, {
+          value: [...new Set([...previous, ...at.all])].sort(),
+          enumerable: true, configurable: true, writable: true,
+        });
       }
 
       t.guard = { not: t.when.not, states };

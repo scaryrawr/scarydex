@@ -313,6 +313,30 @@ test("TLC function keys are own data properties, including __proto__", () => {
   assert.notEqual(stateKey({ x: first }), stateKey({ x: second }));
 });
 
+test("prototype-named variables preserve distinct graph and trace states", () => {
+  const graph = parseDot(`strict digraph DiskGraph {
+1 [label="__proto__ = 1",style = filled]
+2 [label="__proto__ = 2"]
+1 -> 2 [label="Change"];
+}`);
+  const [trace] = parseTraces(`Error: Invariant Safe is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+__proto__ = 1
+
+State 2: <Change>
+__proto__ = 2
+`);
+  const states = [...graph.nodes.values()].map((n) => n.vars);
+  for (const [i, vars] of states.entries()) {
+    assert.equal(Object.getPrototypeOf(vars), Object.prototype);
+    assert.equal(Object.hasOwn(vars, "__proto__"), true);
+    assert.equal(vars.__proto__, i + 1);
+    assert.equal(stateKey(vars), stateKey(trace.steps[i].vars));
+  }
+  assert.notEqual(stateKey(states[0]), stateKey(states[1]));
+});
+
 test("unsupported TLC model values cannot collapse into string state identities", () => {
   assert.equal(parseValue('"Actor"'), "Actor");
   for (const text of ["Actor", "<<Actor>>", "{Actor}", "[owner |-> Actor]", '("owner" :> Actor)'])
@@ -782,6 +806,35 @@ const lamp = `stateDiagram-v2
   }
   %% never LitWhileOff: Off & Lit -- The bulb is never lit while the power is off.
 `;
+
+test("prototype-named parallel regions remain enumerable and generate both variables", () => {
+  const chart = lamp.replace('state "Power"', 'state "__proto__"');
+  const { regions } = parseMermaid(chart);
+  assert.equal(Object.getPrototypeOf(regions), Object.prototype);
+  assert.deepEqual(Object.keys(regions), ["__proto__", "Bulb"]);
+  assert.deepEqual([...regions.__proto__.states], ["Off", "On"]);
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  writeFileSync(join(dir, "lamp.mmd"), chart);
+  const r = node("chart-to-tla.mjs", ["lamp.mmd", "--module", "Lamp"], dir);
+  assert.equal(r.status, 0, r.stderr);
+  const spec = readFileSync(join(dir, "Lamp.tla"), "utf8");
+  assert.match(spec, /^VARIABLES proto, bulb$/m);
+  assert.match(spec, /^LitWhileOff == ~\(proto = "Off" \/\\ bulb = "Lit"\)$/m);
+});
+
+test("guards collect only own state lists for prototype-named regions", () => {
+  for (const name of ["constructor", "__proto__", "toString"]) {
+    const chart = lamp.replace('state "Power"', `state "${name}"`)
+      .replace("%% when On", "%% when On, Off, On");
+    const { regions } = parseMermaid(chart);
+    const states = regions.Bulb.transitions[0].guard.states;
+    assert.equal(Object.getPrototypeOf(states), Object.prototype);
+    assert.deepEqual(Object.keys(states), [name]);
+    assert.deepEqual(states[name], ["Off", "On"]);
+    assert.deepEqual(regions.Bulb.transitions[1].guard.states[name], ["On"]);
+    assert.equal(regions.Bulb.transitions[1].guard.not, true);
+  }
+});
 
 test("a %% when line guards a step on the other region's states, and [words] are only its text", () => {
   const { regions } = parseMermaid(lamp);
