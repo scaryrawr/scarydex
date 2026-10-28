@@ -14,6 +14,8 @@ export function findTlc() {
   return { jar: TLA2TOOLS, java: JAVA || "java" };
 }
 
+class UnsupportedTlcValue extends Error {}
+
 export function parseValue(text) {
   const src = text.trim();
   let i = 0;
@@ -94,8 +96,12 @@ export function parseValue(text) {
 
       for (;;) {
         const k = value();
+        if (typeof k !== "string")
+          throw new UnsupportedTlcValue(
+            "unsupported TLC function key: only string keys can be decoded without losing type identity",
+          );
         eat(":>");
-        Object.defineProperty(fn, typeof k === "string" ? k : JSON.stringify(k), {
+        Object.defineProperty(fn, k, {
           value: value(), enumerable: true, configurable: true, writable: true,
         });
         ws();
@@ -131,7 +137,11 @@ export function parseValue(text) {
 
     if (m[0] === "FALSE") return false;
 
-    return /^-?\d+$/.test(m[0]) ? Number(m[0]) : m[0];
+    if (/^-?\d+$/.test(m[0])) return Number(m[0]);
+
+    throw new UnsupportedTlcValue(
+      `unsupported TLC model value ${m[0]}: decoding it as a string would lose type identity`,
+    );
   };
 
   try {
@@ -139,7 +149,8 @@ export function parseValue(text) {
     ws();
 
     return i === src.length ? v : src;
-  } catch {
+  } catch (error) {
+    if (error instanceof UnsupportedTlcValue) throw error;
     return src;
   }
 }

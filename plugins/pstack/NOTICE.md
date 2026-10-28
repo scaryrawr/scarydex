@@ -84,6 +84,8 @@ directive-prefixed state identifiers, and retain shared Linux test preloads
 until suite teardown.
 Input-change protection also fingerprints transitive local TLA+ modules referenced
 by `EXTENDS` and `INSTANCE`, including fixed and comparison models, before TLC runs.
+TLC model values and non-string function keys are explicitly unsupported: parsing
+stops rather than conflating them with string values or keys in state identities.
 ScaryPilot's Copilot SDK deletion requires no local extension migration because
 this port already excludes that extension. Its gh-stack/bootstrap installer,
 Copilot agent registration, source sync machinery and CI provisioning are not

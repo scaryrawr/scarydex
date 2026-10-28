@@ -14,6 +14,9 @@ after covered code changes to distinguish verification drift from product bugs.
 Use [statechart](skills/statechart/SKILL.md) to turn a TLA+ model into observable
 states and numbered bug paths, or an agreed Mermaid chart into a TLA+ skeleton.
 The portable scripts do not install Java, TLC or rendering dependencies.
+Statechart parsing rejects TLC model values (such as unquoted `Actor`) and
+functions with non-string keys instead of conflating their state identities
+with strings. Quoted strings, booleans and ordinary integer values remain supported.
 
 ## Install and prerequisites
 

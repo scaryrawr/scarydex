@@ -2451,6 +2451,48 @@
             "Dependency-free CLI regressions mutate a transitive INSTANCE dependency after the graph run for from-spec, from-chart, --fixed and --against. Each refuses publication and preserves the previous chart, while changes to an unrelated module do not block publication.",
             "Synthetic TLC output verifies snapshot/publication wiring, not model-checking correctness. No Java, TLC or renderer installation is performed; pstack is bumped to 0.15.30-codex.3."
           ]
+        },
+        {
+          "commit": "b6c23a703407164ff7890390e4ad6d6e396478aa",
+          "disposition": "ported",
+          "reason": "Reject unsupported typed TLC values instead of conflating model values with strings or non-string function keys with string keys. Preserve existing mapping-friendly supported values and stop chart generation explicitly before it can publish incorrect state identities.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "README.md",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/docs/guide/06-verify-and-ship.md",
+            "external_plugins/pstack/docs/guide/README.md",
+            "external_plugins/pstack/docs/guide/quick-start.md",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/poteto-help/SKILL.md",
+            "external_plugins/pstack/skills/statechart/SKILL.md",
+            "external_plugins/pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/compare-charts.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/lib.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.cfg",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.tla",
+            "external_plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/sync.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/test/upload.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/tlc-to-chart.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/NOTICE.md",
+            "plugins/pstack/README.md",
+            "plugins/pstack/skills/statechart/scripts/lib.mjs",
+            "plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarydex/pull/12#pullrequestreview-5676697177",
+            "New parser regressions reproduce the original missing errors for Actor versus quoted Actor and numeric versus string function keys, including nested values and graph/trace decoding.",
+            "CLI regressions verify colliding-value inputs exit unsuccessfully with explicit diagnostics and do not write a chart. Existing quoted-string and arbitrary string-key decoding stays supported.",
+            "The local unsupported-value boundary is documented and pstack is bumped to 0.15.30-codex.4. No runtime dependencies or typed-value subsystem is introduced."
+          ]
         }
       ]
     },

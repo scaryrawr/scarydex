@@ -313,6 +313,62 @@ test("TLC function keys are own data properties, including __proto__", () => {
   assert.notEqual(stateKey({ x: first }), stateKey({ x: second }));
 });
 
+test("unsupported TLC model values cannot collapse into string state identities", () => {
+  assert.equal(parseValue('"Actor"'), "Actor");
+  for (const text of ["Actor", "<<Actor>>", "{Actor}", "[owner |-> Actor]", '("owner" :> Actor)'])
+    assert.throws(() => parseValue(text), /unsupported TLC model value Actor/);
+  assert.throws(() => parseDot(`strict digraph DiskGraph {
+1 [label="x = Actor",style = filled]
+2 [label="x = \\"Actor\\""]
+1 -> 2 [label="Change"];
+}`), /unsupported TLC model value Actor/);
+});
+
+test("unsupported TLC function key types cannot collapse into string keys", () => {
+  assert.deepEqual(parseValue('("1" :> "ready")'), { 1: "ready" });
+  for (const text of [
+    '(1 :> "ready")',
+    '(1 :> "first" @@ "1" :> "second")',
+    '(TRUE :> 1)',
+    '({1} :> 1)',
+    '(<<1>> :> 1)',
+    '("outer" :> (1 :> 1))',
+  ])
+    assert.throws(() => parseValue(text), /unsupported TLC function key/);
+  assert.throws(() => parseTraces(`Error: Invariant Safe is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+x = (1 :> "ready")
+
+State 2: <Change>
+x = ("1" :> "ready")
+
+`), /unsupported TLC function key/);
+});
+
+test("chart generation fails explicitly instead of publishing colliding TLC states", () => {
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  writeFileSync(join(dir, "labels.map.mjs"),
+    'export const state = () => "Screen";\nexport const step = () => "change";\n');
+
+  for (const [before, after, error] of [
+    ["Actor", '"Actor"', /unsupported TLC model value Actor/],
+    ['(1 :> "ready")', '("1" :> "ready")', /unsupported TLC function key/],
+  ]) {
+    const label = (value) => JSON.stringify(`x = ${value}`);
+    writeFileSync(join(dir, "states.dot"), `strict digraph DiskGraph {
+1 [label=${label(before)},style = filled]
+2 [label=${label(after)}]
+1 -> 2 [label="Change"];
+}`);
+    const r = node("tlc-to-chart.mjs",
+      ["--dot", "states.dot", "--map", "labels.map.mjs", "--out", "chart.mmd"], dir);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, error);
+    assert.equal(existsSync(join(dir, "chart.mmd")), false);
+  }
+});
+
 test("local TLA module references ignore nested comments and strings", () => {
   assert.deepEqual(tlaDependencies(`---- MODULE M ----
 EXTENDS (* comment (* EXTENDS Hidden *) *) Naturals,
