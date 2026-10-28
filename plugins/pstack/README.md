@@ -17,6 +17,8 @@ The portable scripts do not install Java, TLC or rendering dependencies.
 Statechart parsing rejects TLC model values (such as unquoted `Actor`) and
 functions with non-string keys instead of conflating their state identities
 with strings. Quoted strings, booleans and ordinary integer values remain supported.
+Parallel-region state captions cannot contain the reserved separator ` | `:
+combined states use it between regions. Flat combined-state captions remain supported.
 
 ## Install and prerequisites
 

@@ -18,11 +18,13 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import {
   BROKEN_PROPERTY,
+  compareCharts,
   findTlc,
   parseDot,
   parseMermaid,
   parseTraces,
   parseValue,
+  productOf,
   ruleSentences,
   splitRules,
   stateKey,
@@ -825,6 +827,45 @@ const flatDoor = (extra = []) =>
     "  U_O --> U_C : close the door",
     ...extra,
   ].join("\n");
+
+test("parallel captions cannot collide with the combined-state separator", () => {
+  const chart = `stateDiagram-v2
+state Machine {
+  state Left {
+    AB : A | B
+    A : A
+    [*] --> AB
+    AB --> A : left
+    A --> AB : left back
+  }
+  --
+  state Right {
+    C : C
+    BC : B | C
+    [*] --> C
+    C --> BC : right
+    BC --> C : right back
+  }
+}`;
+  assert.throws(() => parseMermaid(chart), /parallel.*caption.*reserved separator/);
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  writeFileSync(join(dir, "ambiguous.mmd"), chart);
+  const generated = node("chart-to-tla.mjs", ["ambiguous.mmd", "--module", "Ambiguous"], dir);
+  assert.notEqual(generated.status, 0);
+  assert.match(generated.stderr, /reserved separator/);
+  assert.equal(existsSync(join(dir, "Ambiguous.tla")), false);
+  const compared = node("compare-charts.mjs", ["ambiguous.mmd", "ambiguous.mmd"], dir);
+  assert.equal(compared.status, 2);
+  assert.match(compared.stderr, /reserved separator/);
+  assert.equal(compared.stdout, "");
+
+  const safe = chart.replace("A | B", "A/B").replace("B | C", "B/C");
+  const { regions } = parseMermaid(safe);
+  assert.equal(productOf(regions).states.size, 4);
+  assert.deepEqual(compareCharts(regions, regions), []);
+  const flat = parseMermaid('stateDiagram-v2\nstate "A | B | C" as Combined\n[*] --> Combined');
+  assert.deepEqual([...flat.regions.Main.states], ["A | B | C"]);
+});
 
 test("compare reads parallel regions as one machine, so a guard across regions shows", () => {
   const dir = mkdtempSync(join(tmpdir(), "statechart-"));

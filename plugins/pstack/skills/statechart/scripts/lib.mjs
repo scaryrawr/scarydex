@@ -1016,6 +1016,14 @@ export function parseMermaid(text) {
     for (const [id, { all }] of ids) owners.set(id, { name: "Main", all });
   }
 
+  if (parallel)
+    for (const r of Object.values(regions))
+      for (const caption of r.states)
+        if (caption.includes(" | "))
+          throw new Error(
+            `parallel region state caption "${caption}" contains the reserved separator " | "; rename the state before conversion`,
+          );
+
   for (const [name, r] of Object.entries(regions))
     for (const t of r.transitions) {
       if (!t.when) continue;

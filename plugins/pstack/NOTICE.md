@@ -92,6 +92,9 @@ reading inherited values.
 Sets and sequences retain distinct internal state identities while both remain
 arrays for mapping code. Set identity ignores member order; comparison-model
 field omission preserves this collection metadata.
+Parallel-region state captions containing the combined-state separator ` | `
+are rejected before conversion or comparison, rather than silently collapsing
+distinct region combinations. Flat combined-state captions remain supported.
 ScaryPilot's Copilot SDK deletion requires no local extension migration because
 this port already excludes that extension. Its gh-stack/bootstrap installer,
 Copilot agent registration, source sync machinery and CI provisioning are not
