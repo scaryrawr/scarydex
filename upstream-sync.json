@@ -2535,6 +2535,48 @@
             "Three regressions fail on the original code: distinct __proto__ variable states survive graph and trace parsing, a __proto__ region stays enumerable and generates both TLA variables, and constructor/__proto__/toString guard lists accumulate only own states with duplicate removal.",
             "The fix retains ordinary object prototypes and supported input vocabulary. Pstack is bumped to 0.15.30-codex.5 without adding dependencies or external tools."
           ]
+        },
+        {
+          "commit": "b6c23a703407164ff7890390e4ad6d6e396478aa",
+          "disposition": "ported",
+          "reason": "Preserve set versus sequence provenance in internal TLC state identities without changing mapping-friendly arrays. Canonical keys distinguish collection types recursively and normalize set order. Comparison-model field omission retains collection objects instead of discarding metadata through structuredClone.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "README.md",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/docs/guide/06-verify-and-ship.md",
+            "external_plugins/pstack/docs/guide/README.md",
+            "external_plugins/pstack/docs/guide/quick-start.md",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/poteto-help/SKILL.md",
+            "external_plugins/pstack/skills/statechart/SKILL.md",
+            "external_plugins/pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/compare-charts.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/lib.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.cfg",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.tla",
+            "external_plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/sync.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/test/upload.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/tlc-to-chart.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/NOTICE.md",
+            "plugins/pstack/skills/statechart/scripts/lib.mjs",
+            "plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "plugins/pstack/skills/statechart/scripts/tlc-to-chart.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarydex/pull/12#discussion_r4401419350",
+            "Two regressions fail on the original code: set/sequence identity differs for empty and nested collections, and a graph mapped through facts.settled retains Working, Settled and their Finish transition instead of collapsing to one node.",
+            "Graph generation also covers a comparison model with an extra field. Trace state identities match independently parsed collection identities; set ordering is normalized while sequence ordering remains significant.",
+            "Pstack is bumped to 0.15.30-codex.6. No additional verifier, renderer, host service or package dependency is introduced."
+          ]
         }
       ]
     },

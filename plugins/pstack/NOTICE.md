@@ -89,6 +89,9 @@ stops rather than conflating them with string values or keys in state identities
 Graph/trace variables, parallel-region captions and guard state lists preserve
 prototype-named keys as own properties instead of invoking inherited setters or
 reading inherited values.
+Sets and sequences retain distinct internal state identities while both remain
+arrays for mapping code. Set identity ignores member order; comparison-model
+field omission preserves this collection metadata.
 ScaryPilot's Copilot SDK deletion requires no local extension migration because
 this port already excludes that extension. Its gh-stack/bootstrap installer,
 Copilot agent registration, source sync machinery and CI provisioning are not

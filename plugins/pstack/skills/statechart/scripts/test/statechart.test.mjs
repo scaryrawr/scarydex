@@ -337,6 +337,34 @@ __proto__ = 2
   assert.notEqual(stateKey(states[0]), stateKey(states[1]));
 });
 
+test("TLC sets and sequences retain distinct nested state identities", () => {
+  for (const [set, sequence] of [
+    ["{}", "<<>>"],
+    ["{1}", "<<1>>"],
+    ["[items |-> {1}]", "[items |-> <<1>>]"],
+    ['("items" :> {1})', '("items" :> <<1>>)'],
+    ["<<{1}>>", "<<<<1>>>>"],
+  ]) {
+    const a = parseValue(set);
+    const b = parseValue(sequence);
+    assert.deepEqual(a, b);
+    assert.notEqual(stateKey({ x: a }), stateKey({ x: b }));
+  }
+  assert.equal(stateKey({ x: parseValue("{1, 2}") }), stateKey({ x: parseValue("{2, 1}") }));
+  assert.notEqual(stateKey({ x: parseValue("<<1, 2>>") }), stateKey({ x: parseValue("<<2, 1>>") }));
+  const [trace] = parseTraces(`Error: Invariant Safe is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+items = {1}
+
+State 2: <Finish>
+items = <<1>>
+`);
+  assert.notEqual(stateKey(trace.steps[0].vars), stateKey(trace.steps[1].vars));
+  assert.equal(stateKey(trace.steps[0].vars), stateKey({ items: parseValue("{1}") }));
+  assert.equal(stateKey(trace.steps[1].vars), stateKey({ items: parseValue("<<1>>") }));
+});
+
 test("unsupported TLC model values cannot collapse into string state identities", () => {
   assert.equal(parseValue('"Actor"'), "Actor");
   for (const text of ["Actor", "<<Actor>>", "{Actor}", "[owner |-> Actor]", '("owner" :> Actor)'])
@@ -642,6 +670,31 @@ export const step = (action) => ({ Tap: "you tap Save" })[action] ?? "";
   assert.deepEqual(edges(parseMermaid(readFileSync(join(dir, "chart.mmd"), "utf8")).regions.Main), [
     'Badge says "Synced" -> Saving : you tap Save',
   ]);
+});
+
+test("collection types preserve enabled actions and the working-to-settled graph transition", () => {
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  const graph = (extra = "") => `strict digraph DiskGraph {
+1 [label=${JSON.stringify(`/\\ items = {1}${extra}`)},style = filled]
+2 [label=${JSON.stringify(`/\\ items = <<1>>${extra}`)}]
+1 -> 2 [label="Finish"];
+}`;
+  writeFileSync(join(dir, "collections.dot"), graph());
+  writeFileSync(join(dir, "other.dot"), graph("\n/\\ extra = TRUE"));
+  writeFileSync(join(dir, "collections.map.mjs"), `export const readerActions = [];
+export const state = (v, facts) => facts.settled ? "Settled" : "Working";
+export const step = () => "finish";
+`);
+  for (const comparison of [[], ["--against-dot", "other.dot"]]) {
+    const r = node("tlc-to-chart.mjs", [
+      "--dot", "collections.dot", "--map", "collections.map.mjs", "--highlight", "0",
+      "--out", "chart.mmd", ...comparison,
+    ], dir);
+    assert.equal(r.status, 0, r.stderr);
+    const { regions } = parseMermaid(readFileSync(join(dir, "chart.mmd"), "utf8"));
+    assert.deepEqual([...regions.Main.states].sort(), ["Settled", "Working"]);
+    assert.deepEqual(edges(regions.Main), ["Working -> Settled : finish"]);
+  }
 });
 
 test("chart-to-tla writes one action per label and one invariant per never line", () => {

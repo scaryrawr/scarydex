@@ -369,19 +369,17 @@ function lacking(a, b, prefix = []) {
   );
 }
 
-const holder = (o, p) => p.slice(0, -1).reduce((x, k) => (isRecord(x?.[k]) ? x[k] : null), o);
-
 function omit(vars, paths) {
   if (!paths.length) return vars;
-  const out = structuredClone(vars);
 
-  for (const p of paths) {
-    const o = holder(out, p);
+  return Object.fromEntries(Object.entries(vars).flatMap(([key, value]) => {
+    const matching = paths.filter((p) => p[0] === key);
+    if (matching.some((p) => p.length === 1)) return [];
 
-    if (o) delete o[p.at(-1)];
-  }
-
-  return out;
+    return [[key, isRecord(value)
+      ? omit(value, matching.map((p) => p.slice(1)))
+      : value]];
+  }));
 }
 
 function guard(vars, paths, at = "v") {

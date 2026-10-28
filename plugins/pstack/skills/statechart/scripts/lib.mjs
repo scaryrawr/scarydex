@@ -16,6 +16,8 @@ export function findTlc() {
 
 class UnsupportedTlcValue extends Error {}
 
+const tlcSets = new WeakSet();
+
 export function parseValue(text) {
   const src = text.trim();
   let i = 0;
@@ -70,7 +72,10 @@ export function parseValue(text) {
     if (peek("{")) {
       i++;
 
-      return list("}", value);
+      const members = list("}", value);
+      tlcSets.add(members);
+
+      return members;
     }
 
     if (peek("[")) {
@@ -180,16 +185,20 @@ function parseState(text) {
 
 export const isRecord = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
-const canon = (v) =>
-  Array.isArray(v)
-    ? v.map(canon)
-    : isRecord(v)
-      ? Object.fromEntries(
-          Object.keys(v)
-            .sort()
-            .map((k) => [k, canon(v[k])]),
-        )
-      : v;
+const canon = (v) => {
+  if (Array.isArray(v)) {
+    const members = v.map(canon);
+
+    return tlcSets.has(v)
+      ? ["set", [...new Set(members.map((member) => JSON.stringify(member)))].sort()]
+      : ["sequence", members];
+  }
+
+  if (isRecord(v))
+    return ["record", Object.keys(v).sort().map((k) => [k, canon(v[k])])];
+
+  return ["scalar", v];
+};
 
 export const stateKey = (vars) => JSON.stringify(canon(vars));
 
