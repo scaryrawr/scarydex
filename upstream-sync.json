@@ -2619,6 +2619,49 @@
             "An unambiguous variant retains all four reachable combinations and compares equal to itself. Flat combined-state captions containing the separator still parse normally.",
             "The restriction is documented and pstack is bumped to 0.15.30-codex.7. No external tools, dependencies or host-specific behavior is added."
           ]
+        },
+        {
+          "commit": "b6c23a703407164ff7890390e4ad6d6e396478aa",
+          "disposition": "ported",
+          "reason": "Preserve prototype-named action labels in generated scaffolds and enforce own-field membership for comparison mappings. Missing-field discovery, guarded reads and proxy in checks no longer mistake inherited JavaScript properties for model data.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "README.md",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/docs/guide/06-verify-and-ship.md",
+            "external_plugins/pstack/docs/guide/README.md",
+            "external_plugins/pstack/docs/guide/quick-start.md",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/poteto-help/SKILL.md",
+            "external_plugins/pstack/skills/statechart/SKILL.md",
+            "external_plugins/pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/compare-charts.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/lib.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.cfg",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.tla",
+            "external_plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/sync.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/test/upload.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/tlc-to-chart.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/NOTICE.md",
+            "plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "plugins/pstack/skills/statechart/scripts/tlc-to-chart.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarydex/pull/12#discussion_r4401795666",
+            "https://github.com/scaryrawr/scarydex/pull/12#discussion_r4401795750",
+            "A generated mapping is imported in Node and preserves __proto__/constructor action names plus unknown toString fallback. The TLC-gated scaffold format assertion now expects computed properties.",
+            "CLI regressions cover constructor, __proto__ and toString as missing top-level variables and nested record fields: unguarded reads fail explicitly, while in-guarded mappings generate the intended missing label.",
+            "Pstack is bumped to 0.15.30-codex.8 without adding dependencies or host-specific behavior."
+          ]
         }
       ]
     },

@@ -531,10 +531,10 @@ export function state(v, facts) {
 // The label for one step. A step that leaves the reader in the same state is not drawn,
 // unless the reader takes it on a bug path. "" draws no label, and a numbered bug step shows the action.
 const STEPS = {
-${actions.map((a) => `\t${a}: ${JSON.stringify(a)},`).join("\n")}
+${actions.map((a) => `\t[${JSON.stringify(a)}]: ${JSON.stringify(a)},`).join("\n")}
 };
 export function step(action, before, after) {
-	return STEPS[action] ?? action;
+	return Object.hasOwn(STEPS, action) ? STEPS[action] : action;
 }
 
 // When the step can happen, in plain words, such as "offline or disk full". The chart shows

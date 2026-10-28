@@ -95,6 +95,9 @@ field omission preserves this collection metadata.
 Parallel-region state captions containing the combined-state separator ` | `
 are rejected before conversion or comparison, rather than silently collapsing
 distinct region combinations. Flat combined-state captions remain supported.
+Generated action-label scaffolds use computed own properties and own-property
+fallbacks. Comparison mappings treat only own variables and record fields as
+model data, including prototype-named missing fields and guarded `in` checks.
 ScaryPilot's Copilot SDK deletion requires no local extension migration because
 this port already excludes that extension. Its gh-stack/bootstrap installer,
 Copilot agent registration, source sync machinery and CI provisioning are not

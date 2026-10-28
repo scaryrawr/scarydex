@@ -361,7 +361,7 @@ const addGuard = (guards, label, words) => {
 
 function lacking(a, b, prefix = []) {
   return Object.keys(a).flatMap((k) =>
-    !(k in b)
+    !Object.hasOwn(b, k)
       ? [[...prefix, k]]
       : isRecord(a[k]) && isRecord(b[k])
         ? lacking(a[k], b[k], [...prefix, k])
@@ -392,8 +392,11 @@ function guard(vars, paths, at = "v") {
     else deeper.set(k, [...(deeper.get(k) ?? []), rest]);
 
   return new Proxy(vars, {
+    has(target, k) {
+      return Object.hasOwn(target, k);
+    },
     get(target, k) {
-      if (missing.has(k) && !(k in target)) {
+      if (missing.has(k) && !Object.hasOwn(target, k)) {
         const name = `${at}.${k}`.slice(2);
         throw new Error(
           `${L} has no ${name}, and the mapping reads ${at}.${k} on its states. Label states and steps only from what both models have, or test "${k}" in ${at} first.`,

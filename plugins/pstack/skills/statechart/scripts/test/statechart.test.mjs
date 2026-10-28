@@ -2166,6 +2166,62 @@ export const guard = (a) => a === "Retry" ? "when connected" : "";
   }
 });
 
+test("generated mappings preserve prototype-named actions and unknown-action fallback", () => {
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  writeFileSync(join(dir, "Actions.tla"), `---- MODULE Actions ----
+VARIABLE x
+Init == x = 0
+__proto__ == x' = 1
+constructor == x' = 2
+Spec == Init /\\ [][__proto__ \\/ constructor]_x
+====`);
+  writeFileSync(join(dir, "Actions.cfg"), "SPECIFICATION Spec\n");
+  const r = node("statechart.mjs", ["from-spec", "Actions.tla"], dir);
+  assert.equal(r.status, 2, r.stderr);
+  assert.match(r.stderr, /Wrote Actions\.map\.mjs/);
+  const imported = spawnSync(nodeExecutable, ["--input-type=module", "-e", `
+import assert from "node:assert/strict";
+import { step } from "./Actions.map.mjs";
+assert.equal(step("__proto__"), "__proto__");
+assert.equal(step("constructor"), "constructor");
+assert.equal(step("toString"), "toString");
+assert.equal(step("Other"), "Other");
+`], { cwd: dir, encoding: "utf8" });
+  assert.equal(imported.status, 0, imported.stderr);
+});
+
+test("comparison guards treat prototype-named variables and record fields as missing", () => {
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  const args = ["--dot", "now.dot", "--against-dot", "other.dot",
+    "--map", "labels.map.mjs", "--out", "chart.mmd"];
+  const dot = (state) => `strict digraph DiskGraph {
+1 [label=${JSON.stringify(state)},style = filled]
+}`;
+  for (const key of ["constructor", "__proto__", "toString"]) {
+    for (const nested of [false, true]) {
+      writeFileSync(join(dir, "now.dot"), dot(nested
+        ? `note = [screen |-> "Ready", ${key} |-> "own"]`
+        : `/\\ screen = "Ready"\n/\\ ${key} = "own"`));
+      writeFileSync(join(dir, "other.dot"), dot(nested
+        ? 'note = [screen |-> "Ready"]' : 'screen = "Ready"'));
+      const owner = nested ? "v.note" : "v";
+      const field = `${owner}.${key}`;
+      writeFileSync(join(dir, "labels.map.mjs"),
+        `export const state = (v) => String(${field});\n`);
+      const refused = node("tlc-to-chart.mjs", args, dir);
+      assert.notEqual(refused.status, 0);
+      assert.ok(refused.stderr.includes(`has no ${nested ? "note." : ""}${key}`), refused.stderr);
+      writeFileSync(join(dir, "labels.map.mjs"), `export const state = (v) =>
+        "${key}" in ${owner} ? String(${field}) : "missing";
+`);
+      const guarded = node("tlc-to-chart.mjs", args, dir);
+      assert.equal(guarded.status, 0, guarded.stderr);
+      assert.match(readFileSync(join(dir, "chart.mmd"), "utf8"), /missing/);
+      assert.doesNotMatch(readFileSync(join(dir, "chart.mmd"), "utf8"), /\[object Object\]|function Object|function toString/);
+    }
+  }
+});
+
 test(
   "from-spec writes a mapping to fill in, then draws each bug in every view the mapping has",
   needsTlc,
@@ -2197,7 +2253,7 @@ test(
     assert.match(scaffold, /^\/\/ Variables: screen, charges\.$/m);
     assert.match(
       scaffold,
-      /^const STEPS = \{\n\tCharge: "Charge",\n\tPay: "Pay",\n\tRefund: "Refund",\n\tWait: "Wait",\n\};$/m,
+      /^const STEPS = \{\n\t\["Charge"\]: "Charge",\n\t\["Pay"\]: "Pay",\n\t\["Refund"\]: "Refund",\n\t\["Wait"\]: "Wait",\n\};$/m,
     );
     assert.equal(existsSync(join(dir, "Pay-statechart")), false);
 
