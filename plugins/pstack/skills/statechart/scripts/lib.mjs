@@ -1,5 +1,23 @@
 import fs from "node:fs";
+import path from "node:path";
 import process from "node:process";
+
+export function copyFolderExclusive(from, to, io = fs) {
+  try {
+    io.mkdirSync(to);
+  } catch (error) {
+    if (error.code === "EEXIST") return false;
+    throw error;
+  }
+
+  for (const name of io.readdirSync(from))
+    io.cpSync(path.join(from, name), path.join(to, name), {
+      recursive: true, errorOnExist: true, force: false,
+    });
+  io.rmSync(from, { recursive: true, force: true });
+
+  return true;
+}
 
 export function findTlc() {
   const { TLA2TOOLS, JAVA } = process.env;
@@ -943,7 +961,7 @@ export function parseMermaid(text) {
     for (const t of p.transitions)
       if (t.from === "[*]") for (const s of lookup(t.to).initial) out.initial.add(s);
     transitions.sort((a, b) => lookup(b.from).depth - lookup(a.from).depth);
-    const handled = new Set();
+    const handled = new Map();
     let pending = [];
     let depth = null;
 
@@ -951,7 +969,8 @@ export function parseMermaid(text) {
       const from = lookup(t.from);
 
       if (from.depth !== depth) {
-        for (const h of pending) handled.add(h);
+        for (const [key, guarded] of pending)
+          handled.set(key, handled.has(key) ? handled.get(key) && guarded : guarded);
         pending = [];
         depth = from.depth;
       }
@@ -959,7 +978,13 @@ export function parseMermaid(text) {
       for (const f of from.all) {
         const key = `${f}\u0000${t.label}`;
 
-        if (t.label && handled.has(key)) continue;
+        if (t.label && handled.has(key)) {
+          if (handled.get(key))
+            throw new Error(
+              `guarded override for "${t.label}" in ${f} can hide a parent transition; guarded overrides are not supported`,
+            );
+          continue;
+        }
 
         for (const to of lookup(t.to).initial) {
           const transition = {
@@ -972,7 +997,7 @@ export function parseMermaid(text) {
           out.transitions.push(transition);
         }
 
-        if (t.label) pending.push(key);
+        if (t.label) pending.push([key, Boolean(t.when)]);
       }
     }
 

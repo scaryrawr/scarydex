@@ -21,6 +21,15 @@ also fail explicitly. Quoted strings, booleans and ordinary integer values remai
 Parallel-region state captions cannot contain the reserved separator ` | `:
 combined states use it between regions. Flat combined-state captions remain supported.
 Automatic region extraction skips such captions and keeps ordinary chart rendering.
+It also falls back when caption normalization would merge distinct states.
+Guarded child transitions that override a same-labeled parent transition are
+unsupported and fail explicitly instead of dropping the parent fallback.
+Fallback publication on filesystems without directory rename can mix overlapping
+runs; failed copies retain destination files rather than deleting another run's
+output, and report that the destination may be incomplete.
+Mapping imports are fingerprinted before TLC and across rendering subprocesses,
+including transitive imports and dynamic imports made by mapping callbacks.
+Changed dependencies stop publication and preserve the previous output.
 
 ## Install and prerequisites
 

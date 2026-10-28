@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { pathToFileURL } from "node:url";
+import { loadMapping } from "./mapping-loader.mjs";
 import {
   FULL_LABELS,
   GROUP_PALETTE,
@@ -290,7 +290,7 @@ const within = role === "fix" ? "with" : "in";
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const mapping = await import(pathToFileURL(path.resolve(args.map)).href);
+const mapping = await loadMapping(args.map);
 
 if (typeof mapping.state !== "function")
   throw new Error("the mapping module must export state(vars)");
@@ -1089,6 +1089,8 @@ function regionsChart({ states, starts, edges, classes, proofPath, allPath }) {
   if (!nodes.every(split)) return null;
   if (nodes.some((k) => split(k).some((caption) => caption.includes(" | "))))
     return { why: 'a region caption contains the reserved separator " | "' };
+  if (new Set(nodes.map((k) => JSON.stringify(split(k)))).size !== nodes.length)
+    return { why: "region caption normalization would merge distinct states" };
   const steps = [];
 
   for (const e of edges.values()) {

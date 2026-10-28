@@ -102,6 +102,14 @@ Unsupported or partially parsed TLC values no longer fall back to source strings
 Chart-generated mappings use own-property action fallback too. Automatic region
 extraction falls back to ordinary rendering for separator-bearing captions while
 explicit parallel input retains its ambiguity check.
+Region extraction also falls back when normalized captions collide. Guarded
+child overrides of same-labeled parent transitions fail explicitly until their
+fallback semantics are supported. Copy-based publication claims an empty
+destination exclusively and never recursively deletes that destination after
+a failed copy; a failure reports potentially incomplete output.
+Node loader hooks fingerprint actual mapping imports, including reexports and
+callback dynamic imports, before evaluation. Rendering subprocesses return their
+observations over a private pipe; conflicting or changed inputs prevent publication.
 ScaryPilot's Copilot SDK deletion requires no local extension migration because
 this port already excludes that extension. Its gh-stack/bootstrap installer,
 Copilot agent registration, source sync machinery and CI provisioning are not

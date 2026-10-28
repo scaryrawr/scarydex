@@ -18,6 +18,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import {
   BROKEN_PROPERTY,
+  copyFolderExclusive,
   compareCharts,
   findTlc,
   parseDot,
@@ -55,6 +56,36 @@ after(() => {
 });
 
 const fixture = (name) => readFileSync(join(here, name), "utf8");
+
+test("fallback copy claims its destination exclusively and never deletes competing files", () => {
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  const from = join(dir, "from");
+  const to = join(dir, "to");
+  mkdirSync(from);
+  writeFileSync(join(from, "chart.mmd"), "this run");
+  mkdirSync(to);
+  writeFileSync(join(to, "chart.mmd"), "another run");
+  assert.equal(copyFolderExclusive(from, to), false);
+  assert.equal(readFileSync(join(to, "chart.mmd"), "utf8"), "another run");
+  const claimed = join(dir, "claimed");
+  let removed = false;
+  assert.throws(() => copyFolderExclusive(from, claimed, {
+    mkdirSync,
+    readdirSync,
+    cpSync: () => {
+      writeFileSync(join(claimed, "chart.mmd"), "a competing publisher");
+      throw Object.assign(new Error("copy collided"), { code: "EEXIST" });
+    },
+    rmSync: () => { removed = true; },
+  }), /copy collided/);
+  assert.equal(removed, false);
+  assert.equal(readFileSync(join(claimed, "chart.mmd"), "utf8"), "a competing publisher");
+  assert.ok(existsSync(from));
+  const fresh = join(dir, "fresh");
+  assert.equal(copyFolderExclusive(from, fresh), true);
+  assert.equal(readFileSync(join(fresh, "chart.mmd"), "utf8"), "this run");
+  assert.equal(existsSync(from), false);
+});
 
 const collidingRegions = `stateDiagram-v2
 state Overall {
@@ -123,6 +154,31 @@ test("the deepest source wins when a composite and a state inside it share a lab
     "Form.Confirm -> Closed : you press Escape",
     "Form.Typing -> Form.Confirm : you press Escape",
   ]);
+});
+
+test("guarded child overrides cannot silently discard a parent fallback", () => {
+  const chart = (guard) => `stateDiagram-v2
+state App {
+  state FormRegion {
+    [*] --> Form
+    state Form {
+      [*] --> Editing
+      Editing --> Confirm : cancel [unlocked]
+      %% ${guard} Unlocked
+      state Confirm
+    }
+    Form --> Closed : cancel
+  }
+  --
+  state Lock {
+    [*] --> Locked
+    Locked --> Unlocked : unlock
+  }
+}`;
+  for (const guard of ["when", "when not"])
+    assert.throws(() => parseMermaid(chart(guard)), /guarded.*override.*cancel.*parent/i);
+  const unguarded = parseMermaid(chart("when").replace("      %% when Unlocked\n", ""));
+  assert.ok(edges(unguarded.regions.FormRegion).includes("Form.Editing -> Form.Confirm : cancel"));
 });
 
 test("a top-level composite split by -- makes one region per part", () => {
@@ -2256,6 +2312,29 @@ console.log("Model checking completed. No error has been found.");
   const published = JSON.parse(readFileSync(join(dir, "View-statechart", "summary.json"), "utf8"));
   assert.equal(published.chartStates, 6);
   assert.equal(published.regions.drawn, false);
+});
+
+test("automatic regions preserve states whose normalized captions collide", () => {
+  for (const progress of [["Selected a;b.txt", "Selected a,b.txt"], ["Waiting  now", "Waiting now"]]) {
+    const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+    const states = ["Online", "Offline"].flatMap((network) =>
+      [...progress, "Done"].map((p) => `${network}: ${p}`));
+    writeFileSync(join(dir, "states.dot"), ["strict digraph DiskGraph {",
+      ...states.map((screen, i) =>
+        `${i + 1} [label=${JSON.stringify(`screen = ${JSON.stringify(screen)}`)}${i ? "" : ",style = filled"}]`),
+      ...states.slice(1).map((_, i) => `${i + 1} -> ${i + 2} [label="Move"];`), "}"].join("\n"));
+    writeFileSync(join(dir, "labels.map.mjs"),
+      'export const state = (v) => v.screen;\nexport const step = () => "move";\n');
+    const run = node("tlc-to-chart.mjs", [
+      "--dot", "states.dot", "--map", "labels.map.mjs", "--regions", "--highlight", "0",
+      "--out", "chart.mmd", "--summary", "summary.json",
+    ], dir);
+    assert.equal(run.status, 0, run.stderr);
+    const summary = JSON.parse(readFileSync(join(dir, "summary.json"), "utf8"));
+    assert.equal(summary.regions.drawn, false);
+    assert.match(summary.regions.why, /normalization.*distinct states/);
+    assert.equal(summary.chartStates, 6);
+  }
 });
 
 test("comparison guards treat prototype-named variables and record fields as missing", () => {

@@ -4,9 +4,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+import { fingerprint, loadMapping, mergeMappingInputs } from "./mapping-loader.mjs";
 import {
   BROKEN_PROPERTY,
+  copyFolderExclusive,
   findTlc,
   isRecord,
   joinAnd,
@@ -106,7 +108,8 @@ const COMMON = `Both commands
                      it. When runs overlap, the output folder has the files of the run that
                      finished last. The command does not use an output folder that has files that
                      it did not write. On a filesystem that cannot rename, the command copies the
-                     files into place, and overlapping runs can mix their files.
+                     files into place, and overlapping runs can mix their files. A failed copy
+                     keeps destination files and reports that the folder may be incomplete.
   --png              Also render each chart to PNG with an already available Mermaid CLI via
                      npx --no-install @mermaid-js/mermaid-cli. Does not install missing packages.
   -h, --help         Print this help, and exit 0.
@@ -288,12 +291,24 @@ function findTools() {
   }
 }
 
-function script(name, scriptArgs, about, { okExits = [0] } = {}) {
-  const r = spawnSync(process.execPath, [path.join(here, name), ...scriptArgs], {
-    encoding: "utf8",
-  });
+function script(name, scriptArgs, about, { okExits = [0], mappingInputs } = {}) {
+  const r = spawnSync(
+    process.execPath,
+    [
+      ...(mappingInputs ? [path.join(here, "mapping-loader.mjs")] : []),
+      path.join(here, name),
+      ...scriptArgs,
+    ],
+    {
+      encoding: "utf8",
+      ...(mappingInputs ? { stdio: ["pipe", "pipe", "pipe", "pipe"], maxBuffer: 1 << 30 } : {}),
+    },
+  );
 
   if (r.error) throw new CannotFinish(`cannot run ${name}: ${r.error.message}`);
+
+  if (mappingInputs && r.status === 0)
+    mergeMappingInputs(mappingInputs, JSON.parse(r.output[3]));
 
   if (okExits.includes(r.status)) return r;
   const thrown = r.stderr.match(/^Error: (.*)$/m)?.[1];
@@ -559,9 +574,8 @@ export function step(action, before, after) {
 `;
 };
 
-async function draw({ now, other, uncited, map, work, out, title, comparing }) {
+async function draw({ now, other, uncited, map, mapping, inputs, work, out, title, comparing }) {
   const shown = published(work, out);
-  const mapping = await import(pathToFileURL(path.resolve(map)).href);
   const from = ["--dot", now.dot, "--map", map, "--spec", now.spec];
   from.push(...now.traces.flatMap((t) => ["--traces", t.file]));
 
@@ -605,6 +619,7 @@ async function draw({ now, other, uncited, map, work, out, title, comparing }) {
       files.summary,
     ],
     map,
+    { mappingInputs: inputs },
   );
   const summary = JSON.parse(fs.readFileSync(files.summary, "utf8"));
 
@@ -622,6 +637,7 @@ async function draw({ now, other, uncited, map, work, out, title, comparing }) {
         "tlc-to-chart.mjs",
         [...from, ...viewArgs, ...titled(`, bug ${c.n}`), "--highlight", String(c.n), "--out", file],
         map,
+        { mappingInputs: inputs },
       );
       charts.push(file);
     }
@@ -784,16 +800,6 @@ function outDir(flagged, input, name) {
   return out;
 }
 
-const fingerprint = (file) => {
-  try {
-    const { ino, ctimeNs } = fs.statSync(file, { bigint: true });
-
-    return `${ino} ${ctimeNs} ${fs.readFileSync(file, "base64")}`;
-  } catch {
-    return null;
-  }
-};
-
 function snapshot(files, inputs = new Map()) {
   for (const f of files) if (f && !inputs.has(f)) inputs.set(f, fingerprint(f));
 
@@ -858,13 +864,15 @@ const moved = (from, to, ...missed) => {
   }
 
   try {
-    fs.cpSync(from, to, { recursive: true, errorOnExist: true, force: false });
+    if (!copyFolderExclusive(from, to)) {
+      if (missed.includes("ENOTEMPTY") || missed.includes("EEXIST")) return false;
+      throw new Error("another publisher claimed the destination");
+    }
   } catch (e) {
-    fs.rmSync(to, { recursive: true, force: true });
-    throw e;
+    throw new CannotFinish(
+      `cannot copy ${rel(from)} to ${rel(to)}: ${e.message}. The destination may contain incomplete files; no destination files were removed.`,
+    );
   }
-
-  fs.rmSync(from, { recursive: true, force: true });
 
   return true;
 };
@@ -1034,6 +1042,7 @@ async function fromSpec(input, { "expect-broken": expected, ...flags }) {
   }
 
   const tools = findTools();
+  const mapping = await loadMapping(map, inputs);
 
   return inWorkFolder(async (work) => {
     const now = check(tools, model, { work, out }, expected);
@@ -1054,7 +1063,7 @@ async function fromSpec(input, { "expect-broken": expected, ...flags }) {
       uncited = warnUncited(second.role === "fixed" ? [now, other] : [now]);
     }
 
-    const drawn = await draw({ now, other, uncited, map, work, out, title: flags.title });
+    const drawn = await draw({ now, other, uncited, map, mapping, inputs, work, out, title: flags.title });
 
     return finish({ work, out, inputs }, drawn, rulesAsExpected(now, other, expected), flags.png);
   });
@@ -1085,10 +1094,11 @@ async function fromChart(input, { "expect-broken": expected, ...flags }) {
   const tools = findTools();
   const model = readInput(spec, cfgOf(spec), expected);
   const out = outDir(flags.out, input, name);
+  const mapping = await loadMapping(map, inputs);
 
   return inWorkFolder(async (work) => {
     const now = check(tools, model, { work, out }, expected);
-    const drawn = await draw({ now, map, work, out, title: flags.title, comparing: true });
+    const drawn = await draw({ now, map, mapping, inputs, work, out, title: flags.title, comparing: true });
 
     const compared = script("compare-charts.mjs", [input, drawn.files.overview], input, {
       okExits: [0, 1],

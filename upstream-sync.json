@@ -2708,6 +2708,57 @@
             "The publication regression uses a synthetic TLC process and does not claim model checking. Existing explicit parallel-chart ambiguity rejection remains intact.",
             "Pstack is bumped to 0.15.30-codex.9 with documented value restrictions and rendering fallback; no dependencies or external prerequisites are installed."
           ]
+        },
+        {
+          "commit": "b6c23a703407164ff7890390e4ad6d6e396478aa",
+          "disposition": "ported",
+          "reason": "Reject guarded hierarchical overrides whose parent fallback cannot be represented, track mapping imports across rendering processes, preserve destination files after failed fallback publication, and skip automatic region extraction when normalization merges observable states.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "README.md",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/docs/guide/06-verify-and-ship.md",
+            "external_plugins/pstack/docs/guide/README.md",
+            "external_plugins/pstack/docs/guide/quick-start.md",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/poteto-help/SKILL.md",
+            "external_plugins/pstack/skills/statechart/SKILL.md",
+            "external_plugins/pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/compare-charts.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/lib.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.cfg",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.tla",
+            "external_plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/sync.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/test/upload.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/tlc-to-chart.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/NOTICE.md",
+            "plugins/pstack/README.md",
+            "plugins/pstack/skills/statechart/scripts/lib.mjs",
+            "plugins/pstack/skills/statechart/scripts/mapping-loader.mjs",
+            "plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "plugins/pstack/skills/statechart/scripts/test/mapping-inputs.test.mjs",
+            "plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "plugins/pstack/skills/statechart/scripts/tlc-to-chart.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarydex/pull/12#discussion_r4402312341",
+            "https://github.com/scaryrawr/scarydex/pull/12#discussion_r4402312423",
+            "https://github.com/scaryrawr/scarydex/pull/12#discussion_r4402312487",
+            "https://github.com/scaryrawr/scarydex/pull/12#discussion_r4402312573",
+            "Regression fixtures reproduce guarded parent-fallback loss and false region equivalence for semicolon/comma and repeated-whitespace caption collisions. Existing unguarded overrides remain supported.",
+            "The copy boundary has deterministic fault injection for EEXIST after another publisher writes a destination file, plus exclusive destination creation and successful real-filesystem copy coverage.",
+            "Seven mapping regressions cover both commands, transitive reexports before TLC, edits during subprocess evaluation, callback dynamic imports across bug charts, large dependency evidence, computed imports, and symlinked import paths. Four fail against the original implementation.",
+            "Mapping import regressions use synthetic TLC output only; no model-checking evidence is claimed without Java/TLC.",
+            "Pstack is bumped to 0.15.30-codex.10; dependency-free Node helpers retain the documented Node.js 22.18+ prerequisite."
+          ]
         }
       ]
     },
