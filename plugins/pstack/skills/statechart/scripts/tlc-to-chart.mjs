@@ -1087,6 +1087,8 @@ function regionsChart({ states, starts, edges, classes, proofPath, allPath }) {
   const nodes = [...states].sort();
 
   if (!nodes.every(split)) return null;
+  if (nodes.some((k) => split(k).some((caption) => caption.includes(" | "))))
+    return { why: 'a region caption contains the reserved separator " | "' };
   const steps = [];
 
   for (const e of edges.values()) {

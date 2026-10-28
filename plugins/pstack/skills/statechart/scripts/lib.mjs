@@ -153,10 +153,14 @@ export function parseValue(text) {
     const v = value();
     ws();
 
-    return i === src.length ? v : src;
+    if (i !== src.length) throw new Error(`unexpected input at ${i}`);
+
+    return v;
   } catch (error) {
     if (error instanceof UnsupportedTlcValue) throw error;
-    return src;
+    throw new UnsupportedTlcValue(
+      `unsupported TLC value ${JSON.stringify(src)}: ${error.message}`,
+    );
   }
 }
 

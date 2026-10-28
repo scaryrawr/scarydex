@@ -16,9 +16,11 @@ states and numbered bug paths, or an agreed Mermaid chart into a TLA+ skeleton.
 The portable scripts do not install Java, TLC or rendering dependencies.
 Statechart parsing rejects TLC model values (such as unquoted `Actor`) and
 functions with non-string keys instead of conflating their state identities
-with strings. Quoted strings, booleans and ordinary integer values remain supported.
+with strings. Unsupported or partially parsed values, including interval notation,
+also fail explicitly. Quoted strings, booleans and ordinary integer values remain supported.
 Parallel-region state captions cannot contain the reserved separator ` | `:
 combined states use it between regions. Flat combined-state captions remain supported.
+Automatic region extraction skips such captions and keeps ordinary chart rendering.
 
 ## Install and prerequisites
 

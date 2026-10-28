@@ -2662,6 +2662,52 @@
             "CLI regressions cover constructor, __proto__ and toString as missing top-level variables and nested record fields: unguarded reads fail explicitly, while in-guarded mappings generate the intended missing label.",
             "Pstack is bumped to 0.15.30-codex.8 without adding dependencies or host-specific behavior."
           ]
+        },
+        {
+          "commit": "b6c23a703407164ff7890390e4ad6d6e396478aa",
+          "disposition": "ported",
+          "reason": "Reject unsupported and partially parsed TLC values instead of using source-string state identities, use own-property action fallback in chart-generated mappings, and keep separator-bearing display labels eligible for ordinary rendering when automatic region extraction cannot represent them.",
+          "paths": [
+            ".github/workflows/pstack-portable.yml",
+            "README.md",
+            "external_plugins/pstack/NOTICE.md",
+            "external_plugins/pstack/README.md",
+            "external_plugins/pstack/docs/guide/06-verify-and-ship.md",
+            "external_plugins/pstack/docs/guide/README.md",
+            "external_plugins/pstack/docs/guide/quick-start.md",
+            "external_plugins/pstack/plugin.json",
+            "external_plugins/pstack/skills/poteto-help/SKILL.md",
+            "external_plugins/pstack/skills/statechart/SKILL.md",
+            "external_plugins/pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/compare-charts.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/lib.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.cfg",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/model/OutputFolder.tla",
+            "external_plugins/pstack/skills/statechart/scripts/statechart.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "external_plugins/pstack/skills/statechart/scripts/test/sync.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/test/upload.mmd",
+            "external_plugins/pstack/skills/statechart/scripts/tlc-to-chart.mjs",
+            "external_plugins/pstack/upstream-sync.json"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/NOTICE.md",
+            "plugins/pstack/README.md",
+            "plugins/pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "plugins/pstack/skills/statechart/scripts/lib.mjs",
+            "plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "plugins/pstack/skills/statechart/scripts/tlc-to-chart.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarydex/pull/12#discussion_r4402022196",
+            "https://github.com/scaryrawr/scarydex/pull/12#discussion_r4402022329",
+            "https://github.com/scaryrawr/scarydex/pull/12#discussion_r4402022434",
+            "Three regressions fail on the original code: unsupported interval/partial values fail decoding, chart-generated action fallback returns strings for inherited names, and a six-state separator-bearing mapping renders and publishes without automatic region extraction.",
+            "The publication regression uses a synthetic TLC process and does not claim model checking. Existing explicit parallel-chart ambiguity rejection remains intact.",
+            "Pstack is bumped to 0.15.30-codex.9 with documented value restrictions and rendering fallback; no dependencies or external prerequisites are installed."
+          ]
         }
       ]
     },

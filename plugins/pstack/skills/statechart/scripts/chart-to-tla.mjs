@@ -302,7 +302,7 @@ const map = [
   "// The actions the reader takes. facts.settled needs them. Add cause() and detail() as the spec grows.",
   "export const readerActions = [];",
   'export const state = (v) => regions.map((r) => v[r]).join(" | ");',
-  "export const step = (action) => LABELS[action] ?? action;",
+  "export const step = (action) => Object.hasOwn(LABELS, action) ? LABELS[action] : action;",
   "",
 ];
 

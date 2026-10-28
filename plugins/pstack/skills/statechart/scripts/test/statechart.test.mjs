@@ -378,6 +378,17 @@ test("unsupported TLC model values cannot collapse into string state identities"
 }`), /unsupported TLC model value Actor/);
 });
 
+test("unsupported and partially parsed TLC values never fall back to string identities", () => {
+  for (const value of ["1..2", "<<1..2>>", "[x |-> 1..2]", "{1", '"unterminated', "", "1 trailing"])
+    assert.throws(() => parseValue(value), /unsupported TLC value/);
+  assert.equal(parseValue('"1..2"'), "1..2");
+  assert.throws(() => parseDot(`strict digraph DiskGraph {
+1 [label="x = 1..2",style = filled]
+2 [label="x = \\"1..2\\""]
+1 -> 2 [label="Change"];
+}`), /unsupported TLC value/);
+});
+
 test("unsupported TLC function key types cannot collapse into string keys", () => {
   assert.deepEqual(parseValue('("1" :> "ready")'), { 1: "ready" });
   for (const text of [
@@ -2188,6 +2199,63 @@ assert.equal(step("toString"), "toString");
 assert.equal(step("Other"), "Other");
 `], { cwd: dir, encoding: "utf8" });
   assert.equal(imported.status, 0, imported.stderr);
+});
+
+test("from-chart mappings fall back to prototype-named action strings", () => {
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  writeFileSync(join(dir, "actions.mmd"), "stateDiagram-v2\n[*] --> A\nA --> B : go\n");
+  const generated = node("chart-to-tla.mjs", ["actions.mmd", "--module", "Actions"], dir);
+  assert.equal(generated.status, 0, generated.stderr);
+  const r = spawnSync(nodeExecutable, ["--input-type=module", "-e", `
+import assert from "node:assert/strict";
+import { step } from "./Actions.map.mjs";
+assert.equal(step("Go"), "go");
+for (const action of ["constructor", "toString", "__proto__", "Other"])
+  assert.equal(step(action), action);
+`], { cwd: dir, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+});
+
+test("automatic regions fall back when a mapped region caption contains the separator", () => {
+  const dir = mkdtempSync(join(tmpdir(), "statechart-"));
+  const states = ["Online | LAN", "Offline"].flatMap((network) =>
+    ["Idle", "Saving", "Done"].map((progress) => `${network}: ${progress}`));
+  const graph = ["strict digraph DiskGraph {",
+    ...states.map((screen, i) =>
+      `${i + 1} [label=${JSON.stringify(`screen = ${JSON.stringify(screen)}`)}${i ? "" : ",style = filled"}]`),
+    ...states.slice(1).map((_, i) => `${i + 1} -> ${i + 2} [label="Move"];`), "}"].join("\n");
+  writeFileSync(join(dir, "states.dot"), graph);
+  writeFileSync(join(dir, "labels.map.mjs"),
+    'export const state = (v) => v.screen;\nexport const step = () => "move";\n');
+  const args = ["--dot", "states.dot", "--map", "labels.map.mjs", "--highlight", "0"];
+  const flat = node("tlc-to-chart.mjs", [...args, "--flat", "--out", "flat.mmd"], dir);
+  assert.equal(flat.status, 0, flat.stderr);
+  const regions = node("tlc-to-chart.mjs", [
+    ...args, "--regions", "--out", "chart.mmd", "--summary", "summary.json",
+  ], dir);
+  assert.equal(regions.status, 0, regions.stderr);
+  const summary = JSON.parse(readFileSync(join(dir, "summary.json"), "utf8"));
+  assert.equal(summary.regions.drawn, false);
+  assert.match(summary.regions.why, /reserved separator/);
+  assert.equal(summary.chartStates, 6);
+  writeFileSync(join(dir, "View.tla"), "---- MODULE View ----\nVARIABLE screen\n====\n");
+  writeFileSync(join(dir, "View.cfg"), "SPECIFICATION Spec\n");
+  writeFileSync(join(dir, "View.map.mjs"), readFileSync(join(dir, "labels.map.mjs")));
+  const java = join(dir, "java");
+  writeFileSync(java, `#!/usr/bin/env node
+import fs from "node:fs";
+const args = process.argv.slice(2);
+const dump = args.indexOf("-dump");
+if (dump !== -1) fs.copyFileSync(${JSON.stringify(join(dir, "states.dot"))}, args[dump + 2]);
+console.log("Model checking completed. No error has been found.");
+`, { mode: 0o755 });
+  const jar = join(dir, "tools.jar");
+  writeFileSync(jar, "");
+  const run = node("statechart.mjs", ["from-spec", "View.tla"], dir, { JAVA: java, TLA2TOOLS: jar });
+  assert.equal(run.status, 0, run.stderr);
+  const published = JSON.parse(readFileSync(join(dir, "View-statechart", "summary.json"), "utf8"));
+  assert.equal(published.chartStates, 6);
+  assert.equal(published.regions.drawn, false);
 });
 
 test("comparison guards treat prototype-named variables and record fields as missing", () => {

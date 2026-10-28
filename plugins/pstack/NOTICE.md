@@ -98,6 +98,10 @@ distinct region combinations. Flat combined-state captions remain supported.
 Generated action-label scaffolds use computed own properties and own-property
 fallbacks. Comparison mappings treat only own variables and record fields as
 model data, including prototype-named missing fields and guarded `in` checks.
+Unsupported or partially parsed TLC values no longer fall back to source strings.
+Chart-generated mappings use own-property action fallback too. Automatic region
+extraction falls back to ordinary rendering for separator-bearing captions while
+explicit parallel input retains its ambiguity check.
 ScaryPilot's Copilot SDK deletion requires no local extension migration because
 this port already excludes that extension. Its gh-stack/bootstrap installer,
 Copilot agent registration, source sync machinery and CI provisioning are not
