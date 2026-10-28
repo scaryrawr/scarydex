@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
+import { chmod, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, test } from "node:test";
 import { validatePlanText } from "../plugins/pstack/skills/poteto-mode/scripts/plan-rules.mjs";
@@ -17,7 +16,7 @@ test("pstack bundle manifest never requires optional local dependency installati
 });
 
 test("bundle generation excludes dependencies at every path depth", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "scarydex-bundle-inputs-"));
+  const root = await realpath(await mkdtemp(path.join(process.cwd(), ".scarydex-bundle-inputs-")));
   roots.push(root);
 
   for (const directory of ["tools", "node_modules/esbuild", "plugins/pstack", "plugins/omlx-media"]) {
@@ -43,7 +42,7 @@ afterEach(async () => {
 });
 
 async function fixture() {
-  const root = await mkdtemp(path.join(os.tmpdir(), "scarydex-pstack-update-"));
+  const root = await realpath(await mkdtemp(path.join(process.cwd(), ".scarydex-pstack-update-")));
   roots.push(root);
 
   const git = (...args) => {
@@ -126,7 +125,7 @@ test("pstack help routes every shipped command to its installed skill", async ()
 test("the documented branded-type parser accepts valid IDs and rejects malformed input", async () => {
   const patterns = await readFile(new URL("../plugins/pstack/skills/typescript-best-practices/references/patterns.md", import.meta.url), "utf8");
   const example = patterns.match(/```ts\n([\s\S]*?)\n```/)[1];
-  const root = await mkdtemp(path.join(os.tmpdir(), "scarydex-brand-example-"));
+  const root = await realpath(await mkdtemp(path.join(process.cwd(), ".scarydex-brand-example-")));
   roots.push(root);
   const file = path.join(root, "brand.ts");
   await writeFile(file, `import assert from "node:assert/strict";
@@ -194,7 +193,7 @@ test("formal verification skill contracts preserve scope, failure sensitivity an
 });
 
 test("pstack behavior eval specifications are well formed without running inference", async () => {
-  for (const name of ["create-formal-verification-skill", "maintain-formal-verification-skill", "sharpen", "ketchup"]) {
+  for (const name of ["create-formal-verification-skill", "maintain-formal-verification-skill", "sharpen", "ketchup", "principle-prove-it-works"]) {
     const data = JSON.parse(await readFile(new URL(`../plugins/pstack/skills/${name}/evals/evals.json`, import.meta.url), "utf8"));
     assert.equal(data.skill_name, name);
     assert.ok(data.evals.length > 0);
@@ -205,6 +204,62 @@ test("pstack behavior eval specifications are well formed without running infere
       assert.ok(item.prompt.trim().length > 0);
       assert.ok(item.expected_output.trim().length > 0);
       assert.ok(item.expectations.length > 0);
+
+      for (const file of item.files ?? []) {
+        assert.ok(!file.split("/").includes(".."));
+        await readFile(new URL(`../plugins/pstack/skills/${name}/${file}`, import.meta.url));
+      }
     }
   }
+});
+
+test("portable Node log preserves existing rows and sanitizes every cell", async () => {
+  const root = await realpath(await mkdtemp(path.join(process.cwd(), ".scarydex-log-")));
+  roots.push(root);
+  const file = path.join(root, "雪 café", "decision log.tsv");
+  const script = new URL("../plugins/pstack/skills/show-me-your-work/scripts/log.mjs", import.meta.url).pathname;
+  const run = cells => spawnSync("node", [script, file, ...cells], { encoding: "utf8" });
+  const cells = ["phase", "=formula\tvalue\nnext\rline", "+why", "-evidence", "@result"];
+  const first = run(cells);
+  assert.equal(first.status, 0, first.stderr);
+  const before = await readFile(file, "utf8");
+  assert.match(before, /^ts\tphase\tdecision\twhy\tevidence\tresult\n/);
+  assert.equal(before.split("\n")[1].split("\t").slice(1).join("\t"),
+    "phase\t'=formula value next line\t'+why\t'-evidence\t'@result");
+  const second = run(["next", "safe", "why", "evidence", "result"]);
+  assert.equal(second.status, 0, second.stderr);
+  const after = await readFile(file, "utf8");
+  assert.ok(after.startsWith(before));
+  assert.equal(after.match(/ts\tphase\tdecision\twhy\tevidence\tresult/g).length, 1);
+  assert.equal(run(["too few"]).status, 1);
+  assert.equal(await readFile(file, "utf8"), after);
+});
+
+test("worktree audit never fetches and preserves worktree paths containing spaces", async () => {
+  const { root, git, bin } = await fixture();
+  const withSpaces = path.join(root, "worktree café with spaces");
+  git("worktree", "add", "--detach", withSpaces, "HEAD");
+  const alias = path.join(root, "checkout alias");
+  await symlink(root, alias);
+  const nativeGit = spawnSync("which", ["git"], { encoding: "utf8" });
+  assert.equal(nativeGit.status, 0, nativeGit.stderr);
+  const fetched = path.join(root, "fetch-attempted");
+  const quoted = value => `'${value.replaceAll("'", "'\\''")}'`;
+  await writeFile(path.join(bin, "git"), `#!/bin/sh
+for arg in "$@"; do
+  if [ "$arg" = fetch ]; then touch ${quoted(fetched)}; exit 1; fi
+done
+exec ${quoted(nativeGit.stdout.trim())} "$@"
+`);
+  await chmod(path.join(bin, "git"), 0o755);
+  const script = new URL("../plugins/pstack/skills/poteto-mode/scripts/worktree-audit.sh", import.meta.url).pathname;
+
+  const result = spawnSync("bash", [script, alias], {
+    encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(result.stdout.includes(`\t${withSpaces}\n`));
+  assert.match(result.stderr, /local refs only; may be stale/);
+  await assert.rejects(readFile(fetched), { code: "ENOENT" });
 });

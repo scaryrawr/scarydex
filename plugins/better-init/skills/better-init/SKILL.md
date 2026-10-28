@@ -9,6 +9,12 @@ Create the smallest durable instruction set that changes how Codex works in this
 repository. Improve existing `/init` output in place. Preserve user-authored
 constraints and unrelated configuration.
 
+For initialization or a general guidance refresh, create or refresh
+`.agents/skills/code-review/SKILL.md` alongside repository instructions by
+default. A package or contributor-workflow focus is not an opt-out. Omit the
+review skill only when the user explicitly excludes it or limits edits to
+other files or surfaces.
+
 ## Inspect before writing
 
 Prioritize the user’s named package or workflow. Read executable sources first:
@@ -59,9 +65,23 @@ helpers in `scripts/`, detailed guidance in `references/`, and templates in
 `assets/`. Make linked paths relative to the skill. Preserve an existing skill
 layout unless the user requests migration.
 
-A review skill must name the repository-specific evidence to inspect, checks to
-run, and actionable finding criteria. Codex has no required `code-review` skill
-name. Do not claim that GitHub Copilot review will consume Codex-only skills.
+The default review skill uses `name: code-review` and a description targeting
+pull request review. Preserve useful existing review checks. If the repository
+already owns review guidance in another project skill, refresh that skill
+instead of creating a duplicate; `code-review` is a convention, not a required
+Codex discovery name.
+
+For a simple repository, map changed paths to verified entrypoints, affected
+behavior, tests, and applicable validation. Reference the command inventory in
+repository instructions instead of copying it. Add specialized compatibility,
+migration, or generated-artifact checks only when supported by repository
+evidence. Name the evidence to inspect and when a finding is actionable; do not
+fill the skill with generic bug, security, test, or style advice.
+
+Do not invent MCP access or assume local configuration grants access to a
+hosted reviewer. Name tools only when verified for the target review session
+or explicitly confirmed by the user. Do not claim that GitHub Copilot review
+will consume Codex-only skills.
 
 ### `.codex/agents/<name>.toml`, only when warranted
 
@@ -83,7 +103,10 @@ default. Preserve an existing `CLAUDE.md` shim without expanding it.
 ## Reconcile and verify
 
 Assign each fact one owner, tighten stale guidance, then make focused edits.
-It is valid for the result to be only `AGENTS.md`. Re-read every changed file,
+An explicitly instructions-only request may produce only `AGENTS.md`; a general
+initialization normally also includes the project review skill. Re-read every changed file,
 verify commands and paths against source, check frontmatter and links, and ensure
-new skills have unique names and clear triggers. Report files changed, what
+new skills have unique names and clear triggers. Unless excluded by explicit
+scope, confirm the review skill exists, preserves useful checks, and grounds
+its path-to-test mapping in the repository. Report files changed, what
 each owns, and any command you could not verify.

@@ -9,8 +9,17 @@ runtime or service is required.
 
 The workflow inspects executable configuration first, preserves existing useful
 guidance, and writes only the owning surfaces. It accounts for nested guides and
-`AGENTS.override.md`. It does not generate Copilot-only instructions, rewrite
+`AGENTS.override.md`. Initialization and general refreshes include a concise
+project review skill by default at `.agents/skills/code-review/SKILL.md`, or
+refresh an existing owning review skill instead of duplicating it. The skill
+maps changed paths to behavior, tests, and verified validation; useful existing
+contract checks are preserved. Explicit instructions-only scope or a request
+to skip review guidance takes precedence.
+
+It does not generate Copilot-only instructions, rewrite
 Codex user configuration, or create specialist agents as a showcase.
+The review skill is for Codex sessions, not a claim of GitHub-hosted Copilot
+review discovery or access to locally configured MCP tools.
 
 For large repositories, the optional read-only research prompt is at
 [repo-instruction-researcher](references/agents/repo-instruction-researcher.md).

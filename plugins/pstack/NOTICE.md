@@ -63,3 +63,55 @@ extension checks do not describe this port.
 Claude harness trees, their generator/marketplace, and Claude tool/model/history
 mappings are also excluded. The native Codex manifest and runtime mapping remain
 authoritative; no upstream packaging script is executed during porting.
+
+The next portable update is reviewed through ScaryPilot commit
+[`53263e5b135e6c1dbab762b81b9165bf73eccb6e`](https://github.com/scaryrawr/scarypilot/commit/53263e5b135e6c1dbab762b81b9165bf73eccb6e).
+It adds statechart from the ScaryPilot upstream-0.15.30 integration, including
+Windows output-folder validation, proportionate acceptance-condition evidence
+and its synthetic eval metadata, workspace-confined artifact reads, a portable
+Node decision log, and a strictly read-only worktree audit. The original import
+and earlier integration records above remain unchanged.
+
+Statechart uses preinstalled Java/TLC and optionally an already available
+Mermaid renderer. It never silently installs those prerequisites. Mapping
+modules execute code and must be inspected before use. Unlisted output files
+and symlinks block folder replacement. The portable suite is retained with
+Node subprocesses under Bun and Codex plan-fixture vocabulary. Full TLC-backed
+coverage is not claimed when Java or the supplied jar is unavailable.
+Local statechart corrections confine rule-derived filenames, resolve composite
+membership from declared hierarchy, preserve arbitrary TLC function keys and
+directive-prefixed state identifiers, and retain shared Linux test preloads
+until suite teardown.
+Input-change protection also fingerprints transitive local TLA+ modules referenced
+by `EXTENDS` and `INSTANCE`, including fixed and comparison models, before TLC runs.
+TLC model values and non-string function keys are explicitly unsupported: parsing
+stops rather than conflating them with string values or keys in state identities.
+Graph/trace variables, parallel-region captions and guard state lists preserve
+prototype-named keys as own properties instead of invoking inherited setters or
+reading inherited values.
+Sets and sequences retain distinct internal state identities while both remain
+arrays for mapping code. Set identity ignores member order; comparison-model
+field omission preserves this collection metadata.
+Parallel-region state captions containing the combined-state separator ` | `
+are rejected before conversion or comparison, rather than silently collapsing
+distinct region combinations. Flat combined-state captions remain supported.
+Generated action-label scaffolds use computed own properties and own-property
+fallbacks. Comparison mappings treat only own variables and record fields as
+model data, including prototype-named missing fields and guarded `in` checks.
+Unsupported or partially parsed TLC values no longer fall back to source strings.
+Chart-generated mappings use own-property action fallback too. Automatic region
+extraction falls back to ordinary rendering for separator-bearing captions while
+explicit parallel input retains its ambiguity check.
+Region extraction also falls back when normalized captions collide. Guarded
+child overrides of same-labeled parent transitions fail explicitly until their
+fallback semantics are supported. Copy-based publication claims an empty
+destination exclusively and never recursively deletes that destination after
+a failed copy; a failure reports potentially incomplete output.
+Node loader hooks fingerprint actual mapping imports, including reexports and
+callback dynamic imports, before evaluation. Rendering subprocesses return their
+observations over a private pipe; conflicting or changed inputs prevent publication.
+ScaryPilot's Copilot SDK deletion requires no local extension migration because
+this port already excludes that extension. Its gh-stack/bootstrap installer,
+Copilot agent registration, source sync machinery and CI provisioning are not
+shipped; the existing bundled GitHub discovery and Codex manifest remain intact.
+Later Cursor-only changes are outside this ScaryPilot review.

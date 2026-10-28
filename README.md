@@ -7,7 +7,7 @@ plugins, primarily as skills with bundled script helpers:
 | --- | --- | --- |
 | `pstack` | Planning, architecture, review, delegation, verification, and durable handoffs | Skills + self-contained Node scripts |
 | `anti-slop` | JavaScript/TypeScript design guidance and edit checks | Skills + Codex command hooks; Node.js; explicit Oxlint setup |
-| `better-init` | Concise Codex repository initialization and guidance | Skills and reusable research prompt |
+| `better-init` | Concise Codex repository guidance with a project review skill by default | Skills and reusable research prompt |
 | `digivolution` | Evidence-triggered post-task repository-guidance reflection | Skill + Codex command hooks; Node.js |
 | `omlx-media` | Local images, speech, transcription, and recording-to-document workflows | Skills + self-contained Node helper; optional Python helpers |
 | `screen-record` | Screen capture, demo editing, captions, and narration | Skill + Node helper + FFmpeg |
