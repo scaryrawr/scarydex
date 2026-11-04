@@ -8,13 +8,23 @@ The managed recorder uses FFmpeg `gdigrab` for the screen and DirectShow
 Run:
 
 ```text
-node scripts/screen-record.mjs doctor
-node scripts/screen-record.mjs devices
+node scripts/screen-record.mjs doctor --capture-only
+node scripts/screen-record.mjs devices --json
 ```
 
 `devices` prints DirectShow device names. Copy an audio device name exactly.
 Windows may prompt for microphone privacy permission. `gdigrab` does not require
 a camera device.
+
+Before upgrading, stop any legacy recordings with the pre-upgrade helper. The
+new helper ignores legacy state on Windows because Node cannot verify its
+ownership; legacy recovery is limited to same-owner Unix state.
+
+For a selected application window, run `node scripts/screen-record.mjs windows --json`.
+It lists visible, non-minimized, non-cloaked top-level windows without focusing
+or capturing them. Titles may expose private document names. Discovery does
+not verify OS capture permission. PowerShell and gdigrab HWND support are
+required, normally FFmpeg 7.0 or newer.
 
 ## Capture
 
@@ -29,6 +39,18 @@ Capture a region:
 ```text
 node scripts/screen-record.mjs start --output raw.mp4 --region 100,80,1280,720
 ```
+
+Capture a selected window using an ID returned by discovery:
+
+```text
+node scripts/screen-record.mjs start --output raw.mp4 --window-id <windowId>
+```
+
+The helper revalidates window identity before the detached worker starts.
+A renamed, closed, or replaced window can invalidate the selection.
+Rediscover rather than guessing handles or titles. Do not combine `--window-id`
+with `--region` or `--video-input`. Retain the returned `recordingId` for
+status and stop. Screen and microphone approval remain separate.
 
 Capture a microphone:
 
