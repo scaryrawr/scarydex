@@ -6,6 +6,8 @@ Start with `poteto-mode`, or invoke focused skills such as `how`, `architect`,
 Use `ketchup` for a read-only catch-up, `in-your-own-words` to restate the goal,
 and `sharpen` to rewrite a prompt before sending it. Sharpen returns only the
 rewritten prompt; it does not execute the task.
+Use `ketchup-video` for an explicitly requested silent slide-video catch-up.
+It uses existing evidence and an available local renderer, with a text fallback.
 
 Use [create-formal-verification-skill](skills/create-formal-verification-skill/SKILL.md)
 to check one costly, hard-to-test property and generate a project-local skill.

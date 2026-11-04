@@ -108,6 +108,19 @@ test("plan fences ignore fake headings and checklists without masking subsequent
   assert.ok(validatePlanText(nested, "basic").findings.length > 0);
 });
 
+test("plan punctuation checks honor matching inline code delimiters", () => {
+  for (const count of [2, 3, 4]) {
+    const delimiter = "`".repeat(count);
+    const result = validatePlanText(`# Plan\n- [ ] Use ${delimiter}echo \`x\`: “quoted” — example${delimiter}.\n`, "basic");
+    assert.deepEqual(result.findings, []);
+  }
+
+  const outside = validatePlanText("# Plan\n- [ ] Use ``echo `x`: y``. Bad: prose.\n", "basic");
+  assert.ok(outside.findings.some(f => f.rule === "sentence-colon"));
+  const unmatched = validatePlanText("# Plan\n- [ ] Use ``unclosed: bad` here.\n", "basic");
+  assert.ok(unmatched.findings.some(f => f.rule === "sentence-colon"));
+});
+
 test("pstack help routes every shipped command to its installed skill", async () => {
   const directory = new URL("../plugins/pstack/skills/", import.meta.url);
   const help = await readFile(new URL("poteto-help/SKILL.md", directory), "utf8");

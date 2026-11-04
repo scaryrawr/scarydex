@@ -3901,11 +3901,14 @@ var GhGitHubReader = class {
       "--limit",
       "300",
       "--json",
-      "number,headRefName,baseRefName"
+      "number,headRefName,baseRefName,isCrossRepository"
     ]);
     return list(value, "open PRs").map((item, index) => {
       const object = record(item, `open PRs[${index}]`);
+      if (typeof object.isCrossRepository !== "boolean")
+        missing(`open PRs[${index}].isCrossRepository`, object.isCrossRepository);
       return {
+        isCrossRepository: object.isCrossRepository,
         number: parsePrNumber(object.number, `open PRs[${index}].number`),
         headRefName: string(
           object.headRefName,
@@ -4052,7 +4055,9 @@ async function resolveContext(args) {
 }
 function orderStack(context, open) {
   const byNumber = new Map(open.map((pr) => [pr.number, pr]));
-  const byHead = new Map(open.map((pr) => [pr.headRefName, pr]));
+  const byHead = new Map(
+    open.filter((pr) => !pr.isCrossRepository).map((pr) => [pr.headRefName, pr])
+  );
   const children = /* @__PURE__ */ new Map();
   for (const pr of open)
     children.set(pr.baseRefName, [...children.get(pr.baseRefName) ?? [], pr]);
@@ -4074,6 +4079,7 @@ function orderStack(context, open) {
   ]);
   const up = [];
   const visit = (parent) => {
+    if (parent.isCrossRepository) return;
     for (const child of children.get(parent.headRefName) ?? []) {
       if (seen.has(child.number)) continue;
       seen.add(child.number);
@@ -4344,6 +4350,10 @@ var deadlinePassed = (started, options, now) => options.timeout > 0 && now - sta
 async function pollUntilTerminal(args) {
   let failures = 0;
   const started = args.dependencies.clock.now();
+  const sleep = async (seconds) => {
+    const remaining = args.options.timeout > 0 ? Math.max(0, args.options.timeout - (args.dependencies.clock.now() - started)) : seconds;
+    await args.dependencies.clock.sleep(Math.min(seconds, remaining));
+  };
   while (true) {
     let result;
     try {
@@ -4374,14 +4384,14 @@ async function pollUntilTerminal(args) {
           exitCode: 5,
           reason: { kind: "status-unavailable", failure: error.failure }
         });
-      await args.dependencies.clock.sleep(retryInSeconds);
+      await sleep(retryInSeconds);
       continue;
     }
     if (result.kind === "terminal") return result.verdict;
     if (result.kind === "sleep") {
       if (result.onDeadline !== void 0 && deadlinePassed(started, args.options, args.dependencies.clock.now()))
         return result.onDeadline();
-      await args.dependencies.clock.sleep(result.seconds);
+      await sleep(result.seconds);
     }
   }
 }

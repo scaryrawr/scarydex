@@ -9143,6 +9143,458 @@
             "Compared every parent: 7c493a17e4d8c7c87941f82f1c2c3b286b23e51d, 1054ba5f714dea13afd821db42da4b3c91aa90b7. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
             "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
           ]
+        },
+        {
+          "commit": "3c0fdb4e76293ebcdaed16f0d096c788bd3b49b2",
+          "disposition": "ported",
+          "reason": "Adds explicit ketchup-video slide catch-ups using existing evidence and a local renderer. Codex adapts attachment availability and approval boundaries, preserves every waiting decision and uses a text fallback. No capture, inference or media rendering runs during tests.",
+          "paths": [
+            "harness/pstack/claude-code/README.md",
+            "harness/pstack/claude-code/docs/guide/10-recipes-and-pitfalls.md",
+            "harness/pstack/claude-code/skills/ketchup-video/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/SKILL.md",
+            "pstack/README.md",
+            "pstack/docs/guide/10-recipes-and-pitfalls.md",
+            "pstack/skills/ketchup-video/SKILL.md",
+            "pstack/skills/poteto-help/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/README.md",
+            "plugins/pstack/bundle-manifest.json",
+            "plugins/pstack/skills/ketchup-video/SKILL.md",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/store.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/plan-rules.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs",
+            "plugins/pstack/skills/reflect/SKILL.md",
+            "plugins/pstack/skills/swarm/SKILL.md"
+          ],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/3c0fdb4e76293ebcdaed16f0d096c788bd3b49b2",
+            "Compared every parent: e7fb9647db242b96206978d56e8aff4a68718088. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "plugins/pstack/skills/ketchup-video/SKILL.md",
+            "bun run check",
+            "bun test tests/pstack-update.test.mjs"
+          ]
+        },
+        {
+          "commit": "b1a129891c49f6b84d0613477f5d021a0782b5e0",
+          "disposition": "excluded",
+          "reason": "Only separately configured third-party MCP plugins, source marketplace listings and mirrored Claude harness packaging change. No pstack import or runtime dependency changes.",
+          "paths": [
+            "harness/pstack/claude-code/.claude-plugin/plugin.json",
+            "harness/pstack/claude-code/plugin.json",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/b1a129891c49f6b84d0613477f5d021a0782b5e0",
+            "Compared every parent: 3c0fdb4e76293ebcdaed16f0d096c788bd3b49b2. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
+          ]
+        },
+        {
+          "commit": "7054003c3723e82d099fb7620e3bc8d7d63eebc6",
+          "disposition": "ported",
+          "reason": "Reflect edits go to an approved project or user skill copy, never the installed plugin cache. Cursor destination paths map to Codex .agents/skills and existing approval boundaries remain.",
+          "paths": [
+            "harness/pstack/claude-code/skills/reflect/SKILL.md",
+            "pstack/skills/reflect/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/README.md",
+            "plugins/pstack/bundle-manifest.json",
+            "plugins/pstack/skills/ketchup-video/SKILL.md",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/store.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/plan-rules.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs",
+            "plugins/pstack/skills/reflect/SKILL.md",
+            "plugins/pstack/skills/swarm/SKILL.md"
+          ],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/7054003c3723e82d099fb7620e3bc8d7d63eebc6",
+            "Compared every parent: b1a129891c49f6b84d0613477f5d021a0782b5e0. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "plugins/pstack/skills/reflect/SKILL.md",
+            "bun run check"
+          ]
+        },
+        {
+          "commit": "96dec8ee58deb7b388fa080fbceaba4460a7c9dd",
+          "disposition": "ported",
+          "reason": "Watcher discovery parses GitHub isCrossRepository, excludes fork heads from local base lookup, and stops child discovery from fork heads. The bundled runtime retains Codex review pagination and owner-approval blockers.",
+          "paths": [
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/types.ts"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/README.md",
+            "plugins/pstack/bundle-manifest.json",
+            "plugins/pstack/skills/ketchup-video/SKILL.md",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/store.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/plan-rules.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs",
+            "plugins/pstack/skills/reflect/SKILL.md",
+            "plugins/pstack/skills/swarm/SKILL.md"
+          ],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/96dec8ee58deb7b388fa080fbceaba4460a7c9dd",
+            "Compared every parent: 7054003c3723e82d099fb7620e3bc8d7d63eebc6. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "bun test plugins/pstack/skills/poteto-mode/scripts/watch-pr",
+            "Regression covers a fork named main, same-name fork parents, fork children and the actual gh query boundary."
+          ]
+        },
+        {
+          "commit": "fe096ef31c94c30997207ffb6e30c51f15a34f16",
+          "disposition": "ported",
+          "reason": "Normal polling and retry sleeps stop at the remaining deadline. Disabled deadlines still use the configured interval.",
+          "paths": [
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/policy.ts"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/README.md",
+            "plugins/pstack/bundle-manifest.json",
+            "plugins/pstack/skills/ketchup-video/SKILL.md",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/store.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/plan-rules.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs",
+            "plugins/pstack/skills/reflect/SKILL.md",
+            "plugins/pstack/skills/swarm/SKILL.md"
+          ],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/fe096ef31c94c30997207ffb6e30c51f15a34f16",
+            "Compared every parent: 96dec8ee58deb7b388fa080fbceaba4460a7c9dd. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "bun test plugins/pstack/skills/poteto-mode/scripts/watch-pr",
+            "Fake-clock tests assert exact 5-second sleeps for single, queued and query-retry modes, and a 60-second sleep with no deadline."
+          ]
+        },
+        {
+          "commit": "86c2448db179ad2f9193aecea549e664c5905895",
+          "disposition": "ported",
+          "reason": "The shared Codex plan parser recognizes matched multi-backtick inline code spans while retaining punctuation checks after the span and for unmatched delimiters.",
+          "paths": [
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/check-plan.mjs",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/check-plan.test.ts",
+            "pstack/skills/poteto-mode/scripts/check-plan.mjs",
+            "pstack/skills/poteto-mode/scripts/check-plan.test.ts"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/README.md",
+            "plugins/pstack/bundle-manifest.json",
+            "plugins/pstack/skills/ketchup-video/SKILL.md",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/store.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/plan-rules.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs",
+            "plugins/pstack/skills/reflect/SKILL.md",
+            "plugins/pstack/skills/swarm/SKILL.md"
+          ],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/86c2448db179ad2f9193aecea549e664c5905895",
+            "Compared every parent: fe096ef31c94c30997207ffb6e30c51f15a34f16. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "tests/pstack-update.test.mjs",
+            "bun test tests/pstack-update.test.mjs"
+          ]
+        },
+        {
+          "commit": "3c596e701b5ca3d213e072464eec36baf0dee3e7",
+          "disposition": "ported",
+          "reason": "The retained bundled GitHub orchestration helper prefers the sole active PR over closed/merged branch history. Multiple active PRs still fail, and historical anchors remain when no active PR exists.",
+          "paths": [
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/orch/store.ts",
+            "pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "pstack/skills/poteto-mode/scripts/orch/store.ts"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/README.md",
+            "plugins/pstack/bundle-manifest.json",
+            "plugins/pstack/skills/ketchup-video/SKILL.md",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/store.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/plan-rules.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs",
+            "plugins/pstack/skills/reflect/SKILL.md",
+            "plugins/pstack/skills/swarm/SKILL.md"
+          ],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/3c596e701b5ca3d213e072464eec36baf0dee3e7",
+            "Compared every parent: 86c2448db179ad2f9193aecea549e664c5905895. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "bun test plugins/pstack/skills/poteto-mode/scripts/orch",
+            "Regression asserts the resolved frontier and rejects two active PRs."
+          ]
+        },
+        {
+          "commit": "f83fbe695ee14badf3ac128d3718f9fb71a3a3f9",
+          "disposition": "excluded",
+          "reason": "The GNU stat/date change applies only to upstream global Cursor transcript scanning, which Codex deliberately excludes. Its existing worktree audit uses local Git refs and no transcript timestamps or fetching.",
+          "paths": [
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/worktree-audit.sh",
+            "pstack/skills/poteto-mode/scripts/worktree-audit.sh"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/f83fbe695ee14badf3ac128d3718f9fb71a3a3f9",
+            "Compared every parent: 3c596e701b5ca3d213e072464eec36baf0dee3e7. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "plugins/pstack/skills/poteto-mode/scripts/worktree-audit.sh",
+            "tests/pstack-update.test.mjs"
+          ]
+        },
+        {
+          "commit": "a0b0ad99fc11efee2b18b50c33dc94abad4fd51e",
+          "disposition": "excluded",
+          "reason": "Documents Claude Code marketplace auto-update defaults, not Codex installation behavior. No unsupported Codex auto-update promise is added.",
+          "paths": [
+            "harness/pstack/claude-code/README.md",
+            "pstack/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/a0b0ad99fc11efee2b18b50c33dc94abad4fd51e",
+            "Compared every parent: f83fbe695ee14badf3ac128d3718f9fb71a3a3f9. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected both README hunks and the existing Codex installation section."
+          ]
+        },
+        {
+          "commit": "e73df471cd4bd918367e99f3dd9c51bd53ddf5f0",
+          "disposition": "ported",
+          "reason": "The result-table wording is clarified. Codex's section-based swarm workflow already avoids the broken numbered phase and model-step references, and its inherited-model mapping remains unchanged.",
+          "paths": [
+            "harness/pstack/claude-code/skills/swarm/SKILL.md",
+            "pstack/skills/swarm/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/README.md",
+            "plugins/pstack/bundle-manifest.json",
+            "plugins/pstack/skills/ketchup-video/SKILL.md",
+            "plugins/pstack/skills/poteto-help/SKILL.md",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/orch/store.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/plan-rules.mjs",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "plugins/pstack/skills/poteto-mode/scripts/watch-pr/watch-pr.mjs",
+            "plugins/pstack/skills/reflect/SKILL.md",
+            "plugins/pstack/skills/swarm/SKILL.md"
+          ],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/e73df471cd4bd918367e99f3dd9c51bd53ddf5f0",
+            "Compared every parent: a0b0ad99fc11efee2b18b50c33dc94abad4fd51e. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "plugins/pstack/skills/swarm/SKILL.md",
+            "bun run check"
+          ]
+        },
+        {
+          "commit": "e27dafe3985e83a59a5b40367c95b597256ff39f",
+          "disposition": "excluded",
+          "reason": "Only separately configured third-party MCP plugins, source marketplace listings and mirrored Claude harness packaging change. No pstack import or runtime dependency changes.",
+          "paths": [
+            "third_party/databricks-genie-one/.cursor-plugin/plugin.json",
+            "third_party/databricks-genie-one/CHANGELOG.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/e27dafe3985e83a59a5b40367c95b597256ff39f",
+            "Compared every parent: e73df471cd4bd918367e99f3dd9c51bd53ddf5f0. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
+          ]
+        },
+        {
+          "commit": "6dbc3ff4b8302a697705f827e9fa92e700d6c6c7",
+          "disposition": "excluded",
+          "reason": "Only separately configured third-party MCP plugins, source marketplace listings and mirrored Claude harness packaging change. No pstack import or runtime dependency changes.",
+          "paths": [
+            "third_party/databricks-genie-one/.cursor-plugin/plugin.json",
+            "third_party/databricks-genie-one/CHANGELOG.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/6dbc3ff4b8302a697705f827e9fa92e700d6c6c7",
+            "Compared every parent: e73df471cd4bd918367e99f3dd9c51bd53ddf5f0, e27dafe3985e83a59a5b40367c95b597256ff39f. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
+          ]
+        },
+        {
+          "commit": "10048477070fc84ee69ea2dc9fa03b4306e2d5d7",
+          "disposition": "excluded",
+          "reason": "Only separately configured third-party MCP plugins, source marketplace listings and mirrored Claude harness packaging change. No pstack import or runtime dependency changes.",
+          "paths": [
+            "third_party/databricks-genie-one/.cursor-plugin/plugin.json",
+            "third_party/databricks-genie-one/CHANGELOG.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/10048477070fc84ee69ea2dc9fa03b4306e2d5d7",
+            "Compared every parent: 6dbc3ff4b8302a697705f827e9fa92e700d6c6c7. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
+          ]
+        },
+        {
+          "commit": "e853501d1a466d9cfcda381a677b09b0d17f758f",
+          "disposition": "excluded",
+          "reason": "Only separately configured third-party MCP plugins, source marketplace listings and mirrored Claude harness packaging change. No pstack import or runtime dependency changes.",
+          "paths": [
+            "third_party/databricks-genie-one/.cursor-plugin/plugin.json",
+            "third_party/databricks-genie-one/CHANGELOG.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/e853501d1a466d9cfcda381a677b09b0d17f758f",
+            "Compared every parent: 6dbc3ff4b8302a697705f827e9fa92e700d6c6c7, 10048477070fc84ee69ea2dc9fa03b4306e2d5d7. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
+          ]
+        },
+        {
+          "commit": "b6375f1c3a8600fa8907d2214ed9f8aad0028dde",
+          "disposition": "excluded",
+          "reason": "Only separately configured third-party MCP plugins, source marketplace listings and mirrored Claude harness packaging change. No pstack import or runtime dependency changes.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/power-bi/.cursor-plugin/plugin.json",
+            "third_party/power-bi/CHANGELOG.md",
+            "third_party/power-bi/LICENSE",
+            "third_party/power-bi/README.md",
+            "third_party/power-bi/assets/logo.svg",
+            "third_party/power-bi/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/b6375f1c3a8600fa8907d2214ed9f8aad0028dde",
+            "Compared every parent: e853501d1a466d9cfcda381a677b09b0d17f758f. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
+          ]
+        },
+        {
+          "commit": "9580c23696ac8d7abed0c166f2f9918800afb819",
+          "disposition": "excluded",
+          "reason": "Only separately configured third-party MCP plugins, source marketplace listings and mirrored Claude harness packaging change. No pstack import or runtime dependency changes.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/power-bi/.cursor-plugin/plugin.json",
+            "third_party/power-bi/CHANGELOG.md",
+            "third_party/power-bi/LICENSE",
+            "third_party/power-bi/README.md",
+            "third_party/power-bi/assets/logo.svg",
+            "third_party/power-bi/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/9580c23696ac8d7abed0c166f2f9918800afb819",
+            "Compared every parent: e853501d1a466d9cfcda381a677b09b0d17f758f, b6375f1c3a8600fa8907d2214ed9f8aad0028dde. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
+          ]
+        },
+        {
+          "commit": "59c03a6b66d4977f770d9ac21ae5e70f9e83679c",
+          "disposition": "excluded",
+          "reason": "Only separately configured third-party MCP plugins, source marketplace listings and mirrored Claude harness packaging change. No pstack import or runtime dependency changes.",
+          "paths": [
+            "third_party/tailscale/.cursor-plugin/plugin.json",
+            "third_party/tailscale/CHANGELOG.md",
+            "third_party/tailscale/skills/tailscale-setup/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/59c03a6b66d4977f770d9ac21ae5e70f9e83679c",
+            "Compared every parent: 7698375f92a729f8bb89d113c633dce9ff9dc6db. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
+          ]
+        },
+        {
+          "commit": "0b20c5ed7c1ff3eb6d4fecac664a016eb14569f9",
+          "disposition": "excluded",
+          "reason": "Only separately configured third-party MCP plugins, source marketplace listings and mirrored Claude harness packaging change. No pstack import or runtime dependency changes.",
+          "paths": [
+            "third_party/tailscale/.cursor-plugin/plugin.json",
+            "third_party/tailscale/skills/tailscale-setup/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/0b20c5ed7c1ff3eb6d4fecac664a016eb14569f9",
+            "Compared every parent: 59c03a6b66d4977f770d9ac21ae5e70f9e83679c. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
+          ]
+        },
+        {
+          "commit": "a29ce4044137c6bbedd80200c7f04cd16ab91790",
+          "disposition": "excluded",
+          "reason": "Only separately configured third-party MCP plugins, source marketplace listings and mirrored Claude harness packaging change. No pstack import or runtime dependency changes.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/tailscale/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/a29ce4044137c6bbedd80200c7f04cd16ab91790",
+            "Compared every parent: 0b20c5ed7c1ff3eb6d4fecac664a016eb14569f9. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
+          ]
         }
       ]
     }
