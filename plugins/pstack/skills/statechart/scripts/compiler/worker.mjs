@@ -277,6 +277,7 @@ var stateRules = (spec) => {
 };
 
 // plugins/pstack/skills/statechart/scripts/compiler/frontends/view.ts
+var MAX_INTERVAL_MEMBERS = 1e5;
 var projected = /* @__PURE__ */ new WeakMap();
 var json = (v) => {
   if (typeof v !== "object") return v;
@@ -284,6 +285,12 @@ var json = (v) => {
   let j = projected.get(v);
   if (j === void 0) {
     if (v.kind === "interval") {
+      if (!Number.isSafeInteger(v.lo) || !Number.isSafeInteger(v.hi))
+        throw new Error(`The view cannot expand interval ${v.lo}..${v.hi}: bounds must be safe integers.`);
+      if (v.hi - v.lo + 1 > MAX_INTERVAL_MEMBERS)
+        throw new Error(
+          `The view cannot expand interval ${v.lo}..${v.hi}: at most ${MAX_INTERVAL_MEMBERS} members are supported.`
+        );
       const members = [];
       for (let k = v.lo; k <= v.hi; k++) members.push(k);
       j = members;
@@ -307,9 +314,9 @@ var projectedVars = /* @__PURE__ */ new WeakMap();
 var jsonVars = (vars) => {
   let j = projectedVars.get(vars);
   if (j === void 0) {
-    const fields = [];
-    for (const [name, v] of Object.entries(vars)) fields.push([name, json(v)]);
-    j = Object.fromEntries(fields);
+    j = {};
+    for (const [name, v] of Object.entries(vars))
+      Object.defineProperty(j, name, { enumerable: true, get: () => json(v) });
     projectedVars.set(vars, j);
   }
   return j;
@@ -792,7 +799,7 @@ function ask(graph, { states: tla, nameOf, from, to }, view) {
   const state = view.state;
   const shapes = new Array(n);
   for (let i = 0; i < n; i++)
-    shapes[i] = shapeOf(state ? state(tla[i].vars) : nameOf[i], tla[i].vars);
+    shapes[i] = state ? shapeOf(state(tla[i].vars), tla[i].vars) : { "": [nameOf[i]] };
   const names2 = Object.keys(shapes[0] ?? { "": [] });
   const regionsKey = tupleKey(names2);
   for (let i = 0; i < n; i++)
@@ -1208,6 +1215,17 @@ function bugs(graph, { ids, from, via, reached } = walk(graph)) {
 }
 
 // plugins/pstack/skills/statechart/scripts/compiler/passes/region-check.ts
+function* combinations(choices, prefix = []) {
+  if (prefix.length === choices.length) {
+    yield [...prefix];
+    return;
+  }
+  for (const choice of choices[prefix.length]) {
+    prefix.push(choice);
+    yield* combinations(choices, prefix);
+    prefix.pop();
+  }
+}
 function regionsLie(regions, { names: names2, keys: keys2, sorted, drawnLabels, together }, { from, to, starts }, order) {
   if (names2.length < 2) return void 0;
   const combo = (i) => {
@@ -1221,16 +1239,10 @@ function regionsLie(regions, { names: names2, keys: keys2, sorted, drawnLabels, 
     return parts.join(", ");
   };
   const addMove = (moves, m) => moves.set(tupleKey([m.from, m.text, m.to]), m);
-  let product = [[]];
-  for (const r of regions) {
-    const next = [];
-    for (const c of product)
-      for (const s of r.states) if (s.start) next.push([...c, tupleKey(s.path)]);
-    product = next;
-  }
+  const initial = regions.map((r) => r.states.flatMap((s) => s.start ? [tupleKey(s.path)] : []));
   const realStarts = /* @__PURE__ */ new Set();
   for (const i of starts) realStarts.add(tupleKey(combo(i)));
-  for (const c of product)
+  for (const c of combinations(initial))
     if (!realStarts.has(tupleKey(c)))
       return `The regions chart starts at ${words(c)}, where the model never starts.`;
   for (const [i, r] of regions.entries())
@@ -1259,27 +1271,21 @@ function regionsLie(regions, { names: names2, keys: keys2, sorted, drawnLabels, 
         if (a.from === c[i] && holds(a.condition, rest)) append(enabled, a.label, { i, a });
     }
     for (const [text, list2] of enabled) {
-      let groups = [];
+      let groups;
       if (together.has(text)) {
         const byRegion = /* @__PURE__ */ new Map();
         for (const m of list2) append(byRegion, m.i, m);
-        groups = [[]];
-        for (const opts of byRegion.values()) {
-          const next = [];
-          for (const g of groups) for (const m of opts) next.push([...g, m]);
-          groups = next;
-        }
-      } else for (const m of list2) groups.push([m]);
+        groups = combinations([...byRegion.values()]);
+      } else groups = list2.map((m) => [m]);
       for (const group of groups) {
         const to2 = [...c];
         for (const { i, a } of group) to2[i] = a.to;
+        if (!real.has(tupleKey([c, text, to2])))
+          return `The regions chart lets ${words(c)} go to ${words(to2)} by ${text}, which the model never does.`;
         addMove(drawn, { from: c, text, to: to2 });
       }
     }
   }
-  for (const [k, extra] of drawn)
-    if (!real.has(k))
-      return `The regions chart lets ${words(extra.from)} go to ${words(extra.to)} by ${extra.text}, which the model never does.`;
   for (const [k, missing] of real)
     if (!drawn.has(k))
       return `The model goes from ${words(missing.from)} to ${words(missing.to)} by ${missing.text}, which the regions chart cannot show.`;
@@ -1903,9 +1909,9 @@ var tokenEnd = (s, i) => {
   if (punct) return s.startsWith(punct, i) ? i + punct.length : -1;
   if (BRACKET[c] || c === 44) return i + 1;
   let j = i + 1;
-  if (c === 45 || isDigit(c)) {
+  if (c === 45) {
     while (isDigit(s.charCodeAt(j))) j++;
-    return c === 45 && j === i + 1 ? -1 : j;
+    return j === i + 1 ? -1 : j;
   }
   if (!isWord(c)) return -1;
   while (isWord(s.charCodeAt(j))) j++;

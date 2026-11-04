@@ -72,7 +72,7 @@ export function ask(graph: Graph, { states: tla, nameOf, from, to }: Walk, view:
   const state = view.state;
   const shapes = new Array<Shape>(n);
   for (let i = 0; i < n; i++)
-    shapes[i] = shapeOf(state ? state(tla[i].vars) : nameOf[i], tla[i].vars);
+    shapes[i] = state ? shapeOf(state(tla[i].vars), tla[i].vars) : { "": [nameOf[i]] };
   const names = Object.keys(shapes[0] ?? { "": [] });
   const regionsKey = tupleKey(names);
   for (let i = 0; i < n; i++)

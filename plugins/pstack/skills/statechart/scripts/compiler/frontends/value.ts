@@ -33,9 +33,9 @@ export const tokenEnd = (s: string, i: number) => {
   if (punct) return s.startsWith(punct, i) ? i + punct.length : -1;
   if (BRACKET[c] || c === 44) return i + 1;
   let j = i + 1;
-  if (c === 45 || isDigit(c)) {
+  if (c === 45) {
     while (isDigit(s.charCodeAt(j))) j++;
-    return c === 45 && j === i + 1 ? -1 : j;
+    return j === i + 1 ? -1 : j;
   }
   if (!isWord(c)) return -1;
   while (isWord(s.charCodeAt(j))) j++;

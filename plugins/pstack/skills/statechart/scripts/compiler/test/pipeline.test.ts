@@ -268,3 +268,59 @@ test("a run that does not check for deadlock never names CHECK_DEADLOCK", () => 
     assert.doesNotMatch(compile(result, noView).report, /CHECK_DEADLOCK/);
   }
 });
+
+test("default labels preserve literal TLC strings that resemble missing custom values", () => {
+  for (const text of ["undefined", "NaN", "[object Object]"]) {
+    const result = twoStates([small]);
+    const state = result.graph.states.get("2");
+    assert.ok(state);
+    state.vars.x = text;
+    const compiled = compile(result, noView);
+    assert.equal(compiled.exit, 1);
+    assert.ok(body(compiled.files, "chart.mmd").includes(text));
+    assert.ok(compiled.report.includes(text));
+    assert.throws(
+      () => compile(result, checkView({ state: () => text }, inspect)),
+      /The view's state\(\) returned/,
+    );
+  }
+});
+
+for (const scenario of ["starts", "moves"]) {
+  test(`25 correlated regions with impossible ${scenario} fall back within a bounded worker heap`, () => {
+    execFileSync("node", ["--max-old-space-size=64", "--input-type=module", "-e", `
+    import assert from "node:assert/strict";
+    import { inspect } from "node:util";
+    import { checkView } from ${JSON.stringify(new URL("../frontends/view.ts", import.meta.url).href)};
+    import { project } from ${JSON.stringify(new URL("../pipeline.ts", import.meta.url).href)};
+    import { walk } from ${JSON.stringify(new URL("../passes/reach.ts", import.meta.url).href)};
+    const flags = value => Object.fromEntries(
+      Array.from({ length: 25 }, (_, i) => ["flag" + i, value]),
+    );
+    const multipleStarts = ${scenario === "starts"};
+    const graph = {
+      states: new Map([
+        ["off", { vars: flags(false), start: true, breaks: [] }],
+        ["on", { vars: flags(true), start: multipleStarts, breaks: [] }],
+      ]),
+      steps: [],
+    };
+    if (!multipleStarts) {
+      graph.states.set("other", { vars: flags("other"), start: false, breaks: [] });
+      graph.steps.push(
+        { from: "off", to: "on", action: "Set" },
+        { from: "off", to: "other", action: "Set" },
+      );
+    }
+    const view = checkView({
+      state: vars => Object.fromEntries(
+        Object.entries(vars).map(([name, value]) => [name, String(value)]),
+      ),
+    }, inspect);
+    const { chart } = project(graph, walk(graph), view, []);
+    assert.match(chart.lie, multipleStarts ? /where the model never starts/ : /which the model never does/);
+    assert.equal(chart.regions.length, 1);
+    assert.equal(chart.regions[0].states.length, multipleStarts ? 2 : 3);
+    `], { encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "pipe"] });
+  });
+}

@@ -8,7 +8,7 @@ Copy the model, config and local dependencies to an approved scratch folder outs
 node "<skill dir>/scripts/compiler/statechart.mjs" SPEC.tla --out "<fresh output>"
 ```
 
-Options are `--config FILE`, `--view FILE` and `--out DIR`. The default config shares the spec's basename, and default output is `statechart-out` beside the spec. Only exits 0 and 1 publish: 0 means the checked rules hold; 1 means at least one breaks. Errors and signals publish nothing. Existing nonempty output is refused, never replaced.
+Options are `--config FILE`, `--view FILE` and `--out DIR`. The default config shares the spec's basename, and default output replaces the spec's `.tla` suffix with `-chart`: `SPEC.tla` writes to `SPEC-chart` beside the spec. Only exits 0 and 1 publish: 0 means the checked rules hold; 1 means at least one breaks. Errors and signals publish nothing. Existing nonempty output is refused, never replaced.
 
 ## Write the model
 
@@ -19,6 +19,8 @@ Tie modeled actions and guards to real code when modeling an implementation. Rep
 ## Label the chart
 
 The view exports `state(vars)` returning a string for a flat chart, an array for hierarchy, or an object whose keys name parallel regions. Label what the reader sees or cares about, not variable names. TLC sets become arrays; sequences become objects keyed from 1; model values remain distinguishable in the compiler's internal representation.
+
+Variables are projected only when a view reads them. An accessed interval expands to an array only when both bounds are safe integers and it has at most 100,000 members; otherwise compilation fails explicitly. Unused intervals remain compact.
 
 Optional `step(action, from, to)` labels arrows. Equal visible outcomes should share labels. A condition on another parallel region is derived from its state; do not obscure it with a redundant bracketed label. Return `null` only for steps the reader does not need. Keep every chart state reachable, preserve an outgoing arrow when the model has one, and hide all steps of an arrow or none.
 

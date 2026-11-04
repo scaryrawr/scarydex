@@ -132,3 +132,6 @@ Mise acquisition, Pele rendering, native Project/cloud tooling, vendor default
 models and looser combined-base verification waivers are not imported.
 The append-only ledger records exact parent-relative source paths and decisions;
 these later integration notes do not change immutable import provenance.
+Local compiler corrections project variables lazily, bound accessed interval
+expansion, enumerate region combinations lazily, preserve digit-leading TLC
+identifiers, and distinguish generated labels from custom-view validation.

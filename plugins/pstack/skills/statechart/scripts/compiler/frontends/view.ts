@@ -2,6 +2,8 @@ import { type CheckedView, checked, list, type Value, type Vars } from "../ir.ts
 
 type Json = boolean | number | string | Json[] | { [key: string]: Json };
 
+const MAX_INTERVAL_MEMBERS = 100_000;
+
 const projected = new WeakMap<object, Json>();
 
 export const json = (v: Value): Json => {
@@ -10,6 +12,12 @@ export const json = (v: Value): Json => {
   let j = projected.get(v);
   if (j === undefined) {
     if (v.kind === "interval") {
+      if (!Number.isSafeInteger(v.lo) || !Number.isSafeInteger(v.hi))
+        throw new Error(`The view cannot expand interval ${v.lo}..${v.hi}: bounds must be safe integers.`);
+      if (v.hi - v.lo + 1 > MAX_INTERVAL_MEMBERS)
+        throw new Error(
+          `The view cannot expand interval ${v.lo}..${v.hi}: at most ${MAX_INTERVAL_MEMBERS} members are supported.`,
+        );
       const members: Json[] = [];
       for (let k = v.lo; k <= v.hi; k++) members.push(k);
       j = members;
@@ -35,9 +43,9 @@ const projectedVars = new WeakMap<Vars, { [name: string]: Json }>();
 const jsonVars = (vars: Vars) => {
   let j = projectedVars.get(vars);
   if (j === undefined) {
-    const fields: [string, Json][] = [];
-    for (const [name, v] of Object.entries(vars)) fields.push([name, json(v)]);
-    j = Object.fromEntries(fields);
+    j = {};
+    for (const [name, v] of Object.entries(vars))
+      Object.defineProperty(j, name, { enumerable: true, get: () => json(v) });
     projectedVars.set(vars, j);
   }
   return j;
