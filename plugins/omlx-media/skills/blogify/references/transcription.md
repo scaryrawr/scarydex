@@ -1,9 +1,58 @@
 # Transcription
 
-Operational details for `scripts/transcribe.py`, including tuning knobs,
-limitations, and attribution constraints.
+Bounded recording preparation and optional silence-aware transcription.
 
-## Pipeline
+## Bounded recording preparation
+
+Run `node "<plugin-root>/scripts/media.mjs" transcribe --input-json <args.json>`
+with an absolute `input` and a fresh `output_dir`. Resolve `<plugin-root>` as two
+directories above the installed skill. A short audio file can instead use a new
+`.txt` `output`. The two output forms are mutually exclusive. Recording-only
+options are rejected in text mode.
+
+Recording mode extracts fixed mono 16 kHz WAV chunks and submits them serially
+to `/v1/audio/transcriptions`. Discovery through `/v1/models/status` prefers a
+loaded STT model, then an installed STT model for on-demand loading. A valid
+explicit `model` takes priority. Malformed discovery never falls back to an
+unverified model in recording mode.
+
+| Option or limit | Recording mode |
+| --- | --- |
+| `chunk_seconds` | Integer from 10 to 120, default 60. At most 120 chunks. |
+| `timeout_seconds` | Total deadline from 1 to 1800 seconds, default 600. |
+| Per-request deadline | 120 seconds, including response reads. |
+| Source | Nonempty local file up to 4 GiB and 2 hours, with an audio stream. |
+| Responses | At most 1 MiB per JSON response and 8 MiB accumulated transcript. |
+| `model`, `language`, `prompt` | Optional model and recognition guidance. |
+| `allow_remote` | Defaults to false. Literal `127.0.0.0/8` and `::1` endpoints are allowed. Never follows redirects. Set true only with recording-specific consent. |
+| Artifacts | Per-chunk WAV files, `transcript.md`, `chunks.json`, and final `manifest.json`. |
+
+The output directory's parent must exist. Outputs must be outside the plugin.
+The complete manifest records the canonical source, duration, model, selected
+audio range, format, artifact paths, and actual extracted chunk offsets and text.
+Chunks cover the selected audio stream, not a longer video or container.
+Missing stream duration triggers a bounded local decode-to-null measurement
+within the total deadline.
+
+Fixed chunks can split a word or sentence. They do not remove silence, align
+words, or identify speakers. Correct jargon only against supplied source
+material. Do not infer a speaker from a chunk boundary.
+
+A failure retains extracted audio and `failure.json`, including completed chunk
+text and error details. It does not publish a complete manifest. Inspect partial
+artifacts without treating them as a completed transcript. Retry into a new
+directory. There is no automatic remote or cloud fallback.
+
+## Legacy silence-aware pipeline
+
+Use `uv run scripts/transcribe.py --input <absolute-recording> --output-dir
+<fresh-absolute-dir>` only when silence-aware preparation is explicitly needed.
+The script requires `uv`, Python, FFmpeg, and ffprobe. It does not enforce the
+bounded CLI's fresh directories or loopback-only endpoint. Check the destination,
+dependencies, and recording-specific transmission consent first. Do not use it
+to bypass a CLI error.
+
+### Pipeline
 
 1. **Extract audio** — 16 kHz mono WAV. ASR models want mono 16 kHz; anything
    else wastes bytes and can hurt accuracy.
@@ -16,12 +65,12 @@ limitations, and attribution constraints.
    tends to serialize heavy work, so more concurrency yields little.
 5. **Assembly** — chunks are ordered and prefixed with `[mm:ss–mm:ss]`.
 
-## The two big limitations (plan around them)
+## Timestamp and attribution limits
 
 - **No timestamps.** parakeet returns `{"text": ...}` with no word/segment
   timings. Reconstruct timestamps from chunk offsets. For tighter timing, shrink
-  `--chunk-sec` (more, smaller chunks = finer timestamps) at the cost of more
-  requests.
+  legacy `--chunk-sec` or bounded `chunk_seconds` at the cost of more requests.
+  Bounded mode still enforces its 120-chunk limit.
 - **No speaker diarization.** The transcript cannot tell you *who* spoke. For a
   multi-person meeting, attribution must come from another source (the Teams
   meeting chat, calendar attendees, or on-screen name tags). Do not invent
@@ -47,8 +96,8 @@ limitations, and attribution constraints.
 
 `transcribe.py` auto-discovers a model from `/v1/models`, preferring an id
 containing `parakeet`, then `asr` / `whisper` / `canary`. Override with
-`--model`. Parakeet is fast and accurate for English talks; a whisper-class
-model may diarize or timestamp better if available.
+`--model`. This script's name-based discovery differs from the CLI's capability
+discovery. Neither workflow publishes speaker labels or word timestamps.
 
 ## Parakeet vs. gemma `input_audio`
 

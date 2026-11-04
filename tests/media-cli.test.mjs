@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
@@ -11,7 +11,9 @@ afterEach(async () => { for (const dir of roots.splice(0)) await rm(dir, { recur
 
 async function fixture() {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "scarydex-media-cli-")); roots.push(cwd);
-  const helper = path.join(cwd, "media.mjs");
+  const plugin = path.join(cwd, "plugin");
+  await mkdir(path.join(plugin, "scripts"), { recursive: true });
+  const helper = path.join(plugin, "scripts", "media.mjs");
   await copyFile(new URL("../plugins/omlx-media/scripts/media.mjs", import.meta.url), helper);
   const shim = path.join(cwd, "fetch.mjs");
   await writeFile(shim, `
@@ -36,7 +38,7 @@ async function fixture() {
     };
   `);
 
-  return { cwd, helper, invoke: (operation, args) => spawnSync(process.execPath,
+  return { cwd, helper, invoke: (operation, args) => spawnSync("node",
     ["--import", shim, helper, operation, "--json", JSON.stringify(args)],
     { cwd, encoding: "utf8", env: { ...process.env, OMLX_BASE_URL: "http://fixture.invalid", OMLX_API_KEY: "fixture-key" } }) };
 }

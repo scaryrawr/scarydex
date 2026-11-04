@@ -2,14 +2,18 @@
   "version": 1,
   "files": {
     "package-lock.json": "39d1207c0719659590ce2e09f4159c202edbb246c090552960f6ca3cfd0dd820",
-    "plugins/omlx-media/scripts/media.mjs": "b600dfa3cd5694dbf48d58ee8f0e0bf1fc268abf453b83ae4d2099ee2c6fd7cb",
-    "plugins/omlx-media/src/domain.ts": "74383c2fc757e4d129596cd2c450597fd7024635009d576772c37bfc0c74a01c",
-    "plugins/omlx-media/src/execute-audio.ts": "6208e84debd0817d35ebaed6b5c438d6b2295670fab8d1c62dd0fa2090899890",
+    "plugins/omlx-media/scripts/media.mjs": "7a1e9afe7ccd33ed6965f1b2141a3dff3e274a62f090f43d572370fad7264c12",
+    "plugins/omlx-media/src/domain.ts": "7c59d9bf76e4f9fc16d822398cc7eeb05a9150ae1127bc6528421635f8840cce",
+    "plugins/omlx-media/src/execute-audio.ts": "9d48dd22861319075086af12f79e619cbd560d54d02bcd787e2f541519316158",
     "plugins/omlx-media/src/execute-image.ts": "aa31fc2eb417f450859c3615e4ad10f5a7484621ac3040f2109fd79a8184f4ed",
-    "plugins/omlx-media/src/media.ts": "308b1c78ee6324d18ba012aa60e6100db509470a84c6c3e5baa042d919448585",
-    "plugins/omlx-media/src/omlx-client.ts": "e92cfba6a31e70a9245021acd0759ac79412a3158ddead1eee8a82c10c3900ec",
-    "plugins/omlx-media/src/tool-schemas.ts": "f06ce5e21f49f1daa7774975f15b8917f92ffdef097cde712da9d8810e05e032",
-    "plugins/omlx-media/src/workspace-artifacts.ts": "888218a0879205f2b8c4334e24d4cc1ba640b1cd71f213c2d2be0ac394b31bad",
+    "plugins/omlx-media/src/media-domain.ts": "9da74415304748a5d3763407523b8439f76229bcf9470ce716e14522f43397fc",
+    "plugins/omlx-media/src/media-io.ts": "d3b25952da97aeebe6d4dbe612a905d5b117fb6f40d2b56964f4b8caaab312ed",
+    "plugins/omlx-media/src/media.ts": "5e6338ab6a9b29ce1d3b7e7f0aef5ea0dca01626cb7dd52e128935086566d700",
+    "plugins/omlx-media/src/omlx-client.ts": "b90e21e365c970f63408c1cee1d8bed57fee015c3d66870958ebdae01ed2bba7",
+    "plugins/omlx-media/src/prepare-frames.ts": "498c35b83158af36fb8d5346162d7153920fd50961dda2ef2e96af1cadb750bf",
+    "plugins/omlx-media/src/prepare-recording.ts": "5494352c414bd7817f16cc1c4d38713315b97002ce27c01dc8ae83e3af252e22",
+    "plugins/omlx-media/src/tool-schemas.ts": "07b60d86e4d5d78320a7bd8e51752ec7018af4346fddd3c500110a8330821cd7",
+    "plugins/omlx-media/src/workspace-artifacts.ts": "87215cf519e371adc48053ec8e1baf188bafd05d90a62e94f9caae9617077d8b",
     "tools/build.mjs": "4f350515894e3aca4c9b13eb474870dd1f7b0b7f74619cc76d7924bed63716e4"
   }
 }

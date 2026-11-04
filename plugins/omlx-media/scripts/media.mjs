@@ -2645,32 +2645,32 @@ var ValueErrorIterator = class {
     return next.done ? void 0 : next.value;
   }
 };
-function Create(errorType, schema, path4, value2, errors = []) {
+function Create(errorType, schema, path7, value2, errors = []) {
   return {
     type: errorType,
     schema,
-    path: path4,
+    path: path7,
     value: value2,
-    message: GetErrorFunction()({ errorType, path: path4, schema, value: value2, errors }),
+    message: GetErrorFunction()({ errorType, path: path7, schema, value: value2, errors }),
     errors
   };
 }
-function* FromAny3(schema, references, path4, value2) {
+function* FromAny3(schema, references, path7, value2) {
 }
-function* FromArgument2(schema, references, path4, value2) {
+function* FromArgument2(schema, references, path7, value2) {
 }
-function* FromArray5(schema, references, path4, value2) {
+function* FromArray5(schema, references, path7, value2) {
   if (!IsArray(value2)) {
-    return yield Create(ValueErrorType.Array, schema, path4, value2);
+    return yield Create(ValueErrorType.Array, schema, path7, value2);
   }
   if (IsDefined2(schema.minItems) && !(value2.length >= schema.minItems)) {
-    yield Create(ValueErrorType.ArrayMinItems, schema, path4, value2);
+    yield Create(ValueErrorType.ArrayMinItems, schema, path7, value2);
   }
   if (IsDefined2(schema.maxItems) && !(value2.length <= schema.maxItems)) {
-    yield Create(ValueErrorType.ArrayMaxItems, schema, path4, value2);
+    yield Create(ValueErrorType.ArrayMaxItems, schema, path7, value2);
   }
   for (let i = 0; i < value2.length; i++) {
-    yield* Visit6(schema.items, references, `${path4}/${i}`, value2[i]);
+    yield* Visit6(schema.items, references, `${path7}/${i}`, value2[i]);
   }
   if (schema.uniqueItems === true && !(function() {
     const set = /* @__PURE__ */ new Set();
@@ -2684,116 +2684,116 @@ function* FromArray5(schema, references, path4, value2) {
     }
     return true;
   })()) {
-    yield Create(ValueErrorType.ArrayUniqueItems, schema, path4, value2);
+    yield Create(ValueErrorType.ArrayUniqueItems, schema, path7, value2);
   }
   if (!(IsDefined2(schema.contains) || IsDefined2(schema.minContains) || IsDefined2(schema.maxContains))) {
     return;
   }
   const containsSchema = IsDefined2(schema.contains) ? schema.contains : Never();
-  const containsCount = value2.reduce((acc, value3, index) => Visit6(containsSchema, references, `${path4}${index}`, value3).next().done === true ? acc + 1 : acc, 0);
+  const containsCount = value2.reduce((acc, value3, index) => Visit6(containsSchema, references, `${path7}${index}`, value3).next().done === true ? acc + 1 : acc, 0);
   if (containsCount === 0) {
-    yield Create(ValueErrorType.ArrayContains, schema, path4, value2);
+    yield Create(ValueErrorType.ArrayContains, schema, path7, value2);
   }
   if (IsNumber(schema.minContains) && containsCount < schema.minContains) {
-    yield Create(ValueErrorType.ArrayMinContains, schema, path4, value2);
+    yield Create(ValueErrorType.ArrayMinContains, schema, path7, value2);
   }
   if (IsNumber(schema.maxContains) && containsCount > schema.maxContains) {
-    yield Create(ValueErrorType.ArrayMaxContains, schema, path4, value2);
+    yield Create(ValueErrorType.ArrayMaxContains, schema, path7, value2);
   }
 }
-function* FromAsyncIterator3(schema, references, path4, value2) {
+function* FromAsyncIterator3(schema, references, path7, value2) {
   if (!IsAsyncIterator(value2))
-    yield Create(ValueErrorType.AsyncIterator, schema, path4, value2);
+    yield Create(ValueErrorType.AsyncIterator, schema, path7, value2);
 }
-function* FromBigInt3(schema, references, path4, value2) {
+function* FromBigInt3(schema, references, path7, value2) {
   if (!IsBigInt(value2))
-    return yield Create(ValueErrorType.BigInt, schema, path4, value2);
+    return yield Create(ValueErrorType.BigInt, schema, path7, value2);
   if (IsDefined2(schema.exclusiveMaximum) && !(value2 < schema.exclusiveMaximum)) {
-    yield Create(ValueErrorType.BigIntExclusiveMaximum, schema, path4, value2);
+    yield Create(ValueErrorType.BigIntExclusiveMaximum, schema, path7, value2);
   }
   if (IsDefined2(schema.exclusiveMinimum) && !(value2 > schema.exclusiveMinimum)) {
-    yield Create(ValueErrorType.BigIntExclusiveMinimum, schema, path4, value2);
+    yield Create(ValueErrorType.BigIntExclusiveMinimum, schema, path7, value2);
   }
   if (IsDefined2(schema.maximum) && !(value2 <= schema.maximum)) {
-    yield Create(ValueErrorType.BigIntMaximum, schema, path4, value2);
+    yield Create(ValueErrorType.BigIntMaximum, schema, path7, value2);
   }
   if (IsDefined2(schema.minimum) && !(value2 >= schema.minimum)) {
-    yield Create(ValueErrorType.BigIntMinimum, schema, path4, value2);
+    yield Create(ValueErrorType.BigIntMinimum, schema, path7, value2);
   }
   if (IsDefined2(schema.multipleOf) && !(value2 % schema.multipleOf === BigInt(0))) {
-    yield Create(ValueErrorType.BigIntMultipleOf, schema, path4, value2);
+    yield Create(ValueErrorType.BigIntMultipleOf, schema, path7, value2);
   }
 }
-function* FromBoolean3(schema, references, path4, value2) {
+function* FromBoolean3(schema, references, path7, value2) {
   if (!IsBoolean(value2))
-    yield Create(ValueErrorType.Boolean, schema, path4, value2);
+    yield Create(ValueErrorType.Boolean, schema, path7, value2);
 }
-function* FromConstructor3(schema, references, path4, value2) {
-  yield* Visit6(schema.returns, references, path4, value2.prototype);
+function* FromConstructor3(schema, references, path7, value2) {
+  yield* Visit6(schema.returns, references, path7, value2.prototype);
 }
-function* FromDate3(schema, references, path4, value2) {
+function* FromDate3(schema, references, path7, value2) {
   if (!IsDate(value2))
-    return yield Create(ValueErrorType.Date, schema, path4, value2);
+    return yield Create(ValueErrorType.Date, schema, path7, value2);
   if (IsDefined2(schema.exclusiveMaximumTimestamp) && !(value2.getTime() < schema.exclusiveMaximumTimestamp)) {
-    yield Create(ValueErrorType.DateExclusiveMaximumTimestamp, schema, path4, value2);
+    yield Create(ValueErrorType.DateExclusiveMaximumTimestamp, schema, path7, value2);
   }
   if (IsDefined2(schema.exclusiveMinimumTimestamp) && !(value2.getTime() > schema.exclusiveMinimumTimestamp)) {
-    yield Create(ValueErrorType.DateExclusiveMinimumTimestamp, schema, path4, value2);
+    yield Create(ValueErrorType.DateExclusiveMinimumTimestamp, schema, path7, value2);
   }
   if (IsDefined2(schema.maximumTimestamp) && !(value2.getTime() <= schema.maximumTimestamp)) {
-    yield Create(ValueErrorType.DateMaximumTimestamp, schema, path4, value2);
+    yield Create(ValueErrorType.DateMaximumTimestamp, schema, path7, value2);
   }
   if (IsDefined2(schema.minimumTimestamp) && !(value2.getTime() >= schema.minimumTimestamp)) {
-    yield Create(ValueErrorType.DateMinimumTimestamp, schema, path4, value2);
+    yield Create(ValueErrorType.DateMinimumTimestamp, schema, path7, value2);
   }
   if (IsDefined2(schema.multipleOfTimestamp) && !(value2.getTime() % schema.multipleOfTimestamp === 0)) {
-    yield Create(ValueErrorType.DateMultipleOfTimestamp, schema, path4, value2);
+    yield Create(ValueErrorType.DateMultipleOfTimestamp, schema, path7, value2);
   }
 }
-function* FromFunction3(schema, references, path4, value2) {
+function* FromFunction3(schema, references, path7, value2) {
   if (!IsFunction(value2))
-    yield Create(ValueErrorType.Function, schema, path4, value2);
+    yield Create(ValueErrorType.Function, schema, path7, value2);
 }
-function* FromImport2(schema, references, path4, value2) {
+function* FromImport2(schema, references, path7, value2) {
   const definitions = globalThis.Object.values(schema.$defs);
   const target = schema.$defs[schema.$ref];
-  yield* Visit6(target, [...references, ...definitions], path4, value2);
+  yield* Visit6(target, [...references, ...definitions], path7, value2);
 }
-function* FromInteger3(schema, references, path4, value2) {
+function* FromInteger3(schema, references, path7, value2) {
   if (!IsInteger(value2))
-    return yield Create(ValueErrorType.Integer, schema, path4, value2);
+    return yield Create(ValueErrorType.Integer, schema, path7, value2);
   if (IsDefined2(schema.exclusiveMaximum) && !(value2 < schema.exclusiveMaximum)) {
-    yield Create(ValueErrorType.IntegerExclusiveMaximum, schema, path4, value2);
+    yield Create(ValueErrorType.IntegerExclusiveMaximum, schema, path7, value2);
   }
   if (IsDefined2(schema.exclusiveMinimum) && !(value2 > schema.exclusiveMinimum)) {
-    yield Create(ValueErrorType.IntegerExclusiveMinimum, schema, path4, value2);
+    yield Create(ValueErrorType.IntegerExclusiveMinimum, schema, path7, value2);
   }
   if (IsDefined2(schema.maximum) && !(value2 <= schema.maximum)) {
-    yield Create(ValueErrorType.IntegerMaximum, schema, path4, value2);
+    yield Create(ValueErrorType.IntegerMaximum, schema, path7, value2);
   }
   if (IsDefined2(schema.minimum) && !(value2 >= schema.minimum)) {
-    yield Create(ValueErrorType.IntegerMinimum, schema, path4, value2);
+    yield Create(ValueErrorType.IntegerMinimum, schema, path7, value2);
   }
   if (IsDefined2(schema.multipleOf) && !(value2 % schema.multipleOf === 0)) {
-    yield Create(ValueErrorType.IntegerMultipleOf, schema, path4, value2);
+    yield Create(ValueErrorType.IntegerMultipleOf, schema, path7, value2);
   }
 }
-function* FromIntersect5(schema, references, path4, value2) {
+function* FromIntersect5(schema, references, path7, value2) {
   let hasError = false;
   for (const inner of schema.allOf) {
-    for (const error of Visit6(inner, references, path4, value2)) {
+    for (const error of Visit6(inner, references, path7, value2)) {
       hasError = true;
       yield error;
     }
   }
   if (hasError) {
-    return yield Create(ValueErrorType.Intersect, schema, path4, value2);
+    return yield Create(ValueErrorType.Intersect, schema, path7, value2);
   }
   if (schema.unevaluatedProperties === false) {
     const keyCheck = new RegExp(KeyOfPattern(schema));
     for (const valueKey of Object.getOwnPropertyNames(value2)) {
       if (!keyCheck.test(valueKey)) {
-        yield Create(ValueErrorType.IntersectUnevaluatedProperties, schema, `${path4}/${valueKey}`, value2);
+        yield Create(ValueErrorType.IntersectUnevaluatedProperties, schema, `${path7}/${valueKey}`, value2);
       }
     }
   }
@@ -2801,59 +2801,59 @@ function* FromIntersect5(schema, references, path4, value2) {
     const keyCheck = new RegExp(KeyOfPattern(schema));
     for (const valueKey of Object.getOwnPropertyNames(value2)) {
       if (!keyCheck.test(valueKey)) {
-        const next = Visit6(schema.unevaluatedProperties, references, `${path4}/${valueKey}`, value2[valueKey]).next();
+        const next = Visit6(schema.unevaluatedProperties, references, `${path7}/${valueKey}`, value2[valueKey]).next();
         if (!next.done)
           yield next.value;
       }
     }
   }
 }
-function* FromIterator3(schema, references, path4, value2) {
+function* FromIterator3(schema, references, path7, value2) {
   if (!IsIterator(value2))
-    yield Create(ValueErrorType.Iterator, schema, path4, value2);
+    yield Create(ValueErrorType.Iterator, schema, path7, value2);
 }
-function* FromLiteral4(schema, references, path4, value2) {
+function* FromLiteral4(schema, references, path7, value2) {
   if (!(value2 === schema.const))
-    yield Create(ValueErrorType.Literal, schema, path4, value2);
+    yield Create(ValueErrorType.Literal, schema, path7, value2);
 }
-function* FromNever3(schema, references, path4, value2) {
-  yield Create(ValueErrorType.Never, schema, path4, value2);
+function* FromNever3(schema, references, path7, value2) {
+  yield Create(ValueErrorType.Never, schema, path7, value2);
 }
-function* FromNot3(schema, references, path4, value2) {
-  if (Visit6(schema.not, references, path4, value2).next().done === true)
-    yield Create(ValueErrorType.Not, schema, path4, value2);
+function* FromNot3(schema, references, path7, value2) {
+  if (Visit6(schema.not, references, path7, value2).next().done === true)
+    yield Create(ValueErrorType.Not, schema, path7, value2);
 }
-function* FromNull3(schema, references, path4, value2) {
+function* FromNull3(schema, references, path7, value2) {
   if (!IsNull(value2))
-    yield Create(ValueErrorType.Null, schema, path4, value2);
+    yield Create(ValueErrorType.Null, schema, path7, value2);
 }
-function* FromNumber3(schema, references, path4, value2) {
+function* FromNumber3(schema, references, path7, value2) {
   if (!TypeSystemPolicy.IsNumberLike(value2))
-    return yield Create(ValueErrorType.Number, schema, path4, value2);
+    return yield Create(ValueErrorType.Number, schema, path7, value2);
   if (IsDefined2(schema.exclusiveMaximum) && !(value2 < schema.exclusiveMaximum)) {
-    yield Create(ValueErrorType.NumberExclusiveMaximum, schema, path4, value2);
+    yield Create(ValueErrorType.NumberExclusiveMaximum, schema, path7, value2);
   }
   if (IsDefined2(schema.exclusiveMinimum) && !(value2 > schema.exclusiveMinimum)) {
-    yield Create(ValueErrorType.NumberExclusiveMinimum, schema, path4, value2);
+    yield Create(ValueErrorType.NumberExclusiveMinimum, schema, path7, value2);
   }
   if (IsDefined2(schema.maximum) && !(value2 <= schema.maximum)) {
-    yield Create(ValueErrorType.NumberMaximum, schema, path4, value2);
+    yield Create(ValueErrorType.NumberMaximum, schema, path7, value2);
   }
   if (IsDefined2(schema.minimum) && !(value2 >= schema.minimum)) {
-    yield Create(ValueErrorType.NumberMinimum, schema, path4, value2);
+    yield Create(ValueErrorType.NumberMinimum, schema, path7, value2);
   }
   if (IsDefined2(schema.multipleOf) && !(value2 % schema.multipleOf === 0)) {
-    yield Create(ValueErrorType.NumberMultipleOf, schema, path4, value2);
+    yield Create(ValueErrorType.NumberMultipleOf, schema, path7, value2);
   }
 }
-function* FromObject3(schema, references, path4, value2) {
+function* FromObject3(schema, references, path7, value2) {
   if (!TypeSystemPolicy.IsObjectLike(value2))
-    return yield Create(ValueErrorType.Object, schema, path4, value2);
+    return yield Create(ValueErrorType.Object, schema, path7, value2);
   if (IsDefined2(schema.minProperties) && !(Object.getOwnPropertyNames(value2).length >= schema.minProperties)) {
-    yield Create(ValueErrorType.ObjectMinProperties, schema, path4, value2);
+    yield Create(ValueErrorType.ObjectMinProperties, schema, path7, value2);
   }
   if (IsDefined2(schema.maxProperties) && !(Object.getOwnPropertyNames(value2).length <= schema.maxProperties)) {
-    yield Create(ValueErrorType.ObjectMaxProperties, schema, path4, value2);
+    yield Create(ValueErrorType.ObjectMaxProperties, schema, path7, value2);
   }
   const requiredKeys = Array.isArray(schema.required) ? schema.required : [];
   const knownKeys = Object.getOwnPropertyNames(schema.properties);
@@ -2861,12 +2861,12 @@ function* FromObject3(schema, references, path4, value2) {
   for (const requiredKey of requiredKeys) {
     if (unknownKeys.includes(requiredKey))
       continue;
-    yield Create(ValueErrorType.ObjectRequiredProperty, schema.properties[requiredKey], `${path4}/${EscapeKey(requiredKey)}`, void 0);
+    yield Create(ValueErrorType.ObjectRequiredProperty, schema.properties[requiredKey], `${path7}/${EscapeKey(requiredKey)}`, void 0);
   }
   if (schema.additionalProperties === false) {
     for (const valueKey of unknownKeys) {
       if (!knownKeys.includes(valueKey)) {
-        yield Create(ValueErrorType.ObjectAdditionalProperties, schema, `${path4}/${EscapeKey(valueKey)}`, value2[valueKey]);
+        yield Create(ValueErrorType.ObjectAdditionalProperties, schema, `${path7}/${EscapeKey(valueKey)}`, value2[valueKey]);
       }
     }
   }
@@ -2874,235 +2874,235 @@ function* FromObject3(schema, references, path4, value2) {
     for (const valueKey of unknownKeys) {
       if (knownKeys.includes(valueKey))
         continue;
-      yield* Visit6(schema.additionalProperties, references, `${path4}/${EscapeKey(valueKey)}`, value2[valueKey]);
+      yield* Visit6(schema.additionalProperties, references, `${path7}/${EscapeKey(valueKey)}`, value2[valueKey]);
     }
   }
   for (const knownKey of knownKeys) {
     const property = schema.properties[knownKey];
     if (schema.required && schema.required.includes(knownKey)) {
-      yield* Visit6(property, references, `${path4}/${EscapeKey(knownKey)}`, value2[knownKey]);
+      yield* Visit6(property, references, `${path7}/${EscapeKey(knownKey)}`, value2[knownKey]);
       if (ExtendsUndefinedCheck(schema) && !(knownKey in value2)) {
-        yield Create(ValueErrorType.ObjectRequiredProperty, property, `${path4}/${EscapeKey(knownKey)}`, void 0);
+        yield Create(ValueErrorType.ObjectRequiredProperty, property, `${path7}/${EscapeKey(knownKey)}`, void 0);
       }
     } else {
       if (TypeSystemPolicy.IsExactOptionalProperty(value2, knownKey)) {
-        yield* Visit6(property, references, `${path4}/${EscapeKey(knownKey)}`, value2[knownKey]);
+        yield* Visit6(property, references, `${path7}/${EscapeKey(knownKey)}`, value2[knownKey]);
       }
     }
   }
 }
-function* FromPromise3(schema, references, path4, value2) {
+function* FromPromise3(schema, references, path7, value2) {
   if (!IsPromise(value2))
-    yield Create(ValueErrorType.Promise, schema, path4, value2);
+    yield Create(ValueErrorType.Promise, schema, path7, value2);
 }
-function* FromRecord3(schema, references, path4, value2) {
+function* FromRecord3(schema, references, path7, value2) {
   if (!TypeSystemPolicy.IsRecordLike(value2))
-    return yield Create(ValueErrorType.Object, schema, path4, value2);
+    return yield Create(ValueErrorType.Object, schema, path7, value2);
   if (IsDefined2(schema.minProperties) && !(Object.getOwnPropertyNames(value2).length >= schema.minProperties)) {
-    yield Create(ValueErrorType.ObjectMinProperties, schema, path4, value2);
+    yield Create(ValueErrorType.ObjectMinProperties, schema, path7, value2);
   }
   if (IsDefined2(schema.maxProperties) && !(Object.getOwnPropertyNames(value2).length <= schema.maxProperties)) {
-    yield Create(ValueErrorType.ObjectMaxProperties, schema, path4, value2);
+    yield Create(ValueErrorType.ObjectMaxProperties, schema, path7, value2);
   }
   const [patternKey, patternSchema] = Object.entries(schema.patternProperties)[0];
   const regex = new RegExp(patternKey);
   for (const [propertyKey, propertyValue] of Object.entries(value2)) {
     if (regex.test(propertyKey))
-      yield* Visit6(patternSchema, references, `${path4}/${EscapeKey(propertyKey)}`, propertyValue);
+      yield* Visit6(patternSchema, references, `${path7}/${EscapeKey(propertyKey)}`, propertyValue);
   }
   if (typeof schema.additionalProperties === "object") {
     for (const [propertyKey, propertyValue] of Object.entries(value2)) {
       if (!regex.test(propertyKey))
-        yield* Visit6(schema.additionalProperties, references, `${path4}/${EscapeKey(propertyKey)}`, propertyValue);
+        yield* Visit6(schema.additionalProperties, references, `${path7}/${EscapeKey(propertyKey)}`, propertyValue);
     }
   }
   if (schema.additionalProperties === false) {
     for (const [propertyKey, propertyValue] of Object.entries(value2)) {
       if (regex.test(propertyKey))
         continue;
-      return yield Create(ValueErrorType.ObjectAdditionalProperties, schema, `${path4}/${EscapeKey(propertyKey)}`, propertyValue);
+      return yield Create(ValueErrorType.ObjectAdditionalProperties, schema, `${path7}/${EscapeKey(propertyKey)}`, propertyValue);
     }
   }
 }
-function* FromRef3(schema, references, path4, value2) {
-  yield* Visit6(Deref(schema, references), references, path4, value2);
+function* FromRef3(schema, references, path7, value2) {
+  yield* Visit6(Deref(schema, references), references, path7, value2);
 }
-function* FromRegExp3(schema, references, path4, value2) {
+function* FromRegExp3(schema, references, path7, value2) {
   if (!IsString(value2))
-    return yield Create(ValueErrorType.String, schema, path4, value2);
+    return yield Create(ValueErrorType.String, schema, path7, value2);
   if (IsDefined2(schema.minLength) && !(value2.length >= schema.minLength)) {
-    yield Create(ValueErrorType.StringMinLength, schema, path4, value2);
+    yield Create(ValueErrorType.StringMinLength, schema, path7, value2);
   }
   if (IsDefined2(schema.maxLength) && !(value2.length <= schema.maxLength)) {
-    yield Create(ValueErrorType.StringMaxLength, schema, path4, value2);
+    yield Create(ValueErrorType.StringMaxLength, schema, path7, value2);
   }
   const regex = new RegExp(schema.source, schema.flags);
   if (!regex.test(value2)) {
-    return yield Create(ValueErrorType.RegExp, schema, path4, value2);
+    return yield Create(ValueErrorType.RegExp, schema, path7, value2);
   }
 }
-function* FromString3(schema, references, path4, value2) {
+function* FromString3(schema, references, path7, value2) {
   if (!IsString(value2))
-    return yield Create(ValueErrorType.String, schema, path4, value2);
+    return yield Create(ValueErrorType.String, schema, path7, value2);
   if (IsDefined2(schema.minLength) && !(value2.length >= schema.minLength)) {
-    yield Create(ValueErrorType.StringMinLength, schema, path4, value2);
+    yield Create(ValueErrorType.StringMinLength, schema, path7, value2);
   }
   if (IsDefined2(schema.maxLength) && !(value2.length <= schema.maxLength)) {
-    yield Create(ValueErrorType.StringMaxLength, schema, path4, value2);
+    yield Create(ValueErrorType.StringMaxLength, schema, path7, value2);
   }
   if (IsString(schema.pattern)) {
     const regex = new RegExp(schema.pattern);
     if (!regex.test(value2)) {
-      yield Create(ValueErrorType.StringPattern, schema, path4, value2);
+      yield Create(ValueErrorType.StringPattern, schema, path7, value2);
     }
   }
   if (IsString(schema.format)) {
     if (!format_exports.Has(schema.format)) {
-      yield Create(ValueErrorType.StringFormatUnknown, schema, path4, value2);
+      yield Create(ValueErrorType.StringFormatUnknown, schema, path7, value2);
     } else {
       const format = format_exports.Get(schema.format);
       if (!format(value2)) {
-        yield Create(ValueErrorType.StringFormat, schema, path4, value2);
+        yield Create(ValueErrorType.StringFormat, schema, path7, value2);
       }
     }
   }
 }
-function* FromSymbol3(schema, references, path4, value2) {
+function* FromSymbol3(schema, references, path7, value2) {
   if (!IsSymbol(value2))
-    yield Create(ValueErrorType.Symbol, schema, path4, value2);
+    yield Create(ValueErrorType.Symbol, schema, path7, value2);
 }
-function* FromTemplateLiteral4(schema, references, path4, value2) {
+function* FromTemplateLiteral4(schema, references, path7, value2) {
   if (!IsString(value2))
-    return yield Create(ValueErrorType.String, schema, path4, value2);
+    return yield Create(ValueErrorType.String, schema, path7, value2);
   const regex = new RegExp(schema.pattern);
   if (!regex.test(value2)) {
-    yield Create(ValueErrorType.StringPattern, schema, path4, value2);
+    yield Create(ValueErrorType.StringPattern, schema, path7, value2);
   }
 }
-function* FromThis2(schema, references, path4, value2) {
-  yield* Visit6(Deref(schema, references), references, path4, value2);
+function* FromThis2(schema, references, path7, value2) {
+  yield* Visit6(Deref(schema, references), references, path7, value2);
 }
-function* FromTuple5(schema, references, path4, value2) {
+function* FromTuple5(schema, references, path7, value2) {
   if (!IsArray(value2))
-    return yield Create(ValueErrorType.Tuple, schema, path4, value2);
+    return yield Create(ValueErrorType.Tuple, schema, path7, value2);
   if (schema.items === void 0 && !(value2.length === 0)) {
-    return yield Create(ValueErrorType.TupleLength, schema, path4, value2);
+    return yield Create(ValueErrorType.TupleLength, schema, path7, value2);
   }
   if (!(value2.length === schema.maxItems)) {
-    return yield Create(ValueErrorType.TupleLength, schema, path4, value2);
+    return yield Create(ValueErrorType.TupleLength, schema, path7, value2);
   }
   if (!schema.items) {
     return;
   }
   for (let i = 0; i < schema.items.length; i++) {
-    yield* Visit6(schema.items[i], references, `${path4}/${i}`, value2[i]);
+    yield* Visit6(schema.items[i], references, `${path7}/${i}`, value2[i]);
   }
 }
-function* FromUndefined3(schema, references, path4, value2) {
+function* FromUndefined3(schema, references, path7, value2) {
   if (!IsUndefined(value2))
-    yield Create(ValueErrorType.Undefined, schema, path4, value2);
+    yield Create(ValueErrorType.Undefined, schema, path7, value2);
 }
-function* FromUnion7(schema, references, path4, value2) {
+function* FromUnion7(schema, references, path7, value2) {
   if (Check(schema, references, value2))
     return;
-  const errors = schema.anyOf.map((variant) => new ValueErrorIterator(Visit6(variant, references, path4, value2)));
-  yield Create(ValueErrorType.Union, schema, path4, value2, errors);
+  const errors = schema.anyOf.map((variant) => new ValueErrorIterator(Visit6(variant, references, path7, value2)));
+  yield Create(ValueErrorType.Union, schema, path7, value2, errors);
 }
-function* FromUint8Array3(schema, references, path4, value2) {
+function* FromUint8Array3(schema, references, path7, value2) {
   if (!IsUint8Array(value2))
-    return yield Create(ValueErrorType.Uint8Array, schema, path4, value2);
+    return yield Create(ValueErrorType.Uint8Array, schema, path7, value2);
   if (IsDefined2(schema.maxByteLength) && !(value2.length <= schema.maxByteLength)) {
-    yield Create(ValueErrorType.Uint8ArrayMaxByteLength, schema, path4, value2);
+    yield Create(ValueErrorType.Uint8ArrayMaxByteLength, schema, path7, value2);
   }
   if (IsDefined2(schema.minByteLength) && !(value2.length >= schema.minByteLength)) {
-    yield Create(ValueErrorType.Uint8ArrayMinByteLength, schema, path4, value2);
+    yield Create(ValueErrorType.Uint8ArrayMinByteLength, schema, path7, value2);
   }
 }
-function* FromUnknown3(schema, references, path4, value2) {
+function* FromUnknown3(schema, references, path7, value2) {
 }
-function* FromVoid3(schema, references, path4, value2) {
+function* FromVoid3(schema, references, path7, value2) {
   if (!TypeSystemPolicy.IsVoidLike(value2))
-    yield Create(ValueErrorType.Void, schema, path4, value2);
+    yield Create(ValueErrorType.Void, schema, path7, value2);
 }
-function* FromKind2(schema, references, path4, value2) {
+function* FromKind2(schema, references, path7, value2) {
   const check = type_exports.Get(schema[Kind]);
   if (!check(schema, value2))
-    yield Create(ValueErrorType.Kind, schema, path4, value2);
+    yield Create(ValueErrorType.Kind, schema, path7, value2);
 }
-function* Visit6(schema, references, path4, value2) {
+function* Visit6(schema, references, path7, value2) {
   const references_ = IsDefined2(schema.$id) ? [...references, schema] : references;
   const schema_ = schema;
   switch (schema_[Kind]) {
     case "Any":
-      return yield* FromAny3(schema_, references_, path4, value2);
+      return yield* FromAny3(schema_, references_, path7, value2);
     case "Argument":
-      return yield* FromArgument2(schema_, references_, path4, value2);
+      return yield* FromArgument2(schema_, references_, path7, value2);
     case "Array":
-      return yield* FromArray5(schema_, references_, path4, value2);
+      return yield* FromArray5(schema_, references_, path7, value2);
     case "AsyncIterator":
-      return yield* FromAsyncIterator3(schema_, references_, path4, value2);
+      return yield* FromAsyncIterator3(schema_, references_, path7, value2);
     case "BigInt":
-      return yield* FromBigInt3(schema_, references_, path4, value2);
+      return yield* FromBigInt3(schema_, references_, path7, value2);
     case "Boolean":
-      return yield* FromBoolean3(schema_, references_, path4, value2);
+      return yield* FromBoolean3(schema_, references_, path7, value2);
     case "Constructor":
-      return yield* FromConstructor3(schema_, references_, path4, value2);
+      return yield* FromConstructor3(schema_, references_, path7, value2);
     case "Date":
-      return yield* FromDate3(schema_, references_, path4, value2);
+      return yield* FromDate3(schema_, references_, path7, value2);
     case "Function":
-      return yield* FromFunction3(schema_, references_, path4, value2);
+      return yield* FromFunction3(schema_, references_, path7, value2);
     case "Import":
-      return yield* FromImport2(schema_, references_, path4, value2);
+      return yield* FromImport2(schema_, references_, path7, value2);
     case "Integer":
-      return yield* FromInteger3(schema_, references_, path4, value2);
+      return yield* FromInteger3(schema_, references_, path7, value2);
     case "Intersect":
-      return yield* FromIntersect5(schema_, references_, path4, value2);
+      return yield* FromIntersect5(schema_, references_, path7, value2);
     case "Iterator":
-      return yield* FromIterator3(schema_, references_, path4, value2);
+      return yield* FromIterator3(schema_, references_, path7, value2);
     case "Literal":
-      return yield* FromLiteral4(schema_, references_, path4, value2);
+      return yield* FromLiteral4(schema_, references_, path7, value2);
     case "Never":
-      return yield* FromNever3(schema_, references_, path4, value2);
+      return yield* FromNever3(schema_, references_, path7, value2);
     case "Not":
-      return yield* FromNot3(schema_, references_, path4, value2);
+      return yield* FromNot3(schema_, references_, path7, value2);
     case "Null":
-      return yield* FromNull3(schema_, references_, path4, value2);
+      return yield* FromNull3(schema_, references_, path7, value2);
     case "Number":
-      return yield* FromNumber3(schema_, references_, path4, value2);
+      return yield* FromNumber3(schema_, references_, path7, value2);
     case "Object":
-      return yield* FromObject3(schema_, references_, path4, value2);
+      return yield* FromObject3(schema_, references_, path7, value2);
     case "Promise":
-      return yield* FromPromise3(schema_, references_, path4, value2);
+      return yield* FromPromise3(schema_, references_, path7, value2);
     case "Record":
-      return yield* FromRecord3(schema_, references_, path4, value2);
+      return yield* FromRecord3(schema_, references_, path7, value2);
     case "Ref":
-      return yield* FromRef3(schema_, references_, path4, value2);
+      return yield* FromRef3(schema_, references_, path7, value2);
     case "RegExp":
-      return yield* FromRegExp3(schema_, references_, path4, value2);
+      return yield* FromRegExp3(schema_, references_, path7, value2);
     case "String":
-      return yield* FromString3(schema_, references_, path4, value2);
+      return yield* FromString3(schema_, references_, path7, value2);
     case "Symbol":
-      return yield* FromSymbol3(schema_, references_, path4, value2);
+      return yield* FromSymbol3(schema_, references_, path7, value2);
     case "TemplateLiteral":
-      return yield* FromTemplateLiteral4(schema_, references_, path4, value2);
+      return yield* FromTemplateLiteral4(schema_, references_, path7, value2);
     case "This":
-      return yield* FromThis2(schema_, references_, path4, value2);
+      return yield* FromThis2(schema_, references_, path7, value2);
     case "Tuple":
-      return yield* FromTuple5(schema_, references_, path4, value2);
+      return yield* FromTuple5(schema_, references_, path7, value2);
     case "Undefined":
-      return yield* FromUndefined3(schema_, references_, path4, value2);
+      return yield* FromUndefined3(schema_, references_, path7, value2);
     case "Union":
-      return yield* FromUnion7(schema_, references_, path4, value2);
+      return yield* FromUnion7(schema_, references_, path7, value2);
     case "Uint8Array":
-      return yield* FromUint8Array3(schema_, references_, path4, value2);
+      return yield* FromUint8Array3(schema_, references_, path7, value2);
     case "Unknown":
-      return yield* FromUnknown3(schema_, references_, path4, value2);
+      return yield* FromUnknown3(schema_, references_, path7, value2);
     case "Void":
-      return yield* FromVoid3(schema_, references_, path4, value2);
+      return yield* FromVoid3(schema_, references_, path7, value2);
     default:
       if (!type_exports.Has(schema_[Kind]))
         throw new ValueErrorsUnknownTypeError(schema);
-      return yield* FromKind2(schema_, references_, path4, value2);
+      return yield* FromKind2(schema_, references_, path7, value2);
   }
 }
 function Errors(...args) {
@@ -4144,58 +4144,58 @@ var TransformDecodeCheckError = class extends TypeBoxError {
   }
 };
 var TransformDecodeError = class extends TypeBoxError {
-  constructor(schema, path4, value2, error) {
+  constructor(schema, path7, value2, error) {
     super(error instanceof Error ? error.message : "Unknown error");
     this.schema = schema;
-    this.path = path4;
+    this.path = path7;
     this.value = value2;
     this.error = error;
   }
 };
-function Default3(schema, path4, value2) {
+function Default3(schema, path7, value2) {
   try {
     return IsTransform(schema) ? schema[TransformKind].Decode(value2) : value2;
   } catch (error) {
-    throw new TransformDecodeError(schema, path4, value2, error);
+    throw new TransformDecodeError(schema, path7, value2, error);
   }
 }
-function FromArray11(schema, references, path4, value2) {
-  return IsArray(value2) ? Default3(schema, path4, value2.map((value3, index) => Visit11(schema.items, references, `${path4}/${index}`, value3))) : Default3(schema, path4, value2);
+function FromArray11(schema, references, path7, value2) {
+  return IsArray(value2) ? Default3(schema, path7, value2.map((value3, index) => Visit11(schema.items, references, `${path7}/${index}`, value3))) : Default3(schema, path7, value2);
 }
-function FromIntersect10(schema, references, path4, value2) {
+function FromIntersect10(schema, references, path7, value2) {
   if (!IsObject(value2) || IsValueType(value2))
-    return Default3(schema, path4, value2);
+    return Default3(schema, path7, value2);
   const knownEntries = KeyOfPropertyEntries(schema);
   const knownKeys = knownEntries.map((entry) => entry[0]);
   const knownProperties = { ...value2 };
   for (const [knownKey, knownSchema] of knownEntries)
     if (knownKey in knownProperties) {
-      knownProperties[knownKey] = Visit11(knownSchema, references, `${path4}/${knownKey}`, knownProperties[knownKey]);
+      knownProperties[knownKey] = Visit11(knownSchema, references, `${path7}/${knownKey}`, knownProperties[knownKey]);
     }
   if (!IsTransform(schema.unevaluatedProperties)) {
-    return Default3(schema, path4, knownProperties);
+    return Default3(schema, path7, knownProperties);
   }
   const unknownKeys = Object.getOwnPropertyNames(knownProperties);
   const unevaluatedProperties = schema.unevaluatedProperties;
   const unknownProperties = { ...knownProperties };
   for (const key of unknownKeys)
     if (!knownKeys.includes(key)) {
-      unknownProperties[key] = Default3(unevaluatedProperties, `${path4}/${key}`, unknownProperties[key]);
+      unknownProperties[key] = Default3(unevaluatedProperties, `${path7}/${key}`, unknownProperties[key]);
     }
-  return Default3(schema, path4, unknownProperties);
+  return Default3(schema, path7, unknownProperties);
 }
-function FromImport7(schema, references, path4, value2) {
+function FromImport7(schema, references, path7, value2) {
   const additional = globalThis.Object.values(schema.$defs);
   const target = schema.$defs[schema.$ref];
-  const result = Visit11(target, [...references, ...additional], path4, value2);
-  return Default3(schema, path4, result);
+  const result = Visit11(target, [...references, ...additional], path7, value2);
+  return Default3(schema, path7, result);
 }
-function FromNot5(schema, references, path4, value2) {
-  return Default3(schema, path4, Visit11(schema.not, references, path4, value2));
+function FromNot5(schema, references, path7, value2) {
+  return Default3(schema, path7, Visit11(schema.not, references, path7, value2));
 }
-function FromObject9(schema, references, path4, value2) {
+function FromObject9(schema, references, path7, value2) {
   if (!IsObject(value2))
-    return Default3(schema, path4, value2);
+    return Default3(schema, path7, value2);
   const knownKeys = KeyOfPropertyKeys(schema);
   const knownProperties = { ...value2 };
   for (const key of knownKeys) {
@@ -4203,90 +4203,90 @@ function FromObject9(schema, references, path4, value2) {
       continue;
     if (IsUndefined(knownProperties[key]) && (!IsUndefined3(schema.properties[key]) || TypeSystemPolicy.IsExactOptionalProperty(knownProperties, key)))
       continue;
-    knownProperties[key] = Visit11(schema.properties[key], references, `${path4}/${key}`, knownProperties[key]);
+    knownProperties[key] = Visit11(schema.properties[key], references, `${path7}/${key}`, knownProperties[key]);
   }
   if (!IsSchema(schema.additionalProperties)) {
-    return Default3(schema, path4, knownProperties);
+    return Default3(schema, path7, knownProperties);
   }
   const unknownKeys = Object.getOwnPropertyNames(knownProperties);
   const additionalProperties = schema.additionalProperties;
   const unknownProperties = { ...knownProperties };
   for (const key of unknownKeys)
     if (!knownKeys.includes(key)) {
-      unknownProperties[key] = Default3(additionalProperties, `${path4}/${key}`, unknownProperties[key]);
+      unknownProperties[key] = Default3(additionalProperties, `${path7}/${key}`, unknownProperties[key]);
     }
-  return Default3(schema, path4, unknownProperties);
+  return Default3(schema, path7, unknownProperties);
 }
-function FromRecord8(schema, references, path4, value2) {
+function FromRecord8(schema, references, path7, value2) {
   if (!IsObject(value2))
-    return Default3(schema, path4, value2);
+    return Default3(schema, path7, value2);
   const pattern = Object.getOwnPropertyNames(schema.patternProperties)[0];
   const knownKeys = new RegExp(pattern);
   const knownProperties = { ...value2 };
   for (const key of Object.getOwnPropertyNames(value2))
     if (knownKeys.test(key)) {
-      knownProperties[key] = Visit11(schema.patternProperties[pattern], references, `${path4}/${key}`, knownProperties[key]);
+      knownProperties[key] = Visit11(schema.patternProperties[pattern], references, `${path7}/${key}`, knownProperties[key]);
     }
   if (!IsSchema(schema.additionalProperties)) {
-    return Default3(schema, path4, knownProperties);
+    return Default3(schema, path7, knownProperties);
   }
   const unknownKeys = Object.getOwnPropertyNames(knownProperties);
   const additionalProperties = schema.additionalProperties;
   const unknownProperties = { ...knownProperties };
   for (const key of unknownKeys)
     if (!knownKeys.test(key)) {
-      unknownProperties[key] = Default3(additionalProperties, `${path4}/${key}`, unknownProperties[key]);
+      unknownProperties[key] = Default3(additionalProperties, `${path7}/${key}`, unknownProperties[key]);
     }
-  return Default3(schema, path4, unknownProperties);
+  return Default3(schema, path7, unknownProperties);
 }
-function FromRef8(schema, references, path4, value2) {
+function FromRef8(schema, references, path7, value2) {
   const target = Deref(schema, references);
-  return Default3(schema, path4, Visit11(target, references, path4, value2));
+  return Default3(schema, path7, Visit11(target, references, path7, value2));
 }
-function FromThis7(schema, references, path4, value2) {
+function FromThis7(schema, references, path7, value2) {
   const target = Deref(schema, references);
-  return Default3(schema, path4, Visit11(target, references, path4, value2));
+  return Default3(schema, path7, Visit11(target, references, path7, value2));
 }
-function FromTuple10(schema, references, path4, value2) {
-  return IsArray(value2) && IsArray(schema.items) ? Default3(schema, path4, schema.items.map((schema2, index) => Visit11(schema2, references, `${path4}/${index}`, value2[index]))) : Default3(schema, path4, value2);
+function FromTuple10(schema, references, path7, value2) {
+  return IsArray(value2) && IsArray(schema.items) ? Default3(schema, path7, schema.items.map((schema2, index) => Visit11(schema2, references, `${path7}/${index}`, value2[index]))) : Default3(schema, path7, value2);
 }
-function FromUnion12(schema, references, path4, value2) {
+function FromUnion12(schema, references, path7, value2) {
   for (const subschema of schema.anyOf) {
     if (!Check(subschema, references, value2))
       continue;
-    const decoded = Visit11(subschema, references, path4, value2);
-    return Default3(schema, path4, decoded);
+    const decoded = Visit11(subschema, references, path7, value2);
+    return Default3(schema, path7, decoded);
   }
-  return Default3(schema, path4, value2);
+  return Default3(schema, path7, value2);
 }
-function Visit11(schema, references, path4, value2) {
+function Visit11(schema, references, path7, value2) {
   const references_ = Pushref(schema, references);
   const schema_ = schema;
   switch (schema[Kind]) {
     case "Array":
-      return FromArray11(schema_, references_, path4, value2);
+      return FromArray11(schema_, references_, path7, value2);
     case "Import":
-      return FromImport7(schema_, references_, path4, value2);
+      return FromImport7(schema_, references_, path7, value2);
     case "Intersect":
-      return FromIntersect10(schema_, references_, path4, value2);
+      return FromIntersect10(schema_, references_, path7, value2);
     case "Not":
-      return FromNot5(schema_, references_, path4, value2);
+      return FromNot5(schema_, references_, path7, value2);
     case "Object":
-      return FromObject9(schema_, references_, path4, value2);
+      return FromObject9(schema_, references_, path7, value2);
     case "Record":
-      return FromRecord8(schema_, references_, path4, value2);
+      return FromRecord8(schema_, references_, path7, value2);
     case "Ref":
-      return FromRef8(schema_, references_, path4, value2);
+      return FromRef8(schema_, references_, path7, value2);
     case "Symbol":
-      return Default3(schema_, path4, value2);
+      return Default3(schema_, path7, value2);
     case "This":
-      return FromThis7(schema_, references_, path4, value2);
+      return FromThis7(schema_, references_, path7, value2);
     case "Tuple":
-      return FromTuple10(schema_, references_, path4, value2);
+      return FromTuple10(schema_, references_, path7, value2);
     case "Union":
-      return FromUnion12(schema_, references_, path4, value2);
+      return FromUnion12(schema_, references_, path7, value2);
     default:
-      return Default3(schema_, path4, value2);
+      return Default3(schema_, path7, value2);
   }
 }
 function TransformDecode(schema, references, value2) {
@@ -4303,33 +4303,33 @@ var TransformEncodeCheckError = class extends TypeBoxError {
   }
 };
 var TransformEncodeError = class extends TypeBoxError {
-  constructor(schema, path4, value2, error) {
+  constructor(schema, path7, value2, error) {
     super(`${error instanceof Error ? error.message : "Unknown error"}`);
     this.schema = schema;
-    this.path = path4;
+    this.path = path7;
     this.value = value2;
     this.error = error;
   }
 };
-function Default4(schema, path4, value2) {
+function Default4(schema, path7, value2) {
   try {
     return IsTransform(schema) ? schema[TransformKind].Encode(value2) : value2;
   } catch (error) {
-    throw new TransformEncodeError(schema, path4, value2, error);
+    throw new TransformEncodeError(schema, path7, value2, error);
   }
 }
-function FromArray12(schema, references, path4, value2) {
-  const defaulted = Default4(schema, path4, value2);
-  return IsArray(defaulted) ? defaulted.map((value3, index) => Visit12(schema.items, references, `${path4}/${index}`, value3)) : defaulted;
+function FromArray12(schema, references, path7, value2) {
+  const defaulted = Default4(schema, path7, value2);
+  return IsArray(defaulted) ? defaulted.map((value3, index) => Visit12(schema.items, references, `${path7}/${index}`, value3)) : defaulted;
 }
-function FromImport8(schema, references, path4, value2) {
+function FromImport8(schema, references, path7, value2) {
   const additional = globalThis.Object.values(schema.$defs);
   const target = schema.$defs[schema.$ref];
-  const result = Default4(schema, path4, value2);
-  return Visit12(target, [...references, ...additional], path4, result);
+  const result = Default4(schema, path7, value2);
+  return Visit12(target, [...references, ...additional], path7, result);
 }
-function FromIntersect11(schema, references, path4, value2) {
-  const defaulted = Default4(schema, path4, value2);
+function FromIntersect11(schema, references, path7, value2) {
+  const defaulted = Default4(schema, path7, value2);
   if (!IsObject(value2) || IsValueType(value2))
     return defaulted;
   const knownEntries = KeyOfPropertyEntries(schema);
@@ -4337,7 +4337,7 @@ function FromIntersect11(schema, references, path4, value2) {
   const knownProperties = { ...defaulted };
   for (const [knownKey, knownSchema] of knownEntries)
     if (knownKey in knownProperties) {
-      knownProperties[knownKey] = Visit12(knownSchema, references, `${path4}/${knownKey}`, knownProperties[knownKey]);
+      knownProperties[knownKey] = Visit12(knownSchema, references, `${path7}/${knownKey}`, knownProperties[knownKey]);
     }
   if (!IsTransform(schema.unevaluatedProperties)) {
     return knownProperties;
@@ -4347,15 +4347,15 @@ function FromIntersect11(schema, references, path4, value2) {
   const properties = { ...knownProperties };
   for (const key of unknownKeys)
     if (!knownKeys.includes(key)) {
-      properties[key] = Default4(unevaluatedProperties, `${path4}/${key}`, properties[key]);
+      properties[key] = Default4(unevaluatedProperties, `${path7}/${key}`, properties[key]);
     }
   return properties;
 }
-function FromNot6(schema, references, path4, value2) {
-  return Default4(schema.not, path4, Default4(schema, path4, value2));
+function FromNot6(schema, references, path7, value2) {
+  return Default4(schema.not, path7, Default4(schema, path7, value2));
 }
-function FromObject10(schema, references, path4, value2) {
-  const defaulted = Default4(schema, path4, value2);
+function FromObject10(schema, references, path7, value2) {
+  const defaulted = Default4(schema, path7, value2);
   if (!IsObject(defaulted))
     return defaulted;
   const knownKeys = KeyOfPropertyKeys(schema);
@@ -4365,7 +4365,7 @@ function FromObject10(schema, references, path4, value2) {
       continue;
     if (IsUndefined(knownProperties[key]) && (!IsUndefined3(schema.properties[key]) || TypeSystemPolicy.IsExactOptionalProperty(knownProperties, key)))
       continue;
-    knownProperties[key] = Visit12(schema.properties[key], references, `${path4}/${key}`, knownProperties[key]);
+    knownProperties[key] = Visit12(schema.properties[key], references, `${path7}/${key}`, knownProperties[key]);
   }
   if (!IsSchema(schema.additionalProperties)) {
     return knownProperties;
@@ -4375,12 +4375,12 @@ function FromObject10(schema, references, path4, value2) {
   const properties = { ...knownProperties };
   for (const key of unknownKeys)
     if (!knownKeys.includes(key)) {
-      properties[key] = Default4(additionalProperties, `${path4}/${key}`, properties[key]);
+      properties[key] = Default4(additionalProperties, `${path7}/${key}`, properties[key]);
     }
   return properties;
 }
-function FromRecord9(schema, references, path4, value2) {
-  const defaulted = Default4(schema, path4, value2);
+function FromRecord9(schema, references, path7, value2) {
+  const defaulted = Default4(schema, path7, value2);
   if (!IsObject(value2))
     return defaulted;
   const pattern = Object.getOwnPropertyNames(schema.patternProperties)[0];
@@ -4388,7 +4388,7 @@ function FromRecord9(schema, references, path4, value2) {
   const knownProperties = { ...defaulted };
   for (const key of Object.getOwnPropertyNames(value2))
     if (knownKeys.test(key)) {
-      knownProperties[key] = Visit12(schema.patternProperties[pattern], references, `${path4}/${key}`, knownProperties[key]);
+      knownProperties[key] = Visit12(schema.patternProperties[pattern], references, `${path7}/${key}`, knownProperties[key]);
     }
   if (!IsSchema(schema.additionalProperties)) {
     return knownProperties;
@@ -4398,65 +4398,65 @@ function FromRecord9(schema, references, path4, value2) {
   const properties = { ...knownProperties };
   for (const key of unknownKeys)
     if (!knownKeys.test(key)) {
-      properties[key] = Default4(additionalProperties, `${path4}/${key}`, properties[key]);
+      properties[key] = Default4(additionalProperties, `${path7}/${key}`, properties[key]);
     }
   return properties;
 }
-function FromRef9(schema, references, path4, value2) {
+function FromRef9(schema, references, path7, value2) {
   const target = Deref(schema, references);
-  const resolved = Visit12(target, references, path4, value2);
-  return Default4(schema, path4, resolved);
+  const resolved = Visit12(target, references, path7, value2);
+  return Default4(schema, path7, resolved);
 }
-function FromThis8(schema, references, path4, value2) {
+function FromThis8(schema, references, path7, value2) {
   const target = Deref(schema, references);
-  const resolved = Visit12(target, references, path4, value2);
-  return Default4(schema, path4, resolved);
+  const resolved = Visit12(target, references, path7, value2);
+  return Default4(schema, path7, resolved);
 }
-function FromTuple11(schema, references, path4, value2) {
-  const value1 = Default4(schema, path4, value2);
-  return IsArray(schema.items) ? schema.items.map((schema2, index) => Visit12(schema2, references, `${path4}/${index}`, value1[index])) : [];
+function FromTuple11(schema, references, path7, value2) {
+  const value1 = Default4(schema, path7, value2);
+  return IsArray(schema.items) ? schema.items.map((schema2, index) => Visit12(schema2, references, `${path7}/${index}`, value1[index])) : [];
 }
-function FromUnion13(schema, references, path4, value2) {
+function FromUnion13(schema, references, path7, value2) {
   for (const subschema of schema.anyOf) {
     if (!Check(subschema, references, value2))
       continue;
-    const value1 = Visit12(subschema, references, path4, value2);
-    return Default4(schema, path4, value1);
+    const value1 = Visit12(subschema, references, path7, value2);
+    return Default4(schema, path7, value1);
   }
   for (const subschema of schema.anyOf) {
-    const value1 = Visit12(subschema, references, path4, value2);
+    const value1 = Visit12(subschema, references, path7, value2);
     if (!Check(schema, references, value1))
       continue;
-    return Default4(schema, path4, value1);
+    return Default4(schema, path7, value1);
   }
-  return Default4(schema, path4, value2);
+  return Default4(schema, path7, value2);
 }
-function Visit12(schema, references, path4, value2) {
+function Visit12(schema, references, path7, value2) {
   const references_ = Pushref(schema, references);
   const schema_ = schema;
   switch (schema[Kind]) {
     case "Array":
-      return FromArray12(schema_, references_, path4, value2);
+      return FromArray12(schema_, references_, path7, value2);
     case "Import":
-      return FromImport8(schema_, references_, path4, value2);
+      return FromImport8(schema_, references_, path7, value2);
     case "Intersect":
-      return FromIntersect11(schema_, references_, path4, value2);
+      return FromIntersect11(schema_, references_, path7, value2);
     case "Not":
-      return FromNot6(schema_, references_, path4, value2);
+      return FromNot6(schema_, references_, path7, value2);
     case "Object":
-      return FromObject10(schema_, references_, path4, value2);
+      return FromObject10(schema_, references_, path7, value2);
     case "Record":
-      return FromRecord9(schema_, references_, path4, value2);
+      return FromRecord9(schema_, references_, path7, value2);
     case "Ref":
-      return FromRef9(schema_, references_, path4, value2);
+      return FromRef9(schema_, references_, path7, value2);
     case "This":
-      return FromThis8(schema_, references_, path4, value2);
+      return FromThis8(schema_, references_, path7, value2);
     case "Tuple":
-      return FromTuple11(schema_, references_, path4, value2);
+      return FromTuple11(schema_, references_, path7, value2);
     case "Union":
-      return FromUnion13(schema_, references_, path4, value2);
+      return FromUnion13(schema_, references_, path7, value2);
     default:
-      return Default4(schema_, path4, value2);
+      return Default4(schema_, path7, value2);
   }
 }
 function TransformEncode(schema, references, value2) {
@@ -4724,18 +4724,18 @@ __export(pointer_exports, {
   ValuePointerRootSetError: () => ValuePointerRootSetError
 });
 var ValuePointerRootSetError = class extends TypeBoxError {
-  constructor(value2, path4, update) {
+  constructor(value2, path7, update) {
     super("Cannot set root value");
     this.value = value2;
-    this.path = path4;
+    this.path = path7;
     this.update = update;
   }
 };
 var ValuePointerRootDeleteError = class extends TypeBoxError {
-  constructor(value2, path4) {
+  constructor(value2, path7) {
     super("Cannot delete root value");
     this.value = value2;
-    this.path = path4;
+    this.path = path7;
   }
 };
 function Escape2(component) {
@@ -4879,82 +4879,82 @@ var ValueDiffError = class extends TypeBoxError {
     this.value = value2;
   }
 };
-function CreateUpdate(path4, value2) {
-  return { type: "update", path: path4, value: value2 };
+function CreateUpdate(path7, value2) {
+  return { type: "update", path: path7, value: value2 };
 }
-function CreateInsert(path4, value2) {
-  return { type: "insert", path: path4, value: value2 };
+function CreateInsert(path7, value2) {
+  return { type: "insert", path: path7, value: value2 };
 }
-function CreateDelete(path4) {
-  return { type: "delete", path: path4 };
+function CreateDelete(path7) {
+  return { type: "delete", path: path7 };
 }
 function AssertDiffable(value2) {
   if (globalThis.Object.getOwnPropertySymbols(value2).length > 0)
     throw new ValueDiffError(value2, "Cannot diff objects with symbols");
 }
-function* ObjectType4(path4, current, next) {
+function* ObjectType4(path7, current, next) {
   AssertDiffable(current);
   AssertDiffable(next);
   if (!IsStandardObject(next))
-    return yield CreateUpdate(path4, next);
+    return yield CreateUpdate(path7, next);
   const currentKeys = globalThis.Object.getOwnPropertyNames(current);
   const nextKeys = globalThis.Object.getOwnPropertyNames(next);
   for (const key of nextKeys) {
     if (HasPropertyKey(current, key))
       continue;
-    yield CreateInsert(`${path4}/${key}`, next[key]);
+    yield CreateInsert(`${path7}/${key}`, next[key]);
   }
   for (const key of currentKeys) {
     if (!HasPropertyKey(next, key))
       continue;
     if (Equal(current, next))
       continue;
-    yield* Visit15(`${path4}/${key}`, current[key], next[key]);
+    yield* Visit15(`${path7}/${key}`, current[key], next[key]);
   }
   for (const key of currentKeys) {
     if (HasPropertyKey(next, key))
       continue;
-    yield CreateDelete(`${path4}/${key}`);
+    yield CreateDelete(`${path7}/${key}`);
   }
 }
-function* ArrayType4(path4, current, next) {
+function* ArrayType4(path7, current, next) {
   if (!IsArray(next))
-    return yield CreateUpdate(path4, next);
+    return yield CreateUpdate(path7, next);
   for (let i = 0; i < Math.min(current.length, next.length); i++) {
-    yield* Visit15(`${path4}/${i}`, current[i], next[i]);
+    yield* Visit15(`${path7}/${i}`, current[i], next[i]);
   }
   for (let i = 0; i < next.length; i++) {
     if (i < current.length)
       continue;
-    yield CreateInsert(`${path4}/${i}`, next[i]);
+    yield CreateInsert(`${path7}/${i}`, next[i]);
   }
   for (let i = current.length - 1; i >= 0; i--) {
     if (i < next.length)
       continue;
-    yield CreateDelete(`${path4}/${i}`);
+    yield CreateDelete(`${path7}/${i}`);
   }
 }
-function* TypedArrayType2(path4, current, next) {
+function* TypedArrayType2(path7, current, next) {
   if (!IsTypedArray(next) || current.length !== next.length || globalThis.Object.getPrototypeOf(current).constructor.name !== globalThis.Object.getPrototypeOf(next).constructor.name)
-    return yield CreateUpdate(path4, next);
+    return yield CreateUpdate(path7, next);
   for (let i = 0; i < Math.min(current.length, next.length); i++) {
-    yield* Visit15(`${path4}/${i}`, current[i], next[i]);
+    yield* Visit15(`${path7}/${i}`, current[i], next[i]);
   }
 }
-function* ValueType2(path4, current, next) {
+function* ValueType2(path7, current, next) {
   if (current === next)
     return;
-  yield CreateUpdate(path4, next);
+  yield CreateUpdate(path7, next);
 }
-function* Visit15(path4, current, next) {
+function* Visit15(path7, current, next) {
   if (IsStandardObject(current))
-    return yield* ObjectType4(path4, current, next);
+    return yield* ObjectType4(path7, current, next);
   if (IsArray(current))
-    return yield* ArrayType4(path4, current, next);
+    return yield* ArrayType4(path7, current, next);
   if (IsTypedArray(current))
-    return yield* TypedArrayType2(path4, current, next);
+    return yield* TypedArrayType2(path7, current, next);
   if (IsValueType(current))
-    return yield* ValueType2(path4, current, next);
+    return yield* ValueType2(path7, current, next);
   throw new ValueDiffError(current, "Unable to diff value");
 }
 function Diff(current, next) {
@@ -5011,9 +5011,9 @@ var ValueMutateError = class extends TypeBoxError {
     super(message);
   }
 };
-function ObjectType5(root, path4, current, next) {
+function ObjectType5(root, path7, current, next) {
   if (!IsStandardObject2(current)) {
-    pointer_exports.Set(root, path4, Clone2(next));
+    pointer_exports.Set(root, path7, Clone2(next));
   } else {
     const currentKeys = Object.getOwnPropertyNames(current);
     const nextKeys = Object.getOwnPropertyNames(next);
@@ -5028,43 +5028,43 @@ function ObjectType5(root, path4, current, next) {
       }
     }
     for (const nextKey of nextKeys) {
-      Visit16(root, `${path4}/${nextKey}`, current[nextKey], next[nextKey]);
+      Visit16(root, `${path7}/${nextKey}`, current[nextKey], next[nextKey]);
     }
   }
 }
-function ArrayType5(root, path4, current, next) {
+function ArrayType5(root, path7, current, next) {
   if (!IsArray(current)) {
-    pointer_exports.Set(root, path4, Clone2(next));
+    pointer_exports.Set(root, path7, Clone2(next));
   } else {
     for (let index = 0; index < next.length; index++) {
-      Visit16(root, `${path4}/${index}`, current[index], next[index]);
+      Visit16(root, `${path7}/${index}`, current[index], next[index]);
     }
     current.splice(next.length);
   }
 }
-function TypedArrayType3(root, path4, current, next) {
+function TypedArrayType3(root, path7, current, next) {
   if (IsTypedArray(current) && current.length === next.length) {
     for (let i = 0; i < current.length; i++) {
       current[i] = next[i];
     }
   } else {
-    pointer_exports.Set(root, path4, Clone2(next));
+    pointer_exports.Set(root, path7, Clone2(next));
   }
 }
-function ValueType3(root, path4, current, next) {
+function ValueType3(root, path7, current, next) {
   if (current === next)
     return;
-  pointer_exports.Set(root, path4, next);
+  pointer_exports.Set(root, path7, next);
 }
-function Visit16(root, path4, current, next) {
+function Visit16(root, path7, current, next) {
   if (IsArray(next))
-    return ArrayType5(root, path4, current, next);
+    return ArrayType5(root, path7, current, next);
   if (IsTypedArray(next))
-    return TypedArrayType3(root, path4, current, next);
+    return TypedArrayType3(root, path7, current, next);
   if (IsStandardObject2(next))
-    return ObjectType5(root, path4, current, next);
+    return ObjectType5(root, path7, current, next);
   if (IsValueType(next))
-    return ValueType3(root, path4, current, next);
+    return ValueType3(root, path7, current, next);
 }
 function IsNonMutableValue(value2) {
   return IsTypedArray(value2) || IsValueType(value2);
@@ -6103,51 +6103,327 @@ var Type = type_exports3;
 
 // plugins/omlx-media/src/omlx-client.ts
 import { readFile as readFile2 } from "node:fs/promises";
-import * as path2 from "node:path";
+import * as path3 from "node:path";
 
 // plugins/omlx-media/src/workspace-artifacts.ts
-import * as path from "node:path";
-import { access, mkdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
+import * as path2 from "node:path";
+import { access, mkdir as mkdir2, readFile, realpath as realpath2, rm, stat as stat2, writeFile as writeFile2 } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
+
+// plugins/omlx-media/src/media-io.ts
+import { spawn } from "node:child_process";
+import { link, lstat, mkdir, readdir, realpath, stat, unlink, writeFile } from "node:fs/promises";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+var MAX_DURATION_SECONDS = 7200;
+var MAX_SOURCE_BYTES = 4 * 1024 ** 3;
+var MAX_PROCESS_BYTES = 64 * 1024;
+var PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+function abortError(signal) {
+  return signal.reason instanceof OmlxToolError ? signal.reason : new OmlxToolError("CANCELLED", "Media preparation was cancelled");
+}
+async function boundedOperation(timeoutSeconds, invocationSignal, operation2) {
+  const controller = new AbortController();
+  const signal = invocationSignal ? AbortSignal.any([controller.signal, invocationSignal]) : controller.signal;
+  const timer = setTimeout(() => controller.abort(new OmlxToolError("OPERATION_TIMEOUT", "Media preparation exceeded its total deadline")), (timeoutSeconds ?? 600) * 1e3);
+  try {
+    signal.throwIfAborted();
+    return await operation2(signal);
+  } catch (error) {
+    if (signal.aborted && !(error instanceof OmlxToolError)) throw abortError(signal);
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+var runMediaProcess = async (command, args, signal) => {
+  if (signal.aborted) throw abortError(signal);
+  return new Promise((resolve4, reject) => {
+    const child = spawn(command, args, { shell: false, stdio: ["ignore", "pipe", "pipe"] });
+    const stdout = [];
+    const stderr = [];
+    let bytes = 0;
+    let failure;
+    const stop = (error) => {
+      failure ??= error;
+      child.kill("SIGKILL");
+    };
+    const abort = () => stop(abortError(signal));
+    signal.addEventListener("abort", abort, { once: true });
+    if (signal.aborted) abort();
+    const collect = (target, data) => {
+      bytes += data.length;
+      if (bytes > MAX_PROCESS_BYTES) {
+        stop(new OmlxToolError("MEDIA_DIAGNOSTICS_LIMIT", `${command} exceeded its 64 KiB diagnostic limit`));
+      } else {
+        target.push(data);
+      }
+    };
+    child.stdout.on("data", (data) => collect(stdout, data));
+    child.stderr.on("data", (data) => collect(stderr, data));
+    child.once("error", (error) => {
+      signal.removeEventListener("abort", abort);
+      reject(error.code === "ENOENT" ? new OmlxToolError(command === "ffmpeg" ? "FFMPEG_NOT_FOUND" : "FFPROBE_NOT_FOUND", `Install ffmpeg (including ffprobe) and make ${command} available on PATH`) : new OmlxToolError("MEDIA_PROCESS_FAILED", `Could not start ${command}: ${error.message}`));
+    });
+    child.once("close", (code) => {
+      signal.removeEventListener("abort", abort);
+      if (failure) reject(failure);
+      else if (code !== 0) reject(new OmlxToolError("MEDIA_PROCESS_FAILED", `${command} exited with ${code}: ${Buffer.concat(stderr).toString("utf8")}`));
+      else resolve4(Buffer.concat(stdout).toString("utf8"));
+    });
+  });
+};
+function mediaPath(value2) {
+  if (!path.isAbsolute(value2)) throw new OmlxToolError("ABSOLUTE_PATH_REQUIRED", `Path must be absolute: ${value2}`);
+  if (value2.includes("\0") || value2.split(/[\\/]/).includes("..")) {
+    throw new OmlxToolError("INVALID_PATH", "Media paths must not contain NUL or parent traversal segments");
+  }
+  return path.resolve(value2);
+}
+async function canonicalTarget(candidate) {
+  try {
+    return await realpath(candidate);
+  } catch (error) {
+    if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") throw error;
+    const parent = path.dirname(candidate);
+    if (parent === candidate) throw error;
+    return path.join(await canonicalTarget(parent), path.basename(candidate));
+  }
+}
+async function guardPluginOutput(candidate) {
+  const target = await canonicalTarget(candidate);
+  const root = await realpath(PLUGIN_ROOT);
+  const relative2 = path.relative(root, target);
+  if (relative2 === "" || !relative2.startsWith(`..${path.sep}`) && relative2 !== ".." && !path.isAbsolute(relative2)) {
+    throw new OmlxToolError("PLUGIN_OUTPUT_FORBIDDEN", "Outputs must be outside the installed omlx-media plugin tree");
+  }
+}
+async function sourceFile(value2) {
+  const candidate = mediaPath(value2);
+  let source;
+  try {
+    source = await realpath(candidate);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      throw new OmlxToolError("INPUT_NOT_FOUND", `Media source was not found: ${candidate}`);
+    }
+    throw error;
+  }
+  const info = await stat(source);
+  if (!info.isFile() || info.size === 0 || info.size > MAX_SOURCE_BYTES) {
+    throw new OmlxToolError("INVALID_INPUT", "Media source must be a nonempty file no larger than 4 GiB");
+  }
+  return source;
+}
+async function freshDirectory(value2) {
+  const candidate = mediaPath(value2);
+  await guardPluginOutput(candidate);
+  try {
+    await lstat(candidate);
+    throw new OmlxToolError("OUTPUT_CONFLICT", `Output directory already exists (including symlinks): ${candidate}`);
+  } catch (error) {
+    if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") throw error;
+  }
+  return candidate;
+}
+async function reserveDirectory(candidate) {
+  try {
+    const parent = await realpath(path.dirname(candidate));
+    const output = path.join(parent, path.basename(candidate));
+    await guardPluginOutput(output);
+    await mkdir(output);
+    return output;
+  } catch (error) {
+    if (error instanceof OmlxToolError) throw error;
+    if (error instanceof Error && "code" in error && error.code === "EEXIST") {
+      throw new OmlxToolError("OUTPUT_CONFLICT", `Output directory already exists: ${candidate}`);
+    }
+    throw new OmlxToolError("INVALID_OUTPUT", `Cannot create fresh output directory; its parent must exist: ${candidate}. ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+function retainedArtifacts(error, directory) {
+  return new OmlxToolError(
+    error.code,
+    `${error.message}. Incomplete artifacts retained at ${directory}. Retry with a new output_dir.`
+  );
+}
+async function retainFailure(error, directory, preparation) {
+  try {
+    const artifacts = (await readdir(directory)).sort().map((file) => path.join(directory, file));
+    await writeArtifact(path.join(directory, "failure.json"), JSON.stringify({
+      status: "incomplete",
+      ...preparation,
+      artifacts,
+      error: { code: error.code, message: error.message },
+      retry: "Use a new output_dir; retained files are not a complete preparation."
+    }, null, 2));
+  } catch (failure) {
+    return retainedArtifacts(new OmlxToolError(
+      "FAILURE_ARTIFACT_WRITE_FAILED",
+      `${error.code}: ${error.message}. Could not record failure details: ${failure instanceof Error ? failure.message : String(failure)}`
+    ), directory);
+  }
+  return retainedArtifacts(error, directory);
+}
+async function writeArtifact(file, content) {
+  await writeFile(file, content, { flag: "wx" });
+}
+async function publishManifest(file, content, signal) {
+  const pending = `${file}.incomplete`;
+  await writeArtifact(pending, content);
+  signal.throwIfAborted();
+  await link(pending, file);
+  await unlink(pending);
+}
+var ProbeSchema = Type.Object({
+  format: Type.Optional(Type.Object({
+    duration: Type.Optional(Type.String({ minLength: 1 })),
+    start_time: Type.Optional(Type.String())
+  })),
+  streams: Type.Array(Type.Object({
+    index: Type.Integer({ minimum: 0 }),
+    codec_type: Type.String(),
+    width: Type.Optional(Type.Integer({ minimum: 1, maximum: 16384 })),
+    height: Type.Optional(Type.Integer({ minimum: 1, maximum: 16384 })),
+    sample_rate: Type.Optional(Type.String()),
+    channels: Type.Optional(Type.Integer({ minimum: 1 })),
+    start_time: Type.Optional(Type.String()),
+    duration: Type.Optional(Type.String())
+  }), { maxItems: 128 })
+});
+async function probeStreamDuration(source, index, kind, runner, signal) {
+  const progress = await runner("ffmpeg", [
+    "-nostdin",
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-threads",
+    "1",
+    "-filter_threads",
+    "1",
+    "-stats_period",
+    "86400",
+    "-progress",
+    "pipe:1",
+    "-protocol_whitelist",
+    "file,pipe",
+    "-noautorotate",
+    "-i",
+    source,
+    "-map",
+    `0:${index}`,
+    ...kind === "audio" ? ["-vn", "-af", "asetpts=PTS-STARTPTS", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le"] : ["-an", "-vf", "setpts=PTS-STARTPTS", "-fps_mode", "passthrough", "-c:v", "wrapped_avframe"],
+    "-t",
+    String(MAX_DURATION_SECONDS),
+    "-threads",
+    "1",
+    "-f",
+    "null",
+    "-"
+  ], signal);
+  const finalTime = [...progress.matchAll(/^out_time_us=(\d+)\r?$/gm)].at(-1);
+  const duration = finalTime ? Number(finalTime[1]) / 1e6 : NaN;
+  if (!/^progress=end\r?$/m.test(progress) || !Number.isFinite(duration) || duration <= 0 || duration > MAX_DURATION_SECONDS) {
+    throw new OmlxToolError("INVALID_MEDIA", `Could not determine the selected ${kind} stream's finite positive extent`);
+  }
+  return duration;
+}
+async function probe(source, runner, signal) {
+  const raw = await runner("ffprobe", [
+    "-v",
+    "error",
+    "-protocol_whitelist",
+    "file,pipe",
+    "-show_entries",
+    "format=duration,start_time:stream=index,codec_type,width,height,sample_rate,channels,start_time,duration",
+    "-of",
+    "json",
+    source
+  ], signal);
+  let payload;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    throw new OmlxToolError("INVALID_MEDIA", "ffprobe returned malformed JSON");
+  }
+  if (!value_exports2.Check(ProbeSchema, payload)) throw new OmlxToolError("INVALID_MEDIA", "ffprobe returned invalid duration or stream metadata");
+  return payload;
+}
+async function probeFrame(source, runner, signal) {
+  return (await probe(source, runner, signal)).streams;
+}
+async function probeMedia(source, runner, signal) {
+  const payload = await probe(source, runner, signal);
+  const duration = Number(payload.format?.duration);
+  if (!Number.isFinite(duration) || duration <= 0) throw new OmlxToolError("INVALID_MEDIA", "Media must have a finite positive duration");
+  if (duration > MAX_DURATION_SECONDS) throw new OmlxToolError("MEDIA_DURATION_LIMIT", "Media must be no longer than 2 hours");
+  for (const stream of payload.streams) {
+    if (stream.codec_type === "video" && (!stream.width || !stream.height || stream.width * stream.height > 33554432)) {
+      throw new OmlxToolError("MEDIA_DIMENSION_LIMIT", "Video streams must have valid dimensions and at most 32 megapixels");
+    }
+  }
+  const ranges = {};
+  for (const kind of ["audio", "video"]) {
+    const stream = payload.streams.find((candidate) => candidate.codec_type === kind);
+    if (!stream) continue;
+    const origin = Number(payload.format?.start_time ?? "0");
+    const streamStart = Number(stream.start_time ?? String(origin));
+    const streamDuration = stream.duration === void 0 ? void 0 : Number(stream.duration);
+    const label = kind === "audio" ? "Audio" : "Video";
+    if (!Number.isFinite(origin) || !Number.isFinite(streamStart) || streamDuration !== void 0 && (!Number.isFinite(streamDuration) || streamDuration <= 0)) {
+      throw new OmlxToolError("INVALID_MEDIA", `${label} stream timing metadata must be finite with positive duration`);
+    }
+    const start = Math.max(0, streamStart - origin);
+    const end = streamDuration === void 0 ? void 0 : Math.min(duration, streamStart - origin + streamDuration);
+    if (start >= duration || end !== void 0 && start >= end) {
+      throw new OmlxToolError("INVALID_MEDIA", `${label} stream does not overlap the source duration`);
+    }
+    ranges[kind === "audio" ? "audioRange" : "videoRange"] = { start, end };
+  }
+  return { duration, streams: payload.streams, ...ranges };
+}
+
+// plugins/omlx-media/src/workspace-artifacts.ts
 var IMAGE_EXTENSIONS = /* @__PURE__ */ new Set([".png", ".jpg", ".jpeg", ".webp"]);
 var NodeCodeError = Type.Object({ code: Type.Optional(Type.String()) });
 function errorCode(error) {
   return error instanceof Error && value_exports2.Check(NodeCodeError, error) ? error.code : void 0;
 }
 function requireAbsolutePath(value2) {
-  if (!path.isAbsolute(value2)) {
+  if (!path2.isAbsolute(value2)) {
     throw new OmlxToolError("ABSOLUTE_PATH_REQUIRED", `Path must be absolute: ${value2}`);
   }
-  return path.resolve(value2);
+  return path2.resolve(value2);
 }
 async function resolveImageInput(value2) {
   const candidate = requireAbsolutePath(value2);
   let resolved;
   try {
-    resolved = await realpath(candidate);
-    const fileStat = await stat(resolved);
+    resolved = await realpath2(candidate);
+    const fileStat = await stat2(resolved);
     if (!fileStat.isFile()) throw new Error("not a file");
   } catch {
     throw new OmlxToolError("INPUT_NOT_FOUND", `Image input was not found: ${value2}`);
   }
-  if (!IMAGE_EXTENSIONS.has(path.extname(resolved).toLowerCase())) {
+  if (!IMAGE_EXTENSIONS.has(path2.extname(resolved).toLowerCase())) {
     throw new OmlxToolError("UNSUPPORTED_IMAGE", `Image input must be PNG, JPEG, or WebP: ${value2}`);
   }
   return resolved;
 }
 function outputForIndex(base, index, count) {
   if (count === 1) return base;
-  const extension = path.extname(base) || ".png";
-  return path.join(path.dirname(base), `${path.basename(base, path.extname(base))}_${index}${extension}`);
+  const extension = path2.extname(base) || ".png";
+  return path2.join(path2.dirname(base), `${path2.basename(base, path2.extname(base))}_${index}${extension}`);
 }
 async function planImageOutputs(requestedOutput, count) {
   const base = requireAbsolutePath(requestedOutput);
-  if (path.extname(base).toLowerCase() !== ".png") {
+  if (path2.extname(base).toLowerCase() !== ".png") {
     throw new OmlxToolError("INVALID_OUTPUT", "Image output must use a .png extension");
   }
   const outputs = Array.from({ length: count }, (_, index) => outputForIndex(base, index, count));
   for (const output of outputs) {
-    await mkdir(path.dirname(output), { recursive: true });
+    await guardPluginOutput(output);
+    await mkdir2(path2.dirname(output), { recursive: true });
     try {
       await access(output, fsConstants.F_OK);
       throw new OmlxToolError("OUTPUT_CONFLICT", `Image output already exists: ${output}`);
@@ -6159,7 +6435,7 @@ async function planImageOutputs(requestedOutput, count) {
   return outputs;
 }
 async function readImageDataUri(filePath) {
-  const mimeType = path.extname(filePath).toLowerCase() === ".png" ? "image/png" : path.extname(filePath).toLowerCase() === ".webp" ? "image/webp" : "image/jpeg";
+  const mimeType = path2.extname(filePath).toLowerCase() === ".png" ? "image/png" : path2.extname(filePath).toLowerCase() === ".webp" ? "image/webp" : "image/jpeg";
   const encoded = (await readFile(filePath)).toString("base64");
   return `data:${mimeType};base64,${encoded}`;
 }
@@ -6174,7 +6450,7 @@ async function persistImages(outputs, images) {
         throw new OmlxToolError("EMPTY_IMAGE", `OMLX returned an empty image at index ${index}`);
       }
       try {
-        await writeFile(outputs[index], images[index], { flag: "wx" });
+        await writeFile2(outputs[index], images[index], { flag: "wx" });
       } catch (error) {
         if (error instanceof Error && errorCode(error) === "EEXIST") {
           throw new OmlxToolError(
@@ -6311,10 +6587,27 @@ var OmlxClient = class {
   baseUrl;
   apiKey;
   fetchImplementation;
-  constructor(environment, fetchImplementation = fetch) {
+  options;
+  constructor(environment, fetchImplementation = fetch, options = {}) {
     this.baseUrl = (environment.OMLX_BASE_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
     this.apiKey = environment.OMLX_API_KEY;
     this.fetchImplementation = fetchImplementation;
+    this.options = options;
+    if (options.recording) {
+      let endpoint;
+      try {
+        endpoint = new URL(this.baseUrl);
+      } catch {
+        throw new OmlxToolError("INVALID_ENDPOINT", "OMLX_BASE_URL must be an absolute HTTP(S) URL");
+      }
+      if (!["http:", "https:"].includes(endpoint.protocol) || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+        throw new OmlxToolError("INVALID_ENDPOINT", "OMLX_BASE_URL must be HTTP(S) without credentials, query or fragment");
+      }
+      const loopback = endpoint.hostname === "[::1]" || /^127(?:\.\d{1,3}){3}$/.test(endpoint.hostname);
+      if (!loopback && !options.recording.allowRemote) {
+        throw new OmlxToolError("REMOTE_ENDPOINT_FORBIDDEN", "Recording preparation requires a literal loopback OMLX endpoint (127.0.0.0/8 or ::1). Set allow_remote=true only with explicit consent to send audio remotely.");
+      }
+    }
   }
   headers(json) {
     const headers = {};
@@ -6324,19 +6617,28 @@ var OmlxClient = class {
   }
   async request(url, init) {
     let response;
+    const signal = this.requestSignal(init.signal);
     try {
       response = await this.fetchImplementation(url, {
         ...init,
-        signal: init.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+        redirect: this.options.recording ? "error" : init.redirect,
+        signal
       });
     } catch (error) {
+      if (this.options.signal?.aborted) {
+        if (this.options.signal.reason instanceof OmlxToolError) throw this.options.signal.reason;
+        throw new OmlxToolError("CANCELLED", "Media preparation was cancelled");
+      }
+      if (this.options.recording && error instanceof Error && error.name === "TimeoutError") {
+        throw new OmlxToolError("REQUEST_TIMEOUT", "OMLX request exceeded its deadline");
+      }
       throw new OmlxToolError(
         "OMLX_UNREACHABLE",
         `Could not reach OMLX at ${this.baseUrl}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
     if (!response.ok) {
-      const text = await response.text();
+      const text = await this.responseText(response, signal);
       let message = response.statusText || `HTTP ${response.status}`;
       try {
         const parsed = value_exports2.Parse(JsonValueSchema, JSON.parse(text));
@@ -6352,8 +6654,9 @@ var OmlxClient = class {
     return response;
   }
   async requestJson(url, init) {
-    const response = await this.request(url, init);
-    const text = await response.text();
+    const signal = this.requestSignal(init.signal);
+    const response = await this.request(url, { ...init, signal });
+    const text = await this.responseText(response, signal);
     let payload;
     try {
       payload = text ? value_exports2.Parse(JsonValueSchema, JSON.parse(text)) : {};
@@ -6370,6 +6673,55 @@ var OmlxClient = class {
     }
     return payload;
   }
+  requestSignal(signal) {
+    const signals = [AbortSignal.timeout(this.options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS)];
+    if (this.options.signal) signals.push(this.options.signal);
+    if (signal) signals.push(signal);
+    return AbortSignal.any(signals);
+  }
+  async responseText(response, signal) {
+    if (!this.options.maxResponseBytes) return response.text();
+    const reader = response.body?.getReader();
+    if (!reader) return "";
+    const chunks = [];
+    let size = 0;
+    let cancellation;
+    const abort = () => {
+      cancellation = reader.cancel();
+    };
+    signal?.addEventListener("abort", abort, { once: true });
+    try {
+      signal?.throwIfAborted();
+      while (true) {
+        const part = await reader.read();
+        signal?.throwIfAborted();
+        if (part.done) break;
+        size += part.value.byteLength;
+        if (size > this.options.maxResponseBytes) {
+          await reader.cancel();
+          throw new OmlxToolError("RESPONSE_SIZE_LIMIT", "OMLX JSON response exceeded its 1 MiB limit");
+        }
+        chunks.push(part.value);
+      }
+      return Buffer.concat(chunks).toString("utf8");
+    } catch (error) {
+      if (this.options.signal?.aborted) {
+        if (this.options.signal.reason instanceof OmlxToolError) throw this.options.signal.reason;
+        throw new OmlxToolError("CANCELLED", "Media preparation was cancelled");
+      }
+      if (this.options.recording && (signal?.aborted && signal.reason instanceof Error && signal.reason.name === "TimeoutError" || error instanceof Error && error.name === "TimeoutError")) {
+        throw new OmlxToolError("REQUEST_TIMEOUT", "OMLX response exceeded its deadline");
+      }
+      throw error;
+    } finally {
+      signal?.removeEventListener("abort", abort);
+      try {
+        await cancellation;
+      } finally {
+        reader.releaseLock();
+      }
+    }
+  }
   async models() {
     const payload = await this.requestJson(`${this.baseUrl}/v1/models/status`, {
       method: "GET",
@@ -6380,6 +6732,9 @@ var OmlxClient = class {
     }
     return payload.models.flatMap((model) => {
       const parsed = parseModel(model);
+      if (this.options.recording && (!parsed || !parsed.id.trim())) {
+        throw new OmlxToolError("INVALID_MODEL_STATUS", "OMLX model status contained malformed model metadata");
+      }
       return parsed ? [parsed] : [];
     });
   }
@@ -6429,7 +6784,7 @@ var OmlxClient = class {
     try {
       models = await this.models();
     } catch (error) {
-      if (requested && error instanceof OmlxToolError && ["INVALID_MODEL_STATUS", "OMLX_REQUEST_FAILED"].includes(error.code)) {
+      if (requested && !this.options.recording && error instanceof OmlxToolError && ["INVALID_MODEL_STATUS", "OMLX_REQUEST_FAILED"].includes(error.code)) {
         return requested;
       }
       throw error;
@@ -6478,7 +6833,7 @@ var OmlxClient = class {
     form.set("response_format", "json");
     if (args.language) form.set("language", args.language);
     if (args.prompt) form.set("prompt", args.prompt);
-    form.set("file", new Blob([await readFile2(args.input)]), path2.basename(args.input));
+    form.set("file", new Blob([await readFile2(args.input)]), path3.basename(args.input));
     const payload = await this.requestJson(`${this.baseUrl}/v1/audio/transcriptions`, {
       method: "POST",
       headers: this.headers(false),
@@ -6631,23 +6986,24 @@ async function executeImage(args, dependencies = {}) {
 }
 
 // plugins/omlx-media/src/execute-audio.ts
-import * as path3 from "node:path";
-import { access as access2, mkdir as mkdir2, open, rm as rm2, stat as stat2 } from "node:fs/promises";
+import * as path4 from "node:path";
+import { access as access2, mkdir as mkdir3, open, rm as rm2, stat as stat3 } from "node:fs/promises";
 import { constants as fsConstants2 } from "node:fs";
 var SPEECH_FORMATS = /* @__PURE__ */ new Set(["wav", "mp3", "opus", "flac", "pcm"]);
 var MAX_AUDIO_INPUT_BYTES = 100 * 1024 * 1024;
 function absolutePath(value2) {
-  if (!path3.isAbsolute(value2)) {
+  if (!path4.isAbsolute(value2)) {
     throw new OmlxToolError("ABSOLUTE_PATH_REQUIRED", `Path must be absolute: ${value2}`);
   }
-  return path3.resolve(value2);
+  return path4.resolve(value2);
 }
 async function outputPath(value2, extension) {
   const output = absolutePath(value2);
-  if (path3.extname(output).toLowerCase() !== extension) {
+  if (path4.extname(output).toLowerCase() !== extension) {
     throw new OmlxToolError("INVALID_OUTPUT", `Audio output must use a ${extension} extension`);
   }
-  await mkdir2(path3.dirname(output), { recursive: true });
+  await guardPluginOutput(output);
+  await mkdir3(path4.dirname(output), { recursive: true });
   try {
     await access2(output, fsConstants2.F_OK);
     throw new OmlxToolError("OUTPUT_CONFLICT", `Output already exists: ${output}`);
@@ -6707,7 +7063,7 @@ async function executeTranscription(args, dependencies = {}) {
   const input = absolutePath(args.input);
   let inputStat;
   try {
-    inputStat = await stat2(input);
+    inputStat = await stat3(input);
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") {
       throw new OmlxToolError("INPUT_NOT_FOUND", `Audio input was not found: ${input}`);
@@ -6726,6 +7082,70 @@ async function executeTranscription(args, dependencies = {}) {
   await saveOutput(file, text);
   return { model, file, text };
 }
+
+// plugins/omlx-media/src/media-domain.ts
+var AbsolutePath = Type.String({ minLength: 1, maxLength: 4096, description: "Absolute path, validated using the platform's path.isAbsolute." });
+var Recognition = {
+  input: AbsolutePath,
+  model: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
+  language: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
+  prompt: Type.Optional(Type.String({ maxLength: 8192 }))
+};
+var Timeout = Type.Optional(Type.Integer({ minimum: 1, maximum: 1800, description: "Total operation deadline in seconds. Default 600; maximum 1800." }));
+var LegacyTranscriptionSchema = Type.Object({
+  input: Type.String(),
+  output: Type.String(),
+  model: Type.Optional(Type.String()),
+  language: Type.Optional(Type.String()),
+  prompt: Type.Optional(Type.String())
+}, { additionalProperties: false });
+var RecordingSchema = Type.Object({
+  ...Recognition,
+  output_dir: AbsolutePath,
+  chunk_seconds: Type.Optional(Type.Integer({ minimum: 10, maximum: 120, description: "Fixed mono 16 kHz WAV chunk length. Default 60. Maximum 120 chunks and 2 hours total." })),
+  timeout_seconds: Timeout,
+  allow_remote: Type.Optional(Type.Boolean({ description: "Explicitly consent to sending recording audio to a non-loopback OMLX endpoint. Redirects are never followed." }))
+}, { additionalProperties: false });
+var TranscriptionSchema = Type.Union([LegacyTranscriptionSchema, RecordingSchema]);
+var CropSchema = Type.Object({
+  x: Type.Integer({ minimum: 0 }),
+  y: Type.Integer({ minimum: 0 }),
+  width: Type.Integer({ minimum: 1, maximum: 16384 }),
+  height: Type.Integer({ minimum: 1, maximum: 16384 })
+}, { additionalProperties: false });
+var FramesSchema = Type.Object({
+  input: AbsolutePath,
+  output_dir: AbsolutePath,
+  max_frames: Type.Optional(Type.Integer({ minimum: 1, maximum: 120, description: "Periodic sample count, default 24. Mutually exclusive with seconds." })),
+  seconds: Type.Optional(Type.Array(Type.Number({ minimum: 0 }), { minItems: 1, maxItems: 120, uniqueItems: true, description: "Explicit requested timestamps; mutually exclusive with start/end/max_frames." })),
+  start: Type.Optional(Type.Number({ minimum: 0 })),
+  end: Type.Optional(Type.Number({ exclusiveMinimum: 0 })),
+  width: Type.Optional(Type.Integer({ minimum: 1, maximum: 4096, description: "Maximum output width without upscaling. Default 1280. Crop is applied first." })),
+  crop: Type.Optional(CropSchema),
+  format: Type.Optional(Type.Union([Type.Literal("png"), Type.Literal("jpeg")], {
+    description: "Default png is not discovered by classify_frames.py. Select jpeg for compatible .jpg candidate files."
+  })),
+  timeout_seconds: Timeout
+}, { additionalProperties: false });
+var RecordingResultSchema = Type.Object({
+  kind: Type.Literal("recording"),
+  directory: Type.String(),
+  manifest: Type.String(),
+  transcript: Type.String(),
+  model: Type.String(),
+  chunks: Type.Integer({ minimum: 1, maximum: 120 }),
+  timing: Type.String()
+}, { additionalProperties: false });
+var FramesResultSchema = Type.Object({
+  kind: Type.Literal("frames"),
+  directory: Type.String(),
+  manifest: Type.String(),
+  frames: Type.Integer({ minimum: 1, maximum: 120 }),
+  format: Type.Union([Type.Literal("jpeg"), Type.Literal("png")]),
+  timing: Type.String(),
+  classification_script_compatible: Type.Boolean(),
+  compatibility_note: Type.Optional(Type.String())
+}, { additionalProperties: false });
 
 // plugins/omlx-media/src/tool-schemas.ts
 var imageParameters = Type.Object({
@@ -6766,27 +7186,288 @@ var speechParameters = Type.Object({
     Type.Literal("pcm")
   ]))
 }, { additionalProperties: false });
-var transcriptionParameters = Type.Object({
-  input: Type.String({ minLength: 1 }),
-  output: Type.String({ minLength: 1 }),
-  model: Type.Optional(Type.String({ minLength: 1 })),
-  language: Type.Optional(Type.String()),
-  prompt: Type.Optional(Type.String())
-}, { additionalProperties: false });
+
+// plugins/omlx-media/src/prepare-recording.ts
+import * as path5 from "node:path";
+import { stat as stat4 } from "node:fs/promises";
+async function prepareRecording(args, dependencies = {}, invocationSignal) {
+  return boundedOperation(args.timeout_seconds, invocationSignal, async (signal) => {
+    const source = await sourceFile(args.input);
+    const requested = await freshDirectory(args.output_dir);
+    const api = new OmlxClient(dependencies.environment ?? process.env, dependencies.fetchImplementation ?? fetch, {
+      signal,
+      requestTimeoutMs: 12e4,
+      maxResponseBytes: 1024 ** 2,
+      recording: { allowRemote: args.allow_remote === true }
+    });
+    const runner = dependencies.processRunner ?? runMediaProcess;
+    const media = await probeMedia(source, runner, signal);
+    const audio = media.streams.find((stream) => stream.codec_type === "audio");
+    if (!audio || !media.audioRange) throw new OmlxToolError("NO_AUDIO_STREAM", "Recording has no audio stream to transcribe");
+    const audioRange = {
+      start: media.audioRange.start,
+      end: media.audioRange.end ?? Math.min(
+        media.duration,
+        media.audioRange.start + await probeStreamDuration(source, audio.index, "audio", runner, signal)
+      )
+    };
+    const chunkSeconds = args.chunk_seconds ?? 60;
+    const count = Math.ceil((audioRange.end - audioRange.start) / chunkSeconds);
+    if (count > 120) throw new OmlxToolError("CHUNK_COUNT_LIMIT", "Recording requires more than 120 chunks; use a larger chunk_seconds (up to 120)");
+    await runner("ffmpeg", ["-version"], signal);
+    const model = await api.selectAudioModel("transcription", args.model);
+    signal.throwIfAborted();
+    const directory = await reserveDirectory(requested);
+    const chunks = [];
+    try {
+      let transcriptBytes = 0;
+      for (let index = 0; index < count; index++) {
+        signal.throwIfAborted();
+        const start = audioRange.start + index * chunkSeconds;
+        const end = Math.min(audioRange.end, start + chunkSeconds);
+        const file = path5.join(directory, `chunk-${String(index + 1).padStart(3, "0")}.wav`);
+        await runner("ffmpeg", [
+          "-nostdin",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-n",
+          "-threads",
+          "1",
+          "-filter_threads",
+          "1",
+          "-protocol_whitelist",
+          "file,pipe",
+          "-ss",
+          String(start),
+          "-i",
+          source,
+          "-t",
+          String(end - start),
+          "-map",
+          `0:${audio.index}`,
+          "-vn",
+          "-af",
+          `atrim=duration=${end - start},asetpts=PTS-STARTPTS`,
+          "-ac",
+          "1",
+          "-ar",
+          "16000",
+          "-c:a",
+          "pcm_s16le",
+          "-threads",
+          "1",
+          file
+        ], signal);
+        const info = await stat4(file);
+        if (!info.isFile() || info.size <= 44 || info.size > (end - start) * 32e3 + 65536) {
+          throw new OmlxToolError("INVALID_MEDIA", "Extracted WAV chunk is empty or exceeds its bounded PCM size");
+        }
+        const extracted = await probeMedia(file, runner, signal);
+        if (!extracted.streams.some((stream) => stream.codec_type === "audio" && stream.sample_rate === "16000" && stream.channels === 1) || extracted.duration > end - start + 1 / 16e3) {
+          throw new OmlxToolError("INVALID_MEDIA", "Extracted chunk did not match its bounded 16 kHz audio contract");
+        }
+        const actualEnd = start + extracted.duration;
+        const text = await api.transcribe({ input: file, model, language: args.language, prompt: args.prompt }, model);
+        if (!text.trim()) throw new OmlxToolError("INVALID_RESPONSE", "OMLX returned an empty transcription");
+        transcriptBytes += Buffer.byteLength(text);
+        if (transcriptBytes > 8 * 1024 ** 2) {
+          throw new OmlxToolError("TRANSCRIPT_SIZE_LIMIT", "Total transcript exceeded its 8 MiB limit");
+        }
+        chunks.push({ index: index + 1, start_seconds: start, end_seconds: actualEnd, audio: file, text });
+      }
+      signal.throwIfAborted();
+      const transcript = path5.join(directory, "transcript.md");
+      const chunksFile = path5.join(directory, "chunks.json");
+      const manifest = path5.join(directory, "manifest.json");
+      const timing = "Timestamps are extracted audio chunk boundaries, not word or speaker timestamps.";
+      await writeArtifact(transcript, [
+        "# Transcript",
+        "",
+        timing,
+        "",
+        ...chunks.flatMap((chunk) => [`## ${chunk.start_seconds.toFixed(3)}s - ${chunk.end_seconds.toFixed(3)}s`, "", chunk.text, ""])
+      ].join("\n"));
+      await writeArtifact(chunksFile, JSON.stringify({ timing, chunks }, null, 2));
+      signal.throwIfAborted();
+      await publishManifest(manifest, JSON.stringify({
+        status: "complete",
+        kind: "recording",
+        source,
+        source_duration_seconds: media.duration,
+        model,
+        timing,
+        source_audio_range: audioRange,
+        chunk_seconds: chunkSeconds,
+        audio_format: { codec: "pcm_s16le", channels: 1, sample_rate: 16e3 },
+        artifacts: { transcript, chunks: chunksFile, audio: chunks.map((chunk) => chunk.audio) },
+        chunks
+      }, null, 2), signal);
+      return { kind: "recording", directory, manifest, transcript, model, chunks: chunks.length, timing };
+    } catch (error) {
+      const failure = signal.aborted ? abortError(signal) : error instanceof OmlxToolError ? error : new OmlxToolError("MEDIA_PREPARATION_FAILED", error instanceof Error ? error.message : String(error));
+      throw await retainFailure(failure, directory, { kind: "recording", source, chunks });
+    }
+  });
+}
+
+// plugins/omlx-media/src/prepare-frames.ts
+import * as path6 from "node:path";
+async function prepareFrames(args, dependencies = {}, invocationSignal) {
+  return boundedOperation(args.timeout_seconds, invocationSignal, async (signal) => {
+    if (args.seconds && (args.start !== void 0 || args.end !== void 0 || args.max_frames !== void 0)) {
+      throw new OmlxToolError("INVALID_INPUT", "seconds is mutually exclusive with start, end and max_frames");
+    }
+    const source = await sourceFile(args.input);
+    const requested = await freshDirectory(args.output_dir);
+    const runner = dependencies.processRunner ?? runMediaProcess;
+    const media = await probeMedia(source, runner, signal);
+    const video = media.streams.find((stream) => stream.codec_type === "video");
+    if (!video || !video.width || !video.height || !media.videoRange) throw new OmlxToolError("NO_VIDEO_STREAM", "Source has no video stream to extract");
+    const videoRange = {
+      start: media.videoRange.start,
+      end: media.videoRange.end ?? Math.min(
+        media.duration,
+        media.videoRange.start + await probeStreamDuration(source, video.index, "video", runner, signal)
+      )
+    };
+    const start = args.start ?? videoRange.start;
+    const end = args.end ?? videoRange.end;
+    if (start < videoRange.start || start >= end || end > videoRange.end) {
+      throw new OmlxToolError("INVALID_RANGE", `Require ${videoRange.start} <= start < end <= ${videoRange.end}, the selected video stream range`);
+    }
+    const count = args.max_frames ?? 24;
+    const seconds = args.seconds ?? Array.from({ length: count }, (_, index) => start + (end - start) * index / count);
+    if (seconds.some((second) => second < videoRange.start || second >= videoRange.end)) {
+      throw new OmlxToolError("INVALID_RANGE", `Explicit seconds must be within the selected video stream range [${videoRange.start}, ${videoRange.end})`);
+    }
+    const crop = args.crop;
+    if (crop && (crop.x + crop.width > video.width || crop.y + crop.height > video.height)) {
+      throw new OmlxToolError("INVALID_CROP", "Crop must be contained in the probed original video dimensions");
+    }
+    const originalWidth = crop?.width ?? video.width;
+    const originalHeight = crop?.height ?? video.height;
+    const width = Math.min(args.width ?? 1280, originalWidth);
+    const height = Math.max(1, Math.round(originalHeight * width / originalWidth));
+    if (width * height * seconds.length > 268435456) {
+      throw new OmlxToolError("FRAME_WORK_LIMIT", "Requested frames exceed the 256 megapixel total output limit; reduce width or max_frames");
+    }
+    await runner("ffmpeg", ["-version"], signal);
+    signal.throwIfAborted();
+    const directory = await reserveDirectory(requested);
+    const frames = [];
+    try {
+      const format = args.format ?? "png";
+      const filters = [
+        "fps=1:start_time=0:round=up:eof_action=pass",
+        ...crop ? [`crop=${crop.width}:${crop.height}:${crop.x}:${crop.y}:exact=1`] : [],
+        `scale=${width}:${height}`,
+        "setsar=1"
+      ].join(",");
+      for (const [index, second] of seconds.entries()) {
+        signal.throwIfAborted();
+        const wholeSeconds = Math.round(second);
+        const timestamp = `${String(Math.floor(wholeSeconds / 60)).padStart(3, "0")}m${String(wholeSeconds % 60).padStart(2, "0")}s`;
+        const file = path6.join(directory, `t_${timestamp}_f${String(index).padStart(4, "0")}.${format === "jpeg" ? "jpg" : "png"}`);
+        await runner("ffmpeg", [
+          "-nostdin",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-n",
+          "-noautorotate",
+          "-threads",
+          "1",
+          "-filter_threads",
+          "1",
+          "-protocol_whitelist",
+          "file,pipe",
+          "-noaccurate_seek",
+          "-ss",
+          String(second),
+          "-i",
+          source,
+          "-map",
+          `0:${video.index}`,
+          "-frames:v",
+          "1",
+          "-vf",
+          filters,
+          "-c:v",
+          format === "jpeg" ? "mjpeg" : "png",
+          "-threads",
+          "1",
+          "-update",
+          "1",
+          file
+        ], signal);
+        const frame = (await probeFrame(file, runner, signal)).find((stream) => stream.codec_type === "video");
+        if (!frame || frame.width !== width || frame.height !== height) {
+          throw new OmlxToolError("INVALID_MEDIA", "Extracted frame dimensions do not match the requested crop and width");
+        }
+        frames.push({ index, requested_seconds: second, file });
+      }
+      signal.throwIfAborted();
+      const manifest = path6.join(directory, "manifest.json");
+      await publishManifest(manifest, JSON.stringify({
+        status: "complete",
+        kind: "frames",
+        source,
+        source_duration_seconds: media.duration,
+        source_video_range: videoRange,
+        timing: "Requested source timestamps in seconds; selects the frame covering each request, including the final frame interval. Requests are resolved at ffmpeg microsecond seek precision, not measured frame PTS.",
+        filename_timing: "Requested seconds rounded to the nearest whole second with zero-based frame indices; frames[].requested_seconds retains exact fractional timestamps.",
+        sampling: args.seconds ? "explicit" : "periodic-start-inclusive-end-exclusive",
+        range: args.seconds ? void 0 : { start_seconds: start, end_seconds: end },
+        source_dimensions: { width: video.width, height: video.height },
+        dimensions: { width, height },
+        orientation: "unrotated stream pixels; display rotation is not applied",
+        crop,
+        format,
+        frames
+      }, null, 2), signal);
+      const result = {
+        kind: "frames",
+        directory,
+        manifest,
+        frames: frames.length,
+        format,
+        timing: "Timestamps are requested source times, not measured frame PTS.",
+        classification_script_compatible: format === "jpeg"
+      };
+      if (format === "png") result.compatibility_note = "PNG output is not discovered by classify_frames.py, which requires .jpg files.";
+      return result;
+    } catch (error) {
+      const failure = signal.aborted ? abortError(signal) : error instanceof OmlxToolError ? error : new OmlxToolError("MEDIA_PREPARATION_FAILED", error instanceof Error ? error.message : String(error));
+      throw await retainFailure(failure, directory, { kind: "frames", source, frames });
+    }
+  });
+}
 
 // plugins/omlx-media/src/media.ts
 var [operation, option, value, ...extra] = process.argv.slice(2);
 if (["--help", "-h"].includes(operation) || !operation) {
-  console.log(`Usage: node <plugin-root>/scripts/media.mjs <image|speech|transcribe> --input-json <file>
-       node <plugin-root>/scripts/media.mjs <image|speech|transcribe> --json '<arguments>'
+  console.log(`Usage: node <plugin-root>/scripts/media.mjs <image|speech|transcribe|prepare-frames> --input-json <file>
+       node <plugin-root>/scripts/media.mjs <image|speech|transcribe|prepare-frames> --json '<arguments>'
 
 Uses OMLX_BASE_URL (default http://127.0.0.1:8000) and optional OMLX_API_KEY.
 Outputs must be new absolute paths. Source files are never modified.
 Image: prompt, output (.png), sources?, mask?, size?, model?, variants?, strength?, advanced?
 Speech: input (text), output (.wav), model?, voice?, language?, speed?, instructions?, response_format?
 Transcribe: input (audio path), output (.txt), model?, language?, prompt?
+Recording: transcribe with input and output_dir instead of output; model?, language?, prompt?,
+           chunk_seconds? (10-120, default 60), timeout_seconds? (1-1800, default 600), allow_remote?
+Frames: prepare-frames with input and output_dir; max_frames? (1-120, default 24), start?, end?,
+        OR seconds? (unique source timestamps); width? (1-4096, default 1280), crop?, format? (png|jpeg),
+        timeout_seconds? (1-1800, default 600)
+Preparation: at most 2 hours/4 GiB, fresh directory outside the plugin with an existing parent.
+Recording: 120 serial chunks, 120-second requests, literal loopback unless allow_remote=true; no redirects.
+Frames: 256 megapixels total; requested timestamps are not frame PTS; JPEG for classify_frames.py.
+Failures retain partial files and failure.json; retry into a new directory.
 Results are JSON on stdout. Errors go to stderr with exit code 1.`);
 } else {
+  const controller = new AbortController();
+  const cancel = () => controller.abort(new OmlxToolError("CANCELLED", "Media preparation was cancelled"));
   try {
     if (!value || extra.length || !["--input-json", "--json"].includes(option)) throw new Error("Use --input-json <file> or --json '<arguments>'; see --help");
     const args = JSON.parse(option === "--input-json" ? await readFile3(value, "utf8") : value);
@@ -6801,15 +7482,30 @@ Results are JSON on stdout. Errors go to stderr with exit code 1.`);
         result = await executeSpeech(args);
         break;
       case "transcribe":
-        if (!value_exports2.Check(transcriptionParameters, args)) throw new Error("Invalid transcription arguments");
-        result = await executeTranscription(args);
+        if (!value_exports2.Check(TranscriptionSchema, args)) throw new Error("Invalid transcription arguments");
+        if ("output_dir" in args) {
+          process.once("SIGINT", cancel);
+          process.once("SIGTERM", cancel);
+          result = await prepareRecording(args, {}, controller.signal);
+        } else {
+          result = await executeTranscription(args);
+        }
+        break;
+      case "prepare-frames":
+        if (!value_exports2.Check(FramesSchema, args)) throw new Error("Invalid frame preparation arguments");
+        process.once("SIGINT", cancel);
+        process.once("SIGTERM", cancel);
+        result = await prepareFrames(args, {}, controller.signal);
         break;
       default:
         throw new Error(`Unknown operation: ${operation}`);
     }
     console.log(JSON.stringify(result));
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    console.error(error instanceof OmlxToolError ? `${error.code}: ${error.message}` : error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
+  } finally {
+    process.removeListener("SIGINT", cancel);
+    process.removeListener("SIGTERM", cancel);
   }
 }
