@@ -6,7 +6,7 @@
       "source": "scarypilot",
       "plugin": "anti-slop",
       "path": "plugins/anti-slop",
-      "reviewedThrough": "11f9de4b3b101fae7115d0f99e85f4aa55b5216d",
+      "reviewedThrough": "21f6df137b205fe642e19c889175c0dc0a2d758d",
       "reviews": [
         {
           "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
@@ -273,6 +273,75 @@
             "Parent comparisons: d4d3c25a6be8aba97998e245f8d7e45dbbf10087; pinned rename and deletion paths retained verbatim.",
             "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
           ]
+        },
+        {
+          "commit": "6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+          "disposition": "ported",
+          "reason": "Ported forward-slash workspace-relative diagnostics in the pre-hook, post-hook and scanner, plus the offline test environment. Kept the Codex adapter and explicit Oxlint setup. Shared changes add Copilot native ownership/platform CI and extension bundle hashing, not dependencies of this standalone Codex plugin.",
+          "paths": [
+            ".github/workflows/autoresearch-native.yml",
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/plugin-platforms.yml",
+            ".github/workflows/pstack-extension.yml",
+            "README.md",
+            "plugins/anti-slop/README.md",
+            "plugins/anti-slop/hooks/guard.mjs",
+            "plugins/anti-slop/hooks/post-guard.mjs",
+            "plugins/anti-slop/hooks/post-guard.test.mjs",
+            "plugins/anti-slop/plugin.json",
+            "plugins/anti-slop/skills/anti-slop/scripts/scan.mjs",
+            "tools/bundle-hash.mjs",
+            "tools/bundle-hash.test.mjs",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [
+            "plugins/anti-slop/.codex-plugin/plugin.json",
+            "plugins/anti-slop/README.md",
+            "plugins/anti-slop/hooks/codex.test.mjs",
+            "plugins/anti-slop/hooks/guard.mjs",
+            "plugins/anti-slop/hooks/post-guard.mjs",
+            "plugins/anti-slop/hooks/post-guard.test.mjs",
+            "plugins/anti-slop/skills/anti-slop/scripts/scan.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+            "Compared parent f30836f24d411b41f2932e794b570d1d7fcd684a; inspected every pinned shared workflow and helper diff, with no upstream execution.",
+            "bun test plugins/anti-slop/hooks plugins/anti-slop/skills/anti-slop/scripts/scan.test.mjs: 44 pass, 0 fail on macOS; Codex wire-format tests assert src/demo.ts locations and scanner asserts src/index.ts.",
+            "plugins/anti-slop/README.md documents portable diagnostics and excluded extension workflows."
+          ]
+        },
+        {
+          "commit": "eb21e406ae97bcb1798f964de7fd830710bd59c1",
+          "disposition": "excluded",
+          "reason": "Shared catalog, platform CI, guidance and bundle checks remove copilot-local-llm and document Copilot CLI provider discovery. That plugin and provider registration are outside the eight-plugin Codex inventory; Anti-Slop has no coupled source or dependency change.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/plugin-platforms.yml",
+            "AGENTS.md",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/eb21e406ae97bcb1798f964de7fd830710bd59c1",
+            "Compared parent 53263e5b135e6c1dbab762b81b9165bf73eccb6e and inspected all shared diffs; native Anti-Slop code is unchanged."
+          ]
+        },
+        {
+          "commit": "f05934ef17a671f0102231d22dadc1fa994d07a1",
+          "disposition": "excluded",
+          "reason": "Shared marketplace and README entries add the separate uv plugin. The fixed eight-plugin inventory excludes it, and these entries do not alter Anti-Slop behavior or runtime dependencies.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/f05934ef17a671f0102231d22dadc1fa994d07a1",
+            "Compared parent eb21e406ae97bcb1798f964de7fd830710bd59c1 and inspected both shared catalog/documentation diffs."
+          ]
         }
       ]
     },
@@ -281,7 +350,7 @@
       "source": "scarypilot",
       "plugin": "better-init",
       "path": "plugins/better-init",
-      "reviewedThrough": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+      "reviewedThrough": "21f6df137b205fe642e19c889175c0dc0a2d758d",
       "reviews": [
         {
           "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
@@ -569,6 +638,38 @@
             "Parent comparisons: d4d3c25a6be8aba97998e245f8d7e45dbbf10087; pinned rename and deletion paths retained verbatim.",
             "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
           ]
+        },
+        {
+          "commit": "eb21e406ae97bcb1798f964de7fd830710bd59c1",
+          "disposition": "excluded",
+          "reason": "Shared catalog, platform CI, guidance and bundle checks remove copilot-local-llm and document Copilot CLI provider discovery. No Better Init source or runtime dependency changes; Codex guidance remains native and the removed plugin was never shipped here.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/plugin-platforms.yml",
+            "AGENTS.md",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/eb21e406ae97bcb1798f964de7fd830710bd59c1",
+            "Compared parent 53263e5b135e6c1dbab762b81b9165bf73eccb6e and inspected every shared diff; the source Better Init directory has no delta through the pinned head."
+          ]
+        },
+        {
+          "commit": "f05934ef17a671f0102231d22dadc1fa994d07a1",
+          "disposition": "excluded",
+          "reason": "Shared marketplace and README entries register the separate uv plugin, outside this fixed eight-plugin inventory. Better Init guidance and dependencies do not change.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/f05934ef17a671f0102231d22dadc1fa994d07a1",
+            "Compared parent eb21e406ae97bcb1798f964de7fd830710bd59c1 and inspected both shared diffs; plugins/better-init/README.md retains native Codex scope."
+          ]
         }
       ]
     },
@@ -577,7 +678,7 @@
       "source": "scarypilot",
       "plugin": "digivolution",
       "path": "plugins/digivolution",
-      "reviewedThrough": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+      "reviewedThrough": "21f6df137b205fe642e19c889175c0dc0a2d758d",
       "reviews": [
         {
           "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
@@ -870,6 +971,54 @@
             "https://github.com/scaryrawr/scarypilot/commit/53263e5b135e6c1dbab762b81b9165bf73eccb6e",
             "Parent comparisons: d4d3c25a6be8aba97998e245f8d7e45dbbf10087; pinned rename and deletion paths retained verbatim.",
             "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "eb21e406ae97bcb1798f964de7fd830710bd59c1",
+          "disposition": "excluded",
+          "reason": "Shared catalog, platform CI, guidance and bundle checks remove copilot-local-llm and document Copilot CLI provider discovery. The Codex Digivolution hooks do not use that plugin or the Copilot extension build pipeline.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/plugin-platforms.yml",
+            "AGENTS.md",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/eb21e406ae97bcb1798f964de7fd830710bd59c1",
+            "Compared parent 53263e5b135e6c1dbab762b81b9165bf73eccb6e and inspected every shared diff against the dependency-free hooks documented in plugins/digivolution/README.md."
+          ]
+        },
+        {
+          "commit": "f05934ef17a671f0102231d22dadc1fa994d07a1",
+          "disposition": "excluded",
+          "reason": "Shared marketplace and README entries register the separate uv plugin, which this eight-plugin marketplace does not ship. No Digivolution hook behavior or dependency changes.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/f05934ef17a671f0102231d22dadc1fa994d07a1",
+            "Compared parent eb21e406ae97bcb1798f964de7fd830710bd59c1 and inspected both shared diffs."
+          ]
+        },
+        {
+          "commit": "21f6df137b205fe642e19c889175c0dc0a2d758d",
+          "disposition": "excluded",
+          "reason": "Only the Copilot extension's Vitest development dependency rises from 4.1.4 to 4.1.12 with lockfile and bundle-input hashes. This port ships dependency-free Codex hooks tested with Bun and Node, not that extension package or test runner.",
+          "paths": [
+            "plugins/digivolution/extensions/digivolution/bundle-manifest.json",
+            "plugins/digivolution/extensions/digivolution/package-lock.json",
+            "plugins/digivolution/extensions/digivolution/package.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/21f6df137b205fe642e19c889175c0dc0a2d758d",
+            "Compared parent f05934ef17a671f0102231d22dadc1fa994d07a1 and inspected package, lock and manifest diffs; no runtime dist or source changes.",
+            "plugins/digivolution/README.md and package.json show the distinct Codex hook and Bun test boundary."
           ]
         }
       ]

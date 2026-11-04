@@ -15,6 +15,9 @@ parser-backed findings only on changed lines; it is advisory, not a security
 boundary or a guarantee of full repository coverage. Generated outputs and
 symlink/outside-workspace targets are excluded.
 
+Workspace-relative paths in hook and scanner diagnostics use forward slashes
+on Windows, macOS, and Linux.
+
 ## Explicit Oxlint setup
 
 The hooks never download packages. Once per installed plugin data location, with
@@ -41,3 +44,8 @@ node "<skill-directory>/scripts/scan.mjs" <workspace-path> --json
 
 Heuristic candidates require review and do not replace parser-backed lint.
 Read [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for rule provenance/license.
+
+The portable diagnostics update follows
+[ScaryPilot commit `6ca03c2c`](https://github.com/scaryrawr/scarypilot/commit/6ca03c2c788fb2fc143ebce56120bb6a1a865707).
+The append-only `upstream-sync.json` registry records subsequent reviews and
+exclusions. Copilot extension build workflows are not part of this Codex port.
