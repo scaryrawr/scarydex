@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun tools/build.mjs",
+    "build": "bun tools/build.mjs && bun plugins/pstack/build.mjs",
     "check": "bun tools/check-marketplace.mjs",
     "lint": "node node_modules/oxlint/bin/oxlint --config oxlint.config.mjs tools tests plugins/omlx-media/src plugins/omlx-media/tests",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p plugins/pstack/skills/statechart/scripts/compiler/tsconfig.json"
   },
   "devDependencies": {
     "@sinclair/typebox": "0.34.49",

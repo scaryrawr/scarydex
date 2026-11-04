@@ -24,10 +24,13 @@ Every candidate gets the same prompt, so the prompt is the contract.
 Spawn all N subagents in one message with supported background execution, each with the task, the path to the shared grounding, its own output path, and instructions to produce the artifact and a short rationale naming the alternatives it considered and what it rejected.
 
 If a candidate produces no output, proceed with N-1 and note the dropout.
+If every candidate drops out, stop and report that no artifact was produced. Do not claim an arena result from the parent's unreviewed draft. Never retry a model id that the host already rejected.
 
 ## Phase C: Cross-judge
 
 After all Phase B candidates complete, choose one entry from the `arena cross-judge pool` line in the Codex home `pstack-models.md`, resolving aliases to no override. A rejected concrete id resolves to no override, reported. Otherwise omit `model`. Prefer a different model family from the parent's when one is configured. Spawn one general-purpose judge with an explicitly read-only prompt. It sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with the parent's reading in Phase D, not with the candidates themselves. Spawning while candidates are still writing means the judge sees partial or empty outputs and reports them as dropouts.
+
+If no judge can run, score the candidates yourself and explicitly report that the cross-judge was unavailable. Inherited or same-family judges can provide independent attempts, but are not model diversity. Never fabricate a cross-model verdict to fill a missing seat.
 
 ## Phase D: Pick a base
 

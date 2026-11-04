@@ -115,3 +115,20 @@ this port already excludes that extension. Its gh-stack/bootstrap installer,
 Copilot agent registration, source sync machinery and CI provisioning are not
 shipped; the existing bundled GitHub discovery and Codex manifest remain intact.
 Later Cursor-only changes are outside this ScaryPilot review.
+
+The portable pstack 0.15.36 update is reviewed through Cursor
+[`fd268b808c786469e6dd8c8d9db864d0de4d669e`](https://github.com/cursor/plugins/commit/fd268b808c786469e6dd8c8d9db864d0de4d669e)
+and ScaryPilot
+[`21f6df137b205fe642e19c889175c0dc0a2d758d`](https://github.com/scaryrawr/scarypilot/commit/21f6df137b205fe642e19c889175c0dc0a2d758d).
+The upstream compiler's IR, frontends, passes, backends and worker architecture
+are retained under `skills/statechart/scripts/compiler/`, with representative
+MIT-licensed test/replay data. Local adaptations bundle its entrypoints for Node,
+require preinstalled TLC/Java, reject unsupported compiler platforms and replace
+the helper's shell kill with an owned process-group signal. Existing conversion
+commands and their stronger input/replacement safeguards remain separate.
+Watcher, plans, proof-based review, subtitled ketchup-video and program guidance
+are also integrated. The optional durable Codex orchestration helper is retained.
+Mise acquisition, Pele rendering, native Project/cloud tooling, vendor default
+models and looser combined-base verification waivers are not imported.
+The append-only ledger records exact parent-relative source paths and decisions;
+these later integration notes do not change immutable import provenance.

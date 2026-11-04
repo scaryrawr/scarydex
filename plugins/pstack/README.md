@@ -6,7 +6,7 @@ Start with `poteto-mode`, or invoke focused skills such as `how`, `architect`,
 Use `ketchup` for a read-only catch-up, `in-your-own-words` to restate the goal,
 and `sharpen` to rewrite a prompt before sending it. Sharpen returns only the
 rewritten prompt; it does not execute the task.
-Use `ketchup-video` for an explicitly requested silent slide-video catch-up.
+Use `ketchup-video` for an explicitly requested silent, subtitled slide-video catch-up.
 It uses existing evidence and an available local renderer, with a text fallback.
 
 Use [create-formal-verification-skill](skills/create-formal-verification-skill/SKILL.md)
@@ -16,7 +16,12 @@ after covered code changes to distinguish verification drift from product bugs.
 Use [statechart](skills/statechart/SKILL.md) to turn a TLA+ model into observable
 states and numbered bug paths, or an agreed Mermaid chart into a TLA+ skeleton.
 The portable scripts do not install Java, TLC or rendering dependencies.
-Statechart parsing rejects TLC model values (such as unquoted `Actor`) and
+The new compiler checks invariants and temporal properties with rich TLC values,
+hierarchical/parallel views and bounded reruns. Its Node bundles support macOS
+and Linux and refuse nonempty output. See the [compiler guide](skills/statechart/references/compiler.md).
+The existing conversion commands retain fixed/comparison models, chart-to-spec
+generation, input fingerprints and replacement-inventory safeguards described below.
+Conversion parsing rejects TLC model values (such as unquoted `Actor`) and
 functions with non-string keys instead of conflating their state identities
 with strings. Unsupported or partially parsed values, including interval notation,
 also fail explicitly. Quoted strings, booleans and ordinary integer values remain supported.
@@ -134,4 +139,14 @@ The statechart copy includes the Windows output-folder validation fix and
 dependency-free regression tests. TLC-backed checks require existing Java and
 an explicitly supplied `TLA2TOOLS` jar; without them those tests report skips.
 The reviewed stable TLC reference is 1.7.4, not the replaceable 1.8.0 prerelease.
-This does not claim integration of later Cursor statechart or renderer releases.
+The subsequent portable pstack 0.15.36 update is reviewed through
+[Cursor `fd268b80`](https://github.com/cursor/plugins/commit/fd268b808c786469e6dd8c8d9db864d0de4d669e)
+and [ScaryPilot `21f6df13`](https://github.com/scaryrawr/scarypilot/commit/21f6df137b205fe642e19c889175c0dc0a2d758d).
+It adds the compiler, fork-safe watcher traversal and deadline sleeps,
+active-PR store preference, backtick-safe plans, subtitled catch-ups,
+execution-proven adversarial findings and lighter agentic orchestration.
+The optional Codex durable store remains available; upstream removal did not
+erase its existing caller contracts. Automatic mise/Java/TLC installation,
+Pele, vendor model policies and native Project/cloud subscriptions are excluded.
+Offline replay and pure compiler tests are representative, not the complete
+upstream fixture corpus or real-Java proof.
