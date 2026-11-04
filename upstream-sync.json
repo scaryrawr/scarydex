@@ -1028,7 +1028,7 @@
       "source": "scarypilot",
       "plugin": "omlx-media",
       "path": "plugins/omlx-media",
-      "reviewedThrough": null,
+      "reviewedThrough": "21f6df137b205fe642e19c889175c0dc0a2d758d",
       "reviews": [
         {
           "commit": "a13dd454ffc9b8de81387c48831283277bfde5c5",
@@ -1352,6 +1352,132 @@
             "Parent comparisons: d4d3c25a6be8aba97998e245f8d7e45dbbf10087; pinned rename and deletion paths retained verbatim.",
             "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
           ]
+        },
+        {
+          "commit": "a13dd454ffc9b8de81387c48831283277bfde5c5",
+          "disposition": "ported",
+          "reason": "Port bounded recording transcription and timestamped frame preparation into the existing TypeBox source domain and bundled Codex CLI. Preserve sources, fresh external directories, stream extents, serial PCM chunks, authenticated literal-loopback requests, explicit remote consent, redirect refusal, resource limits, cancellation, and retained failure.json with completed text. Skills call the CLI; exclude SDK tool/extension registration, Copilot manifest discovery workarounds and adapter packages. Reuse existing root build and tests rather than source extension CI or installs.",
+          "paths": [
+            "plugins/omlx-media/README.md",
+            "plugins/omlx-media/extensions/omlx-media/bundle-manifest.json",
+            "plugins/omlx-media/extensions/omlx-media/dist/extension.mjs",
+            "plugins/omlx-media/extensions/omlx-media/package-lock.json",
+            "plugins/omlx-media/extensions/omlx-media/package.json",
+            "plugins/omlx-media/extensions/omlx-media/src/audio-tools.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/domain.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/execute-audio.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/extension.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/frame-tool.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/media-domain.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/media-io.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/omlx-client.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/prepare-frames.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/prepare-recording.ts",
+            "plugins/omlx-media/extensions/omlx-media/src/workspace-artifacts.ts",
+            "plugins/omlx-media/extensions/omlx-media/tests/media-tools.test.ts",
+            "plugins/omlx-media/plugin.json",
+            "plugins/omlx-media/skills/audio/SKILL.md",
+            "plugins/omlx-media/skills/blogify/SKILL.md",
+            "plugins/omlx-media/skills/blogify/evals/evals.json",
+            "plugins/omlx-media/skills/blogify/references/frames.md",
+            "plugins/omlx-media/skills/blogify/references/transcription.md"
+          ],
+          "localPaths": [
+            "plugins/omlx-media/.codex-plugin/plugin.json",
+            "plugins/omlx-media/README.md",
+            "plugins/omlx-media/bundle-manifest.json",
+            "plugins/omlx-media/scripts/media.mjs",
+            "plugins/omlx-media/skills/audio/SKILL.md",
+            "plugins/omlx-media/skills/blogify/SKILL.md",
+            "plugins/omlx-media/skills/blogify/evals/evals.json",
+            "plugins/omlx-media/skills/blogify/references/frames.md",
+            "plugins/omlx-media/skills/blogify/references/transcription.md",
+            "plugins/omlx-media/src/domain.ts",
+            "plugins/omlx-media/src/execute-audio.ts",
+            "plugins/omlx-media/src/media-domain.ts",
+            "plugins/omlx-media/src/media-io.ts",
+            "plugins/omlx-media/src/media.ts",
+            "plugins/omlx-media/src/omlx-client.ts",
+            "plugins/omlx-media/src/prepare-frames.ts",
+            "plugins/omlx-media/src/prepare-recording.ts",
+            "plugins/omlx-media/src/tool-schemas.ts",
+            "plugins/omlx-media/src/workspace-artifacts.ts",
+            "plugins/omlx-media/tests/prepare-media.test.ts",
+            "tests/fixtures/media-process.mjs",
+            "tests/fixtures/media-spawn.mjs",
+            "tests/media-cli.test.mjs",
+            "tests/media-preparation.test.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/a13dd454ffc9b8de81387c48831283277bfde5c5",
+            "Parent comparisons: cf3e9b7e20592a85b098608bb9637d474c127073; exact candidate paths include all changed shared and plugin endpoints. Source blobs and parent diffs were read without executing upstream code.",
+            "bun test tests/media-cli.test.mjs tests/media-preparation.test.mjs plugins/omlx-media/tests/prepare-media.test.ts --timeout 30000: 22 passed, no inference or capture. Actual Node CLI subprocess fixtures exercised auth, source preservation, stream offsets, constraints, redirects, deadlines, SIGINT, partial artifacts and byte caps.",
+            "Synthetic local FFmpeg frame hashes verified all 24 covering-frame requests through the final frame interval. Real OMLX inference quality and Windows/Linux process execution were not exercised.",
+            "bun run build; bun run check; bun run lint; bun run typecheck. Native Codex manifests remain intact and OMLX bundled hashes were regenerated."
+          ]
+        },
+        {
+          "commit": "6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+          "disposition": "ported",
+          "reason": "Port OMLX platform/transmission documentation: local inference requires Apple-Silicon macOS, remote HTTP clients may run on Windows/Linux with recording-specific consent, and hosted transcript/frame transmission requires separate consent. Exclude coupled Copilot native/autoresearch/platform CI and extension hash/smoke registration. ScaryDex already has its own Bun bundle/hash validation and eight-plugin native inventory.",
+          "paths": [
+            ".github/workflows/autoresearch-native.yml",
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/plugin-platforms.yml",
+            ".github/workflows/pstack-extension.yml",
+            "README.md",
+            "plugins/omlx-media/README.md",
+            "tools/bundle-hash.mjs",
+            "tools/bundle-hash.test.mjs",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [
+            "README.md",
+            "plugins/omlx-media/README.md",
+            "plugins/omlx-media/skills/blogify/SKILL.md",
+            "plugins/omlx-media/skills/blogify/references/frames.md"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/6ca03c2c788fb2fc143ebce56120bb6a1a865707",
+            "Parent comparisons: f30836f24d411b41f2932e794b570d1d7fcd684a; exact candidate paths include all changed shared and plugin endpoints. Source blobs and parent diffs were read without executing upstream code.",
+            "plugins/omlx-media/README.md; plugins/omlx-media/skills/blogify/SKILL.md; plugins/omlx-media/skills/blogify/references/frames.md",
+            "Reviewed shared tools/bundle-hash.mjs text/native-byte handling, Copilot resource assembly, platform matrix and SDK smoke registration against the existing tools/build.mjs and check-marketplace.mjs boundary. No source workflows, SDK agents, or native artifacts were installed."
+          ]
+        },
+        {
+          "commit": "eb21e406ae97bcb1798f964de7fd830710bd59c1",
+          "disposition": "excluded",
+          "reason": "Shared changes remove the upstream Copilot local-LLM plugin and its marketplace/platform/bundle registration. ScaryDex never ships that plugin; its removal creates no OMLX or Screen Record behavior to port. Do not copy Copilot provider-registration documentation or expand the fixed eight-plugin inventory.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/plugin-platforms.yml",
+            "AGENTS.md",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/eb21e406ae97bcb1798f964de7fd830710bd59c1",
+            "Parent comparisons: 53263e5b135e6c1dbab762b81b9165bf73eccb6e; exact candidate paths include all changed shared and plugin endpoints. Source blobs and parent diffs were read without executing upstream code.",
+            "Inspected complete shared marketplace, README, platform workflow and bundle/check/smoke diffs. .agents/plugins/marketplace.json stays unchanged with eight published plugins."
+          ]
+        },
+        {
+          "commit": "f05934ef17a671f0102231d22dadc1fa994d07a1",
+          "disposition": "excluded",
+          "reason": "Shared changes add an upstream uv guidance plugin to Copilot marketplace and platform documentation. This is unrelated to the two scoped media plugins and not approved ScaryDex inventory. Keep existing optional uv prerequisites and never silently install dependencies or introduce a ninth plugin.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/f05934ef17a671f0102231d22dadc1fa994d07a1",
+            "Parent comparisons: eb21e406ae97bcb1798f964de7fd830710bd59c1; exact candidate paths include all changed shared and plugin endpoints. Source blobs and parent diffs were read without executing upstream code.",
+            "Inspected complete shared marketplace, README, platform workflow and bundle/check/smoke diffs. .agents/plugins/marketplace.json stays unchanged with eight published plugins."
+          ]
         }
       ]
     },
@@ -1360,7 +1486,7 @@
       "source": "scarypilot",
       "plugin": "screen-record",
       "path": "plugins/screen-record",
-      "reviewedThrough": "e35a24f1f17fd2642f215aa04e790411c0d81d66",
+      "reviewedThrough": "21f6df137b205fe642e19c889175c0dc0a2d758d",
       "reviews": [
         {
           "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
@@ -1692,6 +1818,140 @@
             "https://github.com/scaryrawr/scarypilot/commit/53263e5b135e6c1dbab762b81b9165bf73eccb6e",
             "Parent comparisons: d4d3c25a6be8aba97998e245f8d7e45dbbf10087; pinned rename and deletion paths retained verbatim.",
             "Reviewed the pinned parent-relative path inventory and coupled source workflow, catalog or extension-build boundary. No source scripts or plugins were executed."
+          ]
+        },
+        {
+          "commit": "46e27171de6ab1be978e81fde743ad8a6f05f42b",
+          "disposition": "ported",
+          "reason": "Port the dependency-free recorder and Windows enumeration into the native skill CLI, retaining ScaryDex state namespace and persistent recording identity. Add exact identity checks during stop and worker lock ownership checks so replacements cannot be adopted or overwritten. Preserve detached lifecycle, bounded discovery, no-overwrite capture, read-only stale status, graceful timeout/no-kill behavior and idempotent retained final state. Exclude SDK extension/tool registration, package dependencies and source CI; caller tests invoke the actual Node CLI with detached fake FFmpeg subprocesses.",
+          "paths": [
+            ".github/workflows/extension-bundles.yml",
+            ".github/workflows/screen-record-ci.yml",
+            "plugins/screen-record/README.md",
+            "plugins/screen-record/extensions/screen-record/bundle-manifest.json",
+            "plugins/screen-record/extensions/screen-record/dist/extension.mjs",
+            "plugins/screen-record/extensions/screen-record/extension.mjs",
+            "plugins/screen-record/extensions/screen-record/package-lock.json",
+            "plugins/screen-record/extensions/screen-record/package.json",
+            "plugins/screen-record/extensions/screen-record/src/domain.ts",
+            "plugins/screen-record/extensions/screen-record/src/extension.ts",
+            "plugins/screen-record/extensions/screen-record/src/tools.ts",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/ffmpeg.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/legacy-worker.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/lock-failure.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/media-subprocess.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/missing-root-tool.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/setup-failure.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/spawn-failure.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/stop-exit-race.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/fixtures/worker-startup-failure.mjs",
+            "plugins/screen-record/extensions/screen-record/tests/output.test.ts",
+            "plugins/screen-record/extensions/screen-record/tests/recording.test.ts",
+            "plugins/screen-record/extensions/screen-record/tools/check-bundle.mjs",
+            "plugins/screen-record/extensions/screen-record/tools/test-contracts.mjs",
+            "plugins/screen-record/extensions/screen-record/tsconfig.json",
+            "plugins/screen-record/extensions/screen-record/tsdown.config.mjs",
+            "plugins/screen-record/plugin.json",
+            "plugins/screen-record/skills/screen-record/SKILL.md",
+            "plugins/screen-record/skills/screen-record/evals/evals.json",
+            "plugins/screen-record/skills/screen-record/references/editing.md",
+            "plugins/screen-record/skills/screen-record/references/windows.md",
+            "plugins/screen-record/skills/screen-record/scripts/screen-record.mjs",
+            "plugins/screen-record/skills/screen-record/scripts/windows-enumerate.ps1",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [
+            "plugins/screen-record/.codex-plugin/plugin.json",
+            "plugins/screen-record/README.md",
+            "plugins/screen-record/skills/screen-record/SKILL.md",
+            "plugins/screen-record/skills/screen-record/evals/evals.json",
+            "plugins/screen-record/skills/screen-record/references/editing.md",
+            "plugins/screen-record/skills/screen-record/references/windows.md",
+            "plugins/screen-record/skills/screen-record/scripts/screen-record.mjs",
+            "plugins/screen-record/skills/screen-record/scripts/windows-enumerate.ps1",
+            "tests/fixtures/legacy-recorder.mjs",
+            "tests/fixtures/recorder-ffmpeg.mjs",
+            "tests/fixtures/recorder-spawn.mjs",
+            "tests/screen-record-lifecycle.test.mjs"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/46e27171de6ab1be978e81fde743ad8a6f05f42b",
+            "Parent comparisons: e35a24f1f17fd2642f215aa04e790411c0d81d66; exact candidate paths include all changed shared and plugin endpoints. Source blobs and parent diffs were read without executing upstream code.",
+            "bun test tests/screen-record.test.mjs tests/screen-record-lifecycle.test.mjs --timeout 30000: 12 passed. Actual Node CLI start/status/stop run against detached fake FFmpeg workers, including identity mismatch, persistence, repeated stop, timeout liveness, stale/startup locks, failed startup and replacement races. Legacy-stop regression was reproduced against local base e195194 and fixed; a minimal ID-less worker fixture keeps the regression runnable in shallow checkouts.",
+            "Windows discovery and HWND argument selection exercised through simulated PowerShell/FFmpeg subprocess responses only. No native Windows window enumeration, OS permission or real capture was exercised.",
+            "Read source extension domain schemas and fixture semantics to migrate caller safety without introducing a parallel SDK adapter or test runner."
+          ]
+        },
+        {
+          "commit": "574cbc9673780d7adfd021596be0ec080a4f7f2d",
+          "disposition": "ported",
+          "reason": "Port before/after evidence-video standards, full-duration FFmpeg recipe and synthetic eval receipts. Preserve meaningful pending intervals, dispatch proof or independent clocks, labeled end holds/reloads, same-frame readable detail, historical source/build receipts, independent final-state assertions and rejected-media review. Adapt producer guidance to a linked Codex prompt and identity-aware CLI; do not register a Copilot agent or import extension lock/version bookkeeping.",
+          "paths": [
+            "plugins/screen-record/README.md",
+            "plugins/screen-record/agents/demo-producer.agent.md",
+            "plugins/screen-record/extensions/screen-record/bundle-manifest.json",
+            "plugins/screen-record/extensions/screen-record/package-lock.json",
+            "plugins/screen-record/extensions/screen-record/package.json",
+            "plugins/screen-record/plugin.json",
+            "plugins/screen-record/skills/screen-record/SKILL.md",
+            "plugins/screen-record/skills/screen-record/evals/evals.json",
+            "plugins/screen-record/skills/screen-record/evals/files/evidence-review.json",
+            "plugins/screen-record/skills/screen-record/evals/files/independent-clocks.json",
+            "plugins/screen-record/skills/screen-record/evals/files/paired-evidence.json",
+            "plugins/screen-record/skills/screen-record/evals/files/presentation-briefs.json",
+            "plugins/screen-record/skills/screen-record/references/editing.md"
+          ],
+          "localPaths": [
+            "plugins/screen-record/README.md",
+            "plugins/screen-record/references/agents/demo-producer.md",
+            "plugins/screen-record/skills/screen-record/SKILL.md",
+            "plugins/screen-record/skills/screen-record/evals/evals.json",
+            "plugins/screen-record/skills/screen-record/evals/files/evidence-review.json",
+            "plugins/screen-record/skills/screen-record/evals/files/independent-clocks.json",
+            "plugins/screen-record/skills/screen-record/evals/files/paired-evidence.json",
+            "plugins/screen-record/skills/screen-record/evals/files/presentation-briefs.json",
+            "plugins/screen-record/skills/screen-record/references/editing.md"
+          ],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/574cbc9673780d7adfd021596be0ec080a4f7f2d",
+            "Parent comparisons: ddde39d817c0e4512be641a494cec01fcdef05f0; exact candidate paths include all changed shared and plugin endpoints. Source blobs and parent diffs were read without executing upstream code.",
+            "plugins/screen-record/references/agents/demo-producer.md; plugins/screen-record/skills/screen-record/references/editing.md; plugins/screen-record/skills/screen-record/evals/evals.json and its four synthetic JSON receipts.",
+            "Manual review confirmed the 0.40/1.20-second trims align proven cues at 2.20 seconds, preserve completions at 3.80/5.80 seconds, and label the BEFORE end hold at 4 through 6 seconds. Eval plans are not executed inference, rendered application evidence, or capture approval."
+          ]
+        },
+        {
+          "commit": "eb21e406ae97bcb1798f964de7fd830710bd59c1",
+          "disposition": "excluded",
+          "reason": "Shared changes remove the upstream Copilot local-LLM plugin and its marketplace/platform/bundle registration. ScaryDex never ships that plugin; its removal creates no OMLX or Screen Record behavior to port. Do not copy Copilot provider-registration documentation or expand the fixed eight-plugin inventory.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/plugin-platforms.yml",
+            "AGENTS.md",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/eb21e406ae97bcb1798f964de7fd830710bd59c1",
+            "Parent comparisons: 53263e5b135e6c1dbab762b81b9165bf73eccb6e; exact candidate paths include all changed shared and plugin endpoints. Source blobs and parent diffs were read without executing upstream code.",
+            "Inspected complete shared marketplace, README, platform workflow and bundle/check/smoke diffs. .agents/plugins/marketplace.json stays unchanged with eight published plugins."
+          ]
+        },
+        {
+          "commit": "f05934ef17a671f0102231d22dadc1fa994d07a1",
+          "disposition": "excluded",
+          "reason": "Shared changes add an upstream uv guidance plugin to Copilot marketplace and platform documentation. This is unrelated to the two scoped media plugins and not approved ScaryDex inventory. Keep existing optional uv prerequisites and never silently install dependencies or introduce a ninth plugin.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/f05934ef17a671f0102231d22dadc1fa994d07a1",
+            "Parent comparisons: eb21e406ae97bcb1798f964de7fd830710bd59c1; exact candidate paths include all changed shared and plugin endpoints. Source blobs and parent diffs were read without executing upstream code.",
+            "Inspected complete shared marketplace, README, platform workflow and bundle/check/smoke diffs. .agents/plugins/marketplace.json stays unchanged with eight published plugins."
           ]
         }
       ]
