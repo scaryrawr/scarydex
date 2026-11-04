@@ -9595,6 +9595,535 @@
             "Compared every parent: 0b20c5ed7c1ff3eb6d4fecac664a016eb14569f9. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
             "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
           ]
+        },
+        {
+          "commit": "99b609a72323b70204eab407c622f436e858e112",
+          "disposition": "deferred",
+          "reason": "The Tailscale merge's second-parent comparison carries the deferred intermediate statechart rewrite. Other carried watcher, plan, reflection and ketchup-video fixes are already ported or excluded by their own reviews. Reconcile the remaining statechart behavior with the later compiler before advancing the cursor.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "harness/pstack/claude-code/.claude-plugin/plugin.json",
+            "harness/pstack/claude-code/README.md",
+            "harness/pstack/claude-code/docs/guide/10-recipes-and-pitfalls.md",
+            "harness/pstack/claude-code/plugin.json",
+            "harness/pstack/claude-code/skills/create-formal-verification-skill/SKILL.md",
+            "harness/pstack/claude-code/skills/ketchup-video/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-help/SKILL.md",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/check-plan.mjs",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/check-plan.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/orch/store.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "harness/pstack/claude-code/skills/poteto-mode/scripts/worktree-audit.sh",
+            "harness/pstack/claude-code/skills/reflect/SKILL.md",
+            "harness/pstack/claude-code/skills/statechart/SKILL.md",
+            "harness/pstack/claude-code/skills/statechart/scripts/bug-states.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/chart-edges.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/chart-parts.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/chart-to-tla.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/compare-charts.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/lib.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/map-view.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.cfg",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.tla",
+            "harness/pstack/claude-code/skills/statechart/scripts/property-loop.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/read-check.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/regions-chart.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/render.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/rule-book.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/second-replay.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/snapshot.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/spec-text.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/statechart-help.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/statechart.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/band.mmd",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/regions.mmd",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/statechart.test.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/tlc-to-chart-args.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/tlc-to-chart.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/tlc-tools.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/ways-in.mjs",
+            "harness/pstack/claude-code/skills/swarm/SKILL.md",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/README.md",
+            "pstack/docs/guide/10-recipes-and-pitfalls.md",
+            "pstack/plugin.json",
+            "pstack/skills/create-formal-verification-skill/SKILL.md",
+            "pstack/skills/ketchup-video/SKILL.md",
+            "pstack/skills/poteto-help/SKILL.md",
+            "pstack/skills/poteto-mode/scripts/check-plan.mjs",
+            "pstack/skills/poteto-mode/scripts/check-plan.test.ts",
+            "pstack/skills/poteto-mode/scripts/orch/orch.test.ts",
+            "pstack/skills/poteto-mode/scripts/orch/store.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/github.test.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/github.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/policy.ts",
+            "pstack/skills/poteto-mode/scripts/watch-pr/types.ts",
+            "pstack/skills/poteto-mode/scripts/worktree-audit.sh",
+            "pstack/skills/reflect/SKILL.md",
+            "pstack/skills/statechart/SKILL.md",
+            "pstack/skills/statechart/scripts/bug-states.mjs",
+            "pstack/skills/statechart/scripts/chart-edges.mjs",
+            "pstack/skills/statechart/scripts/chart-parts.mjs",
+            "pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "pstack/skills/statechart/scripts/compare-charts.mjs",
+            "pstack/skills/statechart/scripts/lib.mjs",
+            "pstack/skills/statechart/scripts/map-view.mjs",
+            "pstack/skills/statechart/scripts/model/OutputFolder.cfg",
+            "pstack/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "pstack/skills/statechart/scripts/model/OutputFolder.tla",
+            "pstack/skills/statechart/scripts/property-loop.mjs",
+            "pstack/skills/statechart/scripts/read-check.mjs",
+            "pstack/skills/statechart/scripts/regions-chart.mjs",
+            "pstack/skills/statechart/scripts/render.mjs",
+            "pstack/skills/statechart/scripts/rule-book.mjs",
+            "pstack/skills/statechart/scripts/second-replay.mjs",
+            "pstack/skills/statechart/scripts/snapshot.mjs",
+            "pstack/skills/statechart/scripts/spec-text.mjs",
+            "pstack/skills/statechart/scripts/statechart-help.mjs",
+            "pstack/skills/statechart/scripts/statechart.mjs",
+            "pstack/skills/statechart/scripts/test/band.mmd",
+            "pstack/skills/statechart/scripts/test/regions.mmd",
+            "pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "pstack/skills/statechart/scripts/tlc-to-chart-args.mjs",
+            "pstack/skills/statechart/scripts/tlc-to-chart.mjs",
+            "pstack/skills/statechart/scripts/tlc-tools.mjs",
+            "pstack/skills/statechart/scripts/ways-in.mjs",
+            "pstack/skills/swarm/SKILL.md",
+            "third_party/pitchbook/.cursor-plugin/plugin.json",
+            "third_party/pitchbook/CHANGELOG.md",
+            "third_party/pitchbook/LICENSE",
+            "third_party/pitchbook/README.md",
+            "third_party/pitchbook/assets/logo.png",
+            "third_party/pitchbook/mcp.json",
+            "third_party/power-bi/.cursor-plugin/plugin.json",
+            "third_party/power-bi/CHANGELOG.md",
+            "third_party/power-bi/LICENSE",
+            "third_party/power-bi/README.md",
+            "third_party/power-bi/assets/logo.svg",
+            "third_party/power-bi/mcp.json",
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md",
+            "third_party/stable/.cursor-plugin/plugin.json",
+            "third_party/stable/CHANGELOG.md",
+            "third_party/stable/LICENSE",
+            "third_party/stable/README.md",
+            "third_party/stable/assets/logo.png",
+            "third_party/stable/mcp.json",
+            "third_party/tailscale/.cursor-plugin/plugin.json",
+            "third_party/tailscale/CHANGELOG.md",
+            "third_party/tailscale/README.md",
+            "third_party/tailscale/skills/tailscale-setup/SKILL.md",
+            "third_party/vanta/.cursor-plugin/plugin.json",
+            "third_party/vanta/CHANGELOG.md",
+            "third_party/vanta/README.md",
+            "third_party/vanta/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/99b609a72323b70204eab407c622f436e858e112",
+            "Compared every parent: 9580c23696ac8d7abed0c166f2f9918800afb819, a29ce4044137c6bbedd80200c7f04cd16ab91790. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared both parent trees, including the pstack files absent from the first-parent diff. No independent merge resolution changes pstack.",
+            "pstack-audit-03.txt"
+          ]
+        },
+        {
+          "commit": "82ad96d2963590151be7e2138f6357cf3769750d",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            "third_party/tailscale/.cursor-plugin/plugin.json",
+            "third_party/tailscale/CHANGELOG.md",
+            "third_party/tailscale/README.md",
+            "third_party/tailscale/skills/tailscale-setup/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/82ad96d2963590151be7e2138f6357cf3769750d",
+            "Compared every parent: 99b609a72323b70204eab407c622f436e858e112. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "8ad047b84e0aee2bea0330c67147764a495ccb87",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/tailscale/.cursor-plugin/plugin.json",
+            "third_party/tailscale/CHANGELOG.md",
+            "third_party/tailscale/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/8ad047b84e0aee2bea0330c67147764a495ccb87",
+            "Compared every parent: 82ad96d2963590151be7e2138f6357cf3769750d. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "c003aa5fce333425d6ef412d98cc8f7e229e7ace",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/tailscale/.cursor-plugin/plugin.json",
+            "third_party/tailscale/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/c003aa5fce333425d6ef412d98cc8f7e229e7ace",
+            "Compared every parent: 8ad047b84e0aee2bea0330c67147764a495ccb87. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "139cc15566c68af782d066013abfa96e84e7c490",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            "third_party/tailscale/CHANGELOG.md",
+            "third_party/tailscale/README.md",
+            "third_party/tailscale/skills/tailscale-setup/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/139cc15566c68af782d066013abfa96e84e7c490",
+            "Compared every parent: c003aa5fce333425d6ef412d98cc8f7e229e7ace. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "053b6e05dcaf0a6d97c0a193d7086a6cc65ad85f",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            "third_party/tailscale/skills/tailscale-setup/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/053b6e05dcaf0a6d97c0a193d7086a6cc65ad85f",
+            "Compared every parent: 139cc15566c68af782d066013abfa96e84e7c490. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "a6adec62aaf22cada0b5886ec1cce2193c9fd28c",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            "third_party/tailscale/CHANGELOG.md",
+            "third_party/tailscale/skills/tailscale-setup/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/a6adec62aaf22cada0b5886ec1cce2193c9fd28c",
+            "Compared every parent: 053b6e05dcaf0a6d97c0a193d7086a6cc65ad85f. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "9e88dad267e8991d26a6debc0db0d943d437104b",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            "third_party/tailscale/.cursor-plugin/plugin.json",
+            "third_party/tailscale/CHANGELOG.md",
+            "third_party/tailscale/README.md",
+            "third_party/tailscale/skills/tailscale-setup/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/9e88dad267e8991d26a6debc0db0d943d437104b",
+            "Compared every parent: 99b609a72323b70204eab407c622f436e858e112, a6adec62aaf22cada0b5886ec1cce2193c9fd28c. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "700e302099f04ed740a933810f006cc006aa26bb",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/ringcentral/.cursor-plugin/plugin.json",
+            "third_party/ringcentral/CHANGELOG.md",
+            "third_party/ringcentral/LICENSE",
+            "third_party/ringcentral/README.md",
+            "third_party/ringcentral/assets/logo.png",
+            "third_party/ringcentral/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/700e302099f04ed740a933810f006cc006aa26bb",
+            "Compared every parent: 9e88dad267e8991d26a6debc0db0d943d437104b. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "ed23919cd4fa75f6c90f76836821846308aa558d",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/ringcentral/.cursor-plugin/plugin.json",
+            "third_party/ringcentral/CHANGELOG.md",
+            "third_party/ringcentral/LICENSE",
+            "third_party/ringcentral/README.md",
+            "third_party/ringcentral/assets/logo.png",
+            "third_party/ringcentral/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/ed23919cd4fa75f6c90f76836821846308aa558d",
+            "Compared every parent: 9e88dad267e8991d26a6debc0db0d943d437104b, 700e302099f04ed740a933810f006cc006aa26bb. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "ed81f1296f7e17ac39112711bae2686294221a5a",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/ringcentral/.cursor-plugin/plugin.json",
+            "third_party/ringcentral/CHANGELOG.md",
+            "third_party/ringcentral/README.md",
+            "third_party/ringcentral/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/ed81f1296f7e17ac39112711bae2686294221a5a",
+            "Compared every parent: ed23919cd4fa75f6c90f76836821846308aa558d. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "389be34ebd68cf6475810fc43c9f1d9c2fa61aa4",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/ringcentral/.cursor-plugin/plugin.json",
+            "third_party/ringcentral/CHANGELOG.md",
+            "third_party/ringcentral/README.md",
+            "third_party/ringcentral/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/389be34ebd68cf6475810fc43c9f1d9c2fa61aa4",
+            "Compared every parent: ed23919cd4fa75f6c90f76836821846308aa558d, ed81f1296f7e17ac39112711bae2686294221a5a. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "f691bb956ef71150c52f2c392c41170e564bc872",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/ringcentral/.cursor-plugin/plugin.json",
+            "third_party/ringcentral/CHANGELOG.md",
+            "third_party/ringcentral/README.md",
+            "third_party/ringcentral/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/f691bb956ef71150c52f2c392c41170e564bc872",
+            "Compared every parent: 389be34ebd68cf6475810fc43c9f1d9c2fa61aa4. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "10d7b8a647caedfca8143ca8335d9e063c027227",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/ringcentral/.cursor-plugin/plugin.json",
+            "third_party/ringcentral/CHANGELOG.md",
+            "third_party/ringcentral/README.md",
+            "third_party/ringcentral/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/10d7b8a647caedfca8143ca8335d9e063c027227",
+            "Compared every parent: 389be34ebd68cf6475810fc43c9f1d9c2fa61aa4, f691bb956ef71150c52f2c392c41170e564bc872. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "371b6ca2c5e6859fdc0aa8754bcece43b1c44a3a",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/ringcentral-team-chat/.cursor-plugin/plugin.json",
+            "third_party/ringcentral-team-chat/CHANGELOG.md",
+            "third_party/ringcentral-team-chat/LICENSE",
+            "third_party/ringcentral-team-chat/README.md",
+            "third_party/ringcentral-team-chat/assets/logo.png",
+            "third_party/ringcentral-team-chat/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/371b6ca2c5e6859fdc0aa8754bcece43b1c44a3a",
+            "Compared every parent: 10d7b8a647caedfca8143ca8335d9e063c027227. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "c5149ef275fa7be41e3ffe5e79c8fc16efcaeedc",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/ringcentral-team-chat/.cursor-plugin/plugin.json",
+            "third_party/ringcentral-team-chat/CHANGELOG.md",
+            "third_party/ringcentral-team-chat/LICENSE",
+            "third_party/ringcentral-team-chat/README.md",
+            "third_party/ringcentral-team-chat/assets/logo.png",
+            "third_party/ringcentral-team-chat/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/c5149ef275fa7be41e3ffe5e79c8fc16efcaeedc",
+            "Compared every parent: 10d7b8a647caedfca8143ca8335d9e063c027227, 371b6ca2c5e6859fdc0aa8754bcece43b1c44a3a. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "ba9b8a3ce2d515b8be94e77dbb672f8bbb581d8f",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/ringcentral-chat/.cursor-plugin/plugin.json",
+            "third_party/ringcentral-chat/CHANGELOG.md",
+            "third_party/ringcentral-chat/LICENSE",
+            "third_party/ringcentral-chat/README.md",
+            "third_party/ringcentral-chat/assets/logo.png",
+            "third_party/ringcentral-chat/mcp.json",
+            "third_party/ringcentral-phone/.cursor-plugin/plugin.json",
+            "third_party/ringcentral-phone/CHANGELOG.md",
+            "third_party/ringcentral-phone/LICENSE",
+            "third_party/ringcentral-phone/README.md",
+            "third_party/ringcentral-phone/assets/logo.png",
+            "third_party/ringcentral-phone/mcp.json",
+            "third_party/ringcentral-team-chat/.cursor-plugin/plugin.json",
+            "third_party/ringcentral-team-chat/CHANGELOG.md",
+            "third_party/ringcentral-team-chat/LICENSE",
+            "third_party/ringcentral-team-chat/README.md",
+            "third_party/ringcentral-team-chat/assets/logo.png",
+            "third_party/ringcentral-team-chat/mcp.json",
+            "third_party/ringcentral/.cursor-plugin/plugin.json",
+            "third_party/ringcentral/CHANGELOG.md",
+            "third_party/ringcentral/LICENSE",
+            "third_party/ringcentral/README.md",
+            "third_party/ringcentral/assets/logo.png",
+            "third_party/ringcentral/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/ba9b8a3ce2d515b8be94e77dbb672f8bbb581d8f",
+            "Compared every parent: c5149ef275fa7be41e3ffe5e79c8fc16efcaeedc. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "493005e7177a6c4ed03a78ecf32c44b5ffe1badb",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/ringcentral-chat/.cursor-plugin/plugin.json",
+            "third_party/ringcentral-chat/CHANGELOG.md",
+            "third_party/ringcentral-chat/LICENSE",
+            "third_party/ringcentral-chat/README.md",
+            "third_party/ringcentral-chat/assets/logo.png",
+            "third_party/ringcentral-chat/mcp.json",
+            "third_party/ringcentral-phone/.cursor-plugin/plugin.json",
+            "third_party/ringcentral-phone/CHANGELOG.md",
+            "third_party/ringcentral-phone/LICENSE",
+            "third_party/ringcentral-phone/README.md",
+            "third_party/ringcentral-phone/assets/logo.png",
+            "third_party/ringcentral-phone/mcp.json",
+            "third_party/ringcentral-team-chat/.cursor-plugin/plugin.json",
+            "third_party/ringcentral-team-chat/CHANGELOG.md",
+            "third_party/ringcentral-team-chat/LICENSE",
+            "third_party/ringcentral-team-chat/README.md",
+            "third_party/ringcentral-team-chat/assets/logo.png",
+            "third_party/ringcentral-team-chat/mcp.json",
+            "third_party/ringcentral/.cursor-plugin/plugin.json",
+            "third_party/ringcentral/CHANGELOG.md",
+            "third_party/ringcentral/LICENSE",
+            "third_party/ringcentral/README.md",
+            "third_party/ringcentral/assets/logo.png",
+            "third_party/ringcentral/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/493005e7177a6c4ed03a78ecf32c44b5ffe1badb",
+            "Compared every parent: c5149ef275fa7be41e3ffe5e79c8fc16efcaeedc, ba9b8a3ce2d515b8be94e77dbb672f8bbb581d8f. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
+        },
+        {
+          "commit": "55ba188f1399257ec8a030efa26ecb39fa8ab27f",
+          "disposition": "excluded",
+          "reason": "Tailscale or RingCentral MCP integration packaging, setup instructions and source listings change outside pstack. Renames and reverts preserve no shared pstack code or dependency.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/ringcentral-chat/.cursor-plugin/plugin.json",
+            "third_party/ringcentral-chat/CHANGELOG.md",
+            "third_party/ringcentral-chat/LICENSE",
+            "third_party/ringcentral-chat/README.md",
+            "third_party/ringcentral-chat/assets/logo.png",
+            "third_party/ringcentral-chat/mcp.json",
+            "third_party/ringcentral-phone/.cursor-plugin/plugin.json",
+            "third_party/ringcentral-phone/CHANGELOG.md",
+            "third_party/ringcentral-phone/LICENSE",
+            "third_party/ringcentral-phone/README.md",
+            "third_party/ringcentral-phone/assets/logo.png",
+            "third_party/ringcentral-phone/mcp.json",
+            "third_party/ringcentral-team-chat/.cursor-plugin/plugin.json",
+            "third_party/ringcentral-team-chat/CHANGELOG.md",
+            "third_party/ringcentral-team-chat/LICENSE",
+            "third_party/ringcentral-team-chat/README.md",
+            "third_party/ringcentral-team-chat/assets/logo.png",
+            "third_party/ringcentral-team-chat/mcp.json",
+            "third_party/ringcentral/.cursor-plugin/plugin.json",
+            "third_party/ringcentral/CHANGELOG.md",
+            "third_party/ringcentral/LICENSE",
+            "third_party/ringcentral/README.md",
+            "third_party/ringcentral/assets/logo.png",
+            "third_party/ringcentral/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/55ba188f1399257ec8a030efa26ecb39fa8ab27f",
+            "Compared every parent: 493005e7177a6c4ed03a78ecf32c44b5ffe1badb. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared every parent and exact rename source/destination paths. Marketplace and root README changes only describe these separate integrations; no new ScaryDex plugin or MCP server is introduced."
+          ]
         }
       ]
     }
