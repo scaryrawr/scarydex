@@ -45,6 +45,10 @@ Present the synthesizer's full Accepted / Rejected / Backlog output and wait for
 
 File each Backlog item to your team's devex or backlog tracker without waiting. Only the Accepted list waits for approval.
 
+Never edit a skill in an installed plugin cache. Before approval, show the destinations for the skill and its dependencies under the project's `.agents/` or an explicitly approved user directory, with skills in `skills/`. After approval, copy the skill folder and its transitive local dependencies, including shared references, scripts and sibling skills, to those destinations.
+
+Preserve the relative layout where possible; otherwise rebase affected references in all copied files, including dependencies. For example, `.agents/skills/reflect/` needs the shared runtime at `.agents/references/codex-runtime.md`, and `.agents/skills/ketchup-video/` needs its sibling `.agents/skills/ketchup/` and that skill's dependencies. Verify every local link and script path resolves within the copied tree before editing. Edit only the approved skill, apart from reference rebasing needed for the copy. This workflow does not authorize opening a PR or pushing.
+
 Follow each approved row's Routing exactly:
 
 - Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): parent does directly.

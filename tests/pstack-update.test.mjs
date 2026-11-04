@@ -108,6 +108,19 @@ test("plan fences ignore fake headings and checklists without masking subsequent
   assert.ok(validatePlanText(nested, "basic").findings.length > 0);
 });
 
+test("plan punctuation checks honor matching inline code delimiters", () => {
+  for (const count of [2, 3, 4]) {
+    const delimiter = "`".repeat(count);
+    const result = validatePlanText(`# Plan\n- [ ] Use ${delimiter}echo \`x\`: “quoted” — example${delimiter}.\n`, "basic");
+    assert.deepEqual(result.findings, []);
+  }
+
+  const outside = validatePlanText("# Plan\n- [ ] Use ``echo `x`: y``. Bad: prose.\n", "basic");
+  assert.ok(outside.findings.some(f => f.rule === "sentence-colon"));
+  const unmatched = validatePlanText("# Plan\n- [ ] Use ``unclosed: bad` here.\n", "basic");
+  assert.ok(unmatched.findings.some(f => f.rule === "sentence-colon"));
+});
+
 test("pstack help routes every shipped command to its installed skill", async () => {
   const directory = new URL("../plugins/pstack/skills/", import.meta.url);
   const help = await readFile(new URL("poteto-help/SKILL.md", directory), "utf8");
@@ -138,6 +151,15 @@ assert.throws(() => parseAgentId("not-an-id"), /Invalid agent id: not-an-id/);
 `);
   const result = spawnSync("node", [file], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("reflect local overrides preserve dependencies without modifying the installed cache", async () => {
+  const reflect = await readFile(new URL("../plugins/pstack/skills/reflect/SKILL.md", import.meta.url), "utf8");
+  assert.match(reflect, /Never edit a skill in an installed plugin cache/);
+  assert.match(reflect, /Before approval, show.*dependencies/);
+  assert.match(reflect, /transitive local dependencies.*shared references.*sibling skills/);
+  assert.match(reflect, /rebase.*all copied files/);
+  assert.match(reflect, /Verify every local link and script path/);
 });
 
 test("new skills remain portable and ketchup cannot manufacture visual evidence", async () => {

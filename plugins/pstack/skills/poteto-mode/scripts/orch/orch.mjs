@@ -3924,12 +3924,24 @@ function parseFrontier(raw) {
     if (!isRecord(row) || typeof row.pr !== "number" || !Number.isSafeInteger(row.pr) || row.pr < 1 || typeof row.branches !== "string" || row.branches.length === 0 || typeof row.sha !== "string" || state === null) {
       throw new UserError("frontier.json has an invalid PR row");
     }
-    prs.push({
+    const parsed = {
       pr: row.pr,
       branches: row.branches,
       sha: row.sha,
       state
-    });
+    };
+    if (row.repository !== void 0 || row.headRepository !== void 0) {
+      if (!repositoryIdentity(row.repository) || !repositoryIdentity(row.headRepository)) {
+        throw new UserError("frontier.json has an invalid PR repository");
+      }
+      prs.push({
+        ...parsed,
+        repository: row.repository.toLowerCase(),
+        headRepository: row.headRepository.toLowerCase()
+      });
+    } else {
+      prs.push(parsed);
+    }
   }
   return {
     generation: value.generation,
@@ -4173,7 +4185,8 @@ function listPullRequests({
   filter,
   branch,
   forge,
-  repo
+  repo,
+  repository
 }) {
   const query = FORGE_PULL_REQUEST_QUERIES[forge];
   const command = `${forge} pr list ${filter} ${branch}`;
@@ -4189,9 +4202,11 @@ function listPullRequests({
       "--limit",
       "1000",
       "--json",
-      ["number", query.stateField, query.headField, query.baseField].join(
+      ["number", query.stateField, query.headField, query.baseField, "headRepository"].join(
         ","
-      )
+      ),
+      "--repo",
+      repository
     ],
     repo
   });
@@ -4212,41 +4227,120 @@ function listPullRequests({
     const state = typeof status === "string" ? query.states.get(status) ?? null : null;
     const head = isRecord(row) ? row[query.headField] : void 0;
     const base = isRecord(row) ? row[query.baseField] : void 0;
-    if (!isRecord(row) || typeof row.number !== "number" || !Number.isSafeInteger(row.number) || row.number < 1 || state === null || typeof head !== "string" || head.length === 0 || typeof base !== "string" || base.length === 0) {
+    const headRepository = isRecord(row) && isRecord(row.headRepository) ? row.headRepository.nameWithOwner : void 0;
+    if (!isRecord(row) || typeof row.number !== "number" || !Number.isSafeInteger(row.number) || row.number < 1 || state === null || typeof head !== "string" || head.length === 0 || typeof base !== "string" || base.length === 0 || !repositoryName(headRepository)) {
       throw new UserError(`${command} output has an invalid PR row`);
     }
     if (filter === "--head" && head !== branch || filter === "--base" && base !== branch) {
       throw new UserError(`${command} returned a PR outside the requested branch`);
     }
-    return { pr: row.number, state, branch: head, base };
+    const hostname = repository.slice(0, repository.indexOf("/"));
+    return { pr: row.number, state, branch: head, base, repository: `${hostname}/${headRepository.toLowerCase()}`, baseRepository: repository };
   });
+}
+function repositoryName(value) {
+  return typeof value === "string" && /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(value);
+}
+function repositoryIdentity(value) {
+  return typeof value === "string" && /^(?:[A-Za-z0-9.-]+(?::[0-9]+)?\/)?[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(value);
+}
+function forgeRepository({ forge, repo, url }) {
+  const repositoryUrl = runTool({
+    command: forge,
+    args: ["repo", "view", ...url ? [url] : [], "--json", "url", "--jq", ".url"],
+    repo
+  }).trim();
+  if (!URL.canParse(repositoryUrl)) {
+    throw new UserError("cannot identify the GitHub repository");
+  }
+  const canonical = new URL(repositoryUrl);
+  const repository = `${canonical.host}${canonical.pathname}`;
+  if (canonical.protocol !== "https:" || canonical.username || canonical.password || canonical.search || canonical.hash || !repositoryName(canonical.pathname.slice(1)) || !repositoryIdentity(repository)) {
+    throw new UserError("cannot identify the GitHub repository");
+  }
+  return repository.toLowerCase();
+}
+function gitConfig(repo, key) {
+  const result = spawnSync("git", ["config", "--get", key], {
+    cwd: repo,
+    encoding: "utf8"
+  });
+  if (result.status === 1) return void 0;
+  if (result.status !== 0 || !result.stdout.trim()) {
+    throw new UserError(`cannot read ${key}: ${result.error?.message ?? result.stderr.trim()}`);
+  }
+  return result.stdout.trim();
+}
+function canonicalRepositoryUrl(value, repo) {
+  const scp = /^([^/:\s]+):([^/].*)$/.exec(value);
+  const normalized = scp ? `ssh://${scp[1]}/${scp[2]}` : value;
+  if (!normalized.startsWith("ssh://")) return value;
+  if (!URL.canParse(normalized)) {
+    throw new UserError("push remote has an invalid SSH URL");
+  }
+  const remote = new URL(normalized);
+  const destination = remote.username ? `${decodeURIComponent(remote.username)}@${remote.hostname}` : remote.hostname;
+  const args = ["-G"];
+  if (remote.port) args.push("-p", remote.port);
+  args.push("--", destination);
+  const config = runTool({ command: "ssh", args, repo });
+  const hostname = /^hostname[ \t]+(\S+)[ \t]*\r?$/m.exec(config)?.[1];
+  if (!hostname || !URL.canParse(`https://${hostname}`)) {
+    throw new UserError("ssh -G did not return a valid canonical hostname");
+  }
+  const canonical = new URL(`https://${hostname}`);
+  if (canonical.host !== hostname.toLowerCase()) {
+    throw new UserError("ssh -G did not return a valid canonical hostname");
+  }
+  canonical.pathname = remote.pathname;
+  return canonical.href;
+}
+function branchRepository({ branch, forge, repo }) {
+  const remote = gitConfig(repo, `branch.${branch}.pushRemote`) ?? gitConfig(repo, "remote.pushDefault") ?? gitConfig(repo, `branch.${branch}.remote`) ?? "origin";
+  const urls = runGit({ args: ["remote", "get-url", "--push", "--all", remote], repo }).split("\n");
+  if (urls.length !== 1 || !urls[0]) {
+    throw new UserError(`branch ${branch} needs exactly one push URL for remote ${remote}`);
+  }
+  return forgeRepository({ forge, repo, url: canonicalRepositoryUrl(urls[0], repo) });
 }
 function branchPullRequest({
   branch,
   forge,
-  repo
+  repo,
+  baseRepository,
+  headRepository
 }) {
-  const rows = listPullRequests({ filter: "--head", branch, forge, repo });
-  const row = rows[0];
+  const intendedRepository = branchRepository({ branch, forge, repo });
+  const expectedRepository = headRepository ?? intendedRepository;
+  if (intendedRepository !== expectedRepository) {
+    throw new UserError(`local branch ${branch} does not push to ${expectedRepository}`);
+  }
+  const repositories = /* @__PURE__ */ new Set([baseRepository, expectedRepository]);
+  const rows = [...repositories].flatMap(
+    (repository) => listPullRequests({ filter: "--head", branch, forge, repo, repository })
+  ).filter((row2) => row2.repository === expectedRepository);
+  const active = rows.filter((row2) => row2.state === "OPEN");
+  const candidates = active.length > 0 ? active : rows;
+  const row = candidates[0];
   if (row === void 0) {
     throw new UserError(
       `branch ${branch} has no pull request; open one with ${forge} pr create, or resolve the frontier from a branch whose chain is fully submitted`
     );
   }
-  if (rows.length > 1) {
+  if (candidates.length > 1) {
     throw new UserError(
-      `branch ${branch} has multiple pull requests (${rows.map((item) => `#${item.pr}`).join(", ")}); close the stale ones first`
+      `branch ${branch} has multiple pull requests (${candidates.map((item) => `#${item.pr}`).join(", ")}); close the stale ones first`
     );
   }
   return row;
 }
 function openChildren({
-  branch,
+  parent,
   forge,
   repo
 }) {
-  return listPullRequests({ filter: "--base", branch, forge, repo }).filter(
-    (row) => row.state === "OPEN"
+  return listPullRequests({ filter: "--base", branch: parent.branch, forge, repo, repository: parent.repository }).filter(
+    (row) => row.state === "OPEN" && row.baseRepository === parent.repository && row.repository === branchRepository({ branch: row.branch, forge, repo })
   );
 }
 function runGit({
@@ -4295,41 +4389,44 @@ function resolveFrontier(repo, forge) {
   if (current === trunk) {
     return [];
   }
-  const seen = /* @__PURE__ */ new Set([current]);
-  let bottom = branchPullRequest({ branch: current, forge, repo });
+  const baseRepository = forgeRepository({ forge, repo });
+  let bottom = branchPullRequest({ branch: current, forge, repo, baseRepository });
+  const seen = /* @__PURE__ */ new Set([`${bottom.repository}:${bottom.branch}`]);
+  let tip = bottom;
   const chain = [bottom];
-  while (bottom.base !== trunk) {
-    if (seen.has(bottom.base)) {
+  while (bottom.base !== trunk || bottom.baseRepository !== baseRepository) {
+    const identity = `${bottom.baseRepository}:${bottom.base}`;
+    if (seen.has(identity)) {
       throw new UserError(
         `pull request base chain loops at branch ${bottom.base}`
       );
     }
-    seen.add(bottom.base);
-    bottom = branchPullRequest({ branch: bottom.base, forge, repo });
+    seen.add(identity);
+    bottom = branchPullRequest({ branch: bottom.base, forge, repo, baseRepository, headRepository: bottom.baseRepository });
     chain.unshift(bottom);
   }
-  let tip = current;
   for (; ; ) {
-    const children = openChildren({ branch: tip, forge, repo });
+    const children = openChildren({ parent: tip, forge, repo });
     const child = children[0];
     if (child === void 0) {
       break;
     }
     if (children.length > 1) {
       throw new UserError(
-        `stack is not linear: branches ${children.map((row) => row.branch).join(", ")} all target ${tip}`
+        `stack is not linear: branches ${children.map((row) => row.branch).join(", ")} all target ${tip.repository}:${tip.branch}`
       );
     }
-    if (seen.has(child.branch)) {
+    const identity = `${child.repository}:${child.branch}`;
+    if (seen.has(identity)) {
       throw new UserError(
         `pull request base chain loops at branch ${child.branch}`
       );
     }
-    seen.add(child.branch);
+    seen.add(identity);
     chain.push(child);
-    tip = child.branch;
+    tip = child;
   }
-  if (new Set(chain.map((row) => row.pr)).size !== chain.length) {
+  if (new Set(chain.map((row) => `${row.baseRepository}#${row.pr}`)).size !== chain.length) {
     throw new UserError(
       "pull request base chain contains duplicate pull requests"
     );
@@ -4338,7 +4435,9 @@ function resolveFrontier(repo, forge) {
     pr: row.pr,
     branches: row.branch,
     sha: branchSha({ branch: row.branch, repo }),
-    state: row.state
+    state: row.state,
+    repository: row.baseRepository,
+    headRepository: row.repository
   }));
 }
 function validateFrontierPin({
@@ -4634,9 +4733,6 @@ function openStore(directory, options = {}) {
         const repo = resolve(requiredLine(params.repo, "repo directory"));
         const forge = parseForge(params.forge ?? "gh");
         const pin = params.prs === void 0 ? void 0 : params.prs.map((pr) => positiveInteger(pr, "PR"));
-        if (pin !== void 0 && new Set(pin).size !== pin.length) {
-          throw new UserError("--prs must not contain duplicates");
-        }
         const old = await readFrontier(store);
         const prs = resolveFrontier(repo, forge);
         if (pin !== void 0) {

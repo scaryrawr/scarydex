@@ -6,6 +6,8 @@ Start with `poteto-mode`, or invoke focused skills such as `how`, `architect`,
 Use `ketchup` for a read-only catch-up, `in-your-own-words` to restate the goal,
 and `sharpen` to rewrite a prompt before sending it. Sharpen returns only the
 rewritten prompt; it does not execute the task.
+Use `ketchup-video` for an explicitly requested silent slide-video catch-up.
+It uses existing evidence and an available local renderer, with a text fallback.
 
 Use [create-formal-verification-skill](skills/create-formal-verification-skill/SKILL.md)
 to check one costly, hard-to-test property and generate a project-local skill.
@@ -73,6 +75,18 @@ Resolve these paths from the installed plugin root:
 - `skills/poteto-mode/scripts/orch/orch.mjs`: optional durable program store.
   `frontier set --repo <checkout> [--prs <n,...>]` discovers a linear GitHub PR
   base chain, pins local branch SHAs, and checks an optional PR order pin.
+  PR heads must match each local branch's intended push repository before an
+  active PR can supersede its closed or merged history. Repository identity
+  follows `branch.<name>.pushRemote`, `remote.pushDefault`, the branch's fetch
+  remote, then `origin`; ambiguous push URLs or unavailable identities fail.
+  SSH URLs use `ssh -G` to resolve configured host aliases before API lookup;
+  this reads SSH configuration without opening a connection.
+  Child queries target the parent's head repository, not a same-named branch
+  upstream. Repository selectors and new frontier rows retain the hostname
+  (`host/owner/repo`) in both the PR's `repository` and its `headRepository`;
+  existing frontier files without those fields or with hostless identities
+  remain readable. An optional `--prs` pin checks the complete ordered number
+  sequence, including repeated numbers for PRs in different repositories.
   Origin's CLI adapter is not included.
 - `skills/poteto-mode/scripts/watch-pr/watch-pr.mjs`: optional GitHub PR watcher.
   Review threads are paginated so unresolved findings beyond the first 100 are
