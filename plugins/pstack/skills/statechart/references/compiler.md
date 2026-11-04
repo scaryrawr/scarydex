@@ -26,6 +26,8 @@ Optional `step(action, from, to)` labels arrows. Equal visible outcomes should s
 
 Optional `group(vars)`, `colors` and `title` name phases, theme colors and the chart title. Colors are `blue`, `orange`, `purple`, `yellow`, `teal`, `tan` or `pink`. Callbacks must depend only on their arguments. The compiler shares their answers between chart and report.
 
+The Mermaid file includes its own phase-color, failure, bug-path and repeating-loop styles; no host theme is required.
+
 ## Read and deliver the output
 
 `report.md` lists rule verdicts, shortest invariant paths, temporal counterexamples and unverified rules. `tlc.out` preserves plain TLC output; a missing chart path can also produce `tlc-RULE.out`. A state marked `breaks` always breaks a rule; `mayBreak` means only some underlying model states do.

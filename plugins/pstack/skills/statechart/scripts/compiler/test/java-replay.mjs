@@ -3,7 +3,14 @@ import path from "node:path";
 
 const args = process.argv.slice(2);
 const config = args.includes("-config") ? args[args.indexOf("-config") + 1] : undefined;
-const name = config ? path.basename(config, ".cfg") : "sany";
+const module = args.at(-1);
+const wrapper = config && fs.existsSync(`${module}.tla`)
+  ? fs.readFileSync(`${module}.tla`, "utf8")
+  : "";
+if (wrapper.includes(`EXTENDS ${module}\n`))
+  throw new Error(`Generated wrapper ${module} extends itself.`);
+const drawing = wrapper.includes("\nChartMark ==");
+const name = drawing ? "ChartRun" : config ? path.basename(config, ".cfg") : "sany";
 const dump = args.includes("-dump") ? `${args[args.indexOf("-dump") + 2]}.dot` : undefined;
 const replay = process.env.STATECHART_REPLAY;
 
@@ -13,9 +20,7 @@ if (dump && fs.existsSync(path.join(replay, "graph.dot"))) {
   fs.copyFileSync(path.join(replay, "graph.dot"), dump);
 }
 
-const tag = fs.existsSync("ChartRun.tla")
-  ? fs.readFileSync("ChartRun.tla", "utf8").match(/"chart-[0-9a-f]{32}"/)?.[0]
-  : undefined;
+const tag = drawing ? wrapper.match(/"chart-[0-9a-f]{32}"/)?.[0] : undefined;
 const saved = fs.readFileSync(path.join(replay, `${name}.out`), "utf8");
 process.stdout.write(tag ? saved.replace(/(<<\s*)"chart"(?=,)/g, `$1${tag}`) : saved);
 const exit = path.join(replay, `${name}.exit`);

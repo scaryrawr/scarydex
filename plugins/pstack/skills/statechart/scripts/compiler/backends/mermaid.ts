@@ -94,8 +94,17 @@ const esc = (s: string, quoted = false) => {
 const or = (names: Iterable<string>) => [...names].sort(byText).join(" or ");
 
 const MARK_STYLES = {
+  blue: "fill:#d6eaf8,stroke:#6b757c,color:#1b2631",
+  orange: "fill:#fdebd0,stroke:#7f7668,color:#1b2631",
+  purple: "fill:#e8daef,stroke:#79717d,color:#1b2631",
+  yellow: "fill:#fcf3cf,stroke:#7e7a68,color:#1b2631",
+  teal: "fill:#d1f2eb,stroke:#697976,color:#1b2631",
+  tan: "fill:#ede0d4,stroke:#77706a,color:#1b2631",
+  pink: "fill:#f6e0ef,stroke:#7b7078,color:#1b2631",
   breaks: "fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834",
   mayBreak: "fill:#fff3e6,stroke:#e8730c,stroke-width:2.5px,color:#b85a06",
+  bugPath: "stroke:#1f3a93,stroke-width:4px",
+  repeats: "stroke-dasharray:6 3",
 };
 
 export function mermaidLines(chart: Chart) {

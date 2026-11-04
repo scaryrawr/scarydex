@@ -461,8 +461,17 @@ var esc = (s, quoted = false) => {
 };
 var or = (names2) => [...names2].sort(byText).join(" or ");
 var MARK_STYLES = {
+  blue: "fill:#d6eaf8,stroke:#6b757c,color:#1b2631",
+  orange: "fill:#fdebd0,stroke:#7f7668,color:#1b2631",
+  purple: "fill:#e8daef,stroke:#79717d,color:#1b2631",
+  yellow: "fill:#fcf3cf,stroke:#7e7a68,color:#1b2631",
+  teal: "fill:#d1f2eb,stroke:#697976,color:#1b2631",
+  tan: "fill:#ede0d4,stroke:#77706a,color:#1b2631",
+  pink: "fill:#f6e0ef,stroke:#7b7078,color:#1b2631",
   breaks: "fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834",
-  mayBreak: "fill:#fff3e6,stroke:#e8730c,stroke-width:2.5px,color:#b85a06"
+  mayBreak: "fill:#fff3e6,stroke:#e8730c,stroke-width:2.5px,color:#b85a06",
+  bugPath: "stroke:#1f3a93,stroke-width:4px",
+  repeats: "stroke-dasharray:6 3"
 };
 function mermaidLines(chart) {
   let next = 0;
@@ -1607,19 +1616,19 @@ function configText(sections, extra) {
   lines.push(...extra);
   return lines.join("\n");
 }
-var boundRun = (module) => [
-  `---- MODULE ChartBound ----`,
+var boundRun = (module, wrapper) => [
+  `---- MODULE ${wrapper} ----`,
   `EXTENDS ${module}`,
   `ChartTLC == INSTANCE TLC`,
   `ChartNaturals == INSTANCE Naturals`,
   `ChartBound == ChartNaturals!<(ChartTLC!TLCGet("distinct"), ${RERUN_STATES})`,
   `====`
 ].join("\n");
-function chartRun({ module, variables, invariants }, tag) {
+function chartRun({ module, variables, invariants }, tag, wrapper) {
   const every = [];
   for (const name of invariants) every.push(`(IF ~${name} THEN {"${name}"} ELSE {}) \\cup `);
   return [
-    `---- MODULE ChartRun ----`,
+    `---- MODULE ${wrapper} ----`,
     `EXTENDS ${module}`,
     `ChartTLC == INSTANCE TLC`,
     `ChartNaturals == INSTANCE Naturals`,
@@ -2694,6 +2703,14 @@ ${tail(xml)}`);
     const sany = readSany(fs.readFileSync(xml.stdout, "utf8"));
     const module = path.basename(specFile2, ".tla");
     const spec = { ...readSpec({ module, sany, checks }), folder };
+    const wrapperName = (base) => {
+      let name = base;
+      for (let suffix = 1; name === module || fs.existsSync(path.join(folder, `${name}.tla`)); suffix++)
+        name = `${base}_${suffix}`;
+      return name;
+    };
+    const boundedModule = wrapperName("ChartBound");
+    const drawingModule = wrapperName("ChartRun");
     const rules = stateRules(spec);
     const all = [...rules];
     for (const name of spec.properties) all.push({ kind: "property", name });
@@ -2724,7 +2741,7 @@ ${tail(xml)}`);
           ...PINNED_FLAGS,
           ...names(group, "deadlock").length ? [] : ["-deadlock"],
           ...config(name, spec.written, extra),
-          bounded ? "ChartBound" : spec.module
+          bounded ? boundedModule : spec.module
         ]);
         first ??= r;
         const { broke, distinct, initial } = readVerdict(messagesOf(r.output));
@@ -2763,7 +2780,7 @@ ${tail(r)}`
       for (const rule of all) if (!verdicts.has(ruleKey(rule))) decide(rule, "not checked");
       return { first, stop, states };
     };
-    fs.writeFileSync(path.join(dir, "ChartBound.tla"), boundRun(spec.module));
+    fs.writeFileSync(path.join(dir, `${boundedModule}.tla`), boundRun(spec.module, boundedModule));
     const judged = await judge();
     const exit = exitClass(judged.first.status);
     const failed = (r) => new Error(`TLC could not check ${specFile2} (exit ${r.status}):
@@ -2795,16 +2812,16 @@ ${stopOf(r).message}`);
     };
     if (judged.states.distinct <= CHART_STATES) {
       const tag = `chart-${randomBytes(16).toString("hex")}`;
-      fs.writeFileSync(path.join(dir, "ChartRun.tla"), chartRun(spec, tag));
-      const drawn2 = await runJava("ChartRun", "tlc2.TLC", [
+      fs.writeFileSync(path.join(dir, `${drawingModule}.tla`), chartRun(spec, tag, drawingModule));
+      const drawn2 = await runJava(drawingModule, "tlc2.TLC", [
         "-tool",
         ...PINNED_FLAGS,
         "-deadlock",
-        ...config("ChartRun", spec.written, ["INVARIANT ChartMark", "CONSTRAINT ChartBudget"]),
+        ...config(drawingModule, spec.written, ["INVARIANT ChartMark", "CONSTRAINT ChartBudget"]),
         "-dump",
         "dot,actionlabels",
         path.join(dir, "graph"),
-        "ChartRun"
+        drawingModule
       ]);
       const file = path.join(dir, "graph.dot");
       if (!fs.existsSync(file)) throw failed(drawn2);

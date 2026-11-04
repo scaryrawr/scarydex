@@ -135,3 +135,5 @@ these later integration notes do not change immutable import provenance.
 Local compiler corrections project variables lazily, bound accessed interval
 expansion, enumerate region combinations lazily, preserve digit-leading TLC
 identifiers, and distinguish generated labels from custom-view validation.
+Generated wrapper modules avoid local module names. Mermaid outputs define their
+phase, failure, path and loop classes, and the CLI flushes captured reports before exit.

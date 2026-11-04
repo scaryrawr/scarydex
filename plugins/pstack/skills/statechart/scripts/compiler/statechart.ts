@@ -53,6 +53,11 @@ try {
 const codeOf = (error: unknown) =>
   error instanceof Error && "code" in error ? error.code : undefined;
 
+const writeStdout = (text: string | Uint8Array) =>
+  new Promise<void>((resolve, reject) => {
+    process.stdout.write(text, error => error ? reject(error) : resolve());
+  });
+
 try {
   if (process.platform !== "darwin" && process.platform !== "linux")
     throw new Error("The statechart compiler requires macOS or Linux process-group cleanup. Existing statechart.mjs conversion commands remain available on supported platforms.");
@@ -154,8 +159,8 @@ try {
           { cause: error },
         );
       }
-      process.stdout.write(fs.readFileSync(path.join(dest, "report.md")));
-      console.log(`\nWrote ${out}`);
+      await writeStdout(fs.readFileSync(path.join(dest, "report.md")));
+      await writeStdout(`\nWrote ${out}\n`);
       exitCode = verdict;
     } else exitCode = 2;
   } finally {

@@ -7,9 +7,9 @@ export function configText(sections: ConfigSection[], extra: string[]) {
   return lines.join("\n");
 }
 
-export const boundRun = (module: string) =>
+export const boundRun = (module: string, wrapper: string) =>
   [
-    `---- MODULE ChartBound ----`,
+    `---- MODULE ${wrapper} ----`,
     `EXTENDS ${module}`,
     `ChartTLC == INSTANCE TLC`,
     `ChartNaturals == INSTANCE Naturals`,
@@ -17,11 +17,11 @@ export const boundRun = (module: string) =>
     `====`,
   ].join("\n");
 
-export function chartRun({ module, variables, invariants }: Spec, tag: string) {
+export function chartRun({ module, variables, invariants }: Spec, tag: string, wrapper: string) {
   const every: string[] = [];
   for (const name of invariants) every.push(`(IF ~${name} THEN {"${name}"} ELSE {}) \\cup `);
   return [
-    `---- MODULE ChartRun ----`,
+    `---- MODULE ${wrapper} ----`,
     `EXTENDS ${module}`,
     `ChartTLC == INSTANCE TLC`,
     `ChartNaturals == INSTANCE Naturals`,

@@ -5,8 +5,10 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { inspect } from "node:util";
+import { mermaidLines } from "../backends/mermaid.ts";
 import { checkView } from "../frontends/view.ts";
 import {
+  type Chart,
   type CheckResult,
   EC,
   LEVEL,
@@ -312,6 +314,7 @@ for (const scenario of ["starts", "moves"]) {
         { from: "off", to: "other", action: "Set" },
       );
     }
+
     const view = checkView({
       state: vars => Object.fromEntries(
         Object.entries(vars).map(([name, value]) => [name, String(value)]),
@@ -324,3 +327,34 @@ for (const scenario of ["starts", "moves"]) {
     `], { encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "pipe"] });
   });
 }
+
+test("portable Mermaid charts define every emitted phase, failure, path and loop class", () => {
+  const colors = {
+    Blue: "blue", Orange: "orange", Purple: "purple", Yellow: "yellow",
+    Teal: "teal", Tan: "tan", Pink: "pink",
+  };
+  const chart: Chart = {
+    title: undefined, colors, paths: ["Small"], loops: ["Settles"],
+    notes: [], inside: 0, quiet: 0,
+    regions: [{
+      name: "", steps: [], arrows: [],
+      states: Object.keys(colors).map((group, i) => ({
+        path: [group], group, start: i === 0, members: [i],
+        works: false, lead: true, repeats: true,
+        breaks: i < 2 ? [{ rule: small, always: i === 0 }] : [],
+      })),
+    }],
+  };
+  const lines = mermaidLines(chart);
+  const classes = new Set(lines.flatMap(line => /^  class \S+ (\S+)$/.exec(line)?.slice(1) ?? []));
+  assert.deepEqual([...classes].sort(), [...Object.values(colors), "breaks", "mayBreak", "bugPath", "repeats"].sort());
+  for (const cls of classes) {
+    const definitions = lines.filter(line => line.startsWith(`  classDef ${cls} `));
+    assert.equal(definitions.length, 1, `missing or duplicate class definition for ${cls}`);
+    assert.ok(lines.some(line => new RegExp(`^  class lg\\d+ ${cls}$`).test(line)), cls);
+  }
+  for (const color of Object.values(colors))
+    assert.ok(lines.some(line => line.startsWith(`  classDef ${color} fill:#`)), color);
+  assert.ok(lines.some(line => /^  classDef bugPath .*stroke-width:4px/.test(line)));
+  assert.ok(lines.some(line => /^  classDef repeats .*stroke-dasharray:/.test(line)));
+});

@@ -39,7 +39,7 @@ test("the bundled compiler exposes help without prerequisites", () => {
 });
 
 for (const example of cases) {
-  test(`the bundled compiler replays ${example.name} to its upstream report and chart`, { skip: !posix }, () => {
+  test(`the bundled compiler replays ${example.name} with its upstream content and portable path styling`, { skip: !posix }, () => {
     const root = fixture();
     try {
       const { directory, java, jar } = prepare(root, example);
@@ -54,7 +54,13 @@ for (const example of cases) {
       assert.equal(result.status, example.files["verdict-1.exit"] ? 1 : 0, result.stderr);
       assert.equal(result.stderr, "");
       assert.equal(fs.readFileSync(path.join(out, "report.md"), "utf8"), example.files["report.md"]);
-      assert.equal(fs.readFileSync(path.join(out, "chart.mmd"), "utf8"), example.files["chart.mmd"]);
+      const expectedChart = example.files["chart.mmd"].replace(
+        /(?=^  class s\d+ )/m,
+        example.files["chart.mmd"].includes(" bugPath\n")
+          ? "  classDef bugPath stroke:#1f3a93,stroke-width:4px\n"
+          : "",
+      );
+      assert.equal(fs.readFileSync(path.join(out, "chart.mmd"), "utf8"), expectedChart);
       assert.doesNotMatch(fs.readFileSync(path.join(out, "tlc.out"), "utf8"), /@!@!@/);
       const before = fs.readFileSync(path.join(out, "report.md"));
       const rerun = spawnSync("node", args, {
@@ -69,6 +75,64 @@ for (const example of cases) {
     }
   });
 }
+
+for (const name of ["ChartBound", "ChartRun"]) {
+  test(`the bundled compiler avoids ${name} input and dependency wrapper collisions`, { skip: !posix }, () => {
+    const root = fixture();
+    try {
+      const source = cases[0];
+      const example = {
+        name,
+        files: Object.fromEntries(Object.entries(source.files).map(([file, text]) => [
+          file.replaceAll(source.name, name), text.replaceAll(source.name, name),
+        ])),
+      };
+      const { directory, java, jar } = prepare(root, example);
+      for (const dependency of ["ChartBound", "ChartBound_1", "ChartRun", "ChartRun_1"]) {
+        if (dependency !== name)
+          fs.writeFileSync(path.join(directory, `${dependency}.tla`), `---- MODULE ${dependency} ----\n====\n`);
+      }
+      const out = path.join(root, "out");
+      const result = spawnSync("node", [
+        cli, path.join(directory, `${name}.tla`),
+        "--view", path.join(directory, "view.mjs"), "--out", out,
+      ], {
+        encoding: "utf8", timeout: 15000,
+        env: { ...process.env, JAVA: java, TLA2TOOLS: jar, STATECHART_REPLAY: directory },
+      });
+      assert.equal(result.error, undefined);
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(result.stderr, "");
+      assert.equal(fs.readFileSync(path.join(out, "report.md"), "utf8"), example.files["report.md"]);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+}
+
+test("the bundled compiler flushes a report larger than a pipe before exiting", { skip: !posix }, () => {
+  const root = fixture();
+  try {
+    const { directory, java, jar } = prepare(root, cases[0]);
+    const view = path.join(directory, "long-view.mjs");
+    fs.writeFileSync(view, 'export const state = vars => vars.playback + "x".repeat(512 * 1024);\n');
+    const out = path.join(root, "out");
+    const result = spawnSync("node", [
+      cli, path.join(directory, `${cases[0].name}.tla`), "--view", view, "--out", out,
+    ], {
+      encoding: "utf8", timeout: 15000, maxBuffer: 8 * 1024 * 1024,
+      env: { ...process.env, JAVA: java, TLA2TOOLS: jar, STATECHART_REPLAY: directory },
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(result.stderr, "");
+    const report = fs.readFileSync(path.join(out, "report.md"), "utf8");
+    assert.ok(report.length > 1024 * 1024);
+    assert.equal(result.stdout, `${report}\nWrote ${out}\n`);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("missing TLC fails explicitly without installing tools or publishing output", { skip: !posix }, () => {
   const root = fixture();
