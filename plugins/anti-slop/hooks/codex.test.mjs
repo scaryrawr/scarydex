@@ -18,6 +18,7 @@ test("Codex PreToolUse blocks a new assertion chain using the supported wire sch
   assert.equal(result.hookSpecificOutput.hookEventName, "PreToolUse");
   assert.equal(result.hookSpecificOutput.permissionDecision, "deny");
   assert.match(result.hookSpecificOutput.permissionDecisionReason, /chained-assertion/);
+  assert.match(result.hookSpecificOutput.permissionDecisionReason, /src\/demo\.ts \[chained-assertion\]/);
 });
 test("Codex allows clean patches and ignores assertion-like strings", async () => {
   const cwd = await root();
@@ -33,6 +34,7 @@ test("Codex PostToolUse returns context only for new findings", async () => {
   ] });
   assert.equal(result.hookSpecificOutput.hookEventName, "PostToolUse");
   assert.match(result.hookSpecificOutput.additionalContext, /parse at boundary/);
+  assert.match(result.hookSpecificOutput.additionalContext, /src\/demo\.ts:1 anti-slop\(no-unknown-parameters\)/);
 });
 test("post hook ignores explicit patch failures and reports unavailable lint without installing", async () => {
   const cwd = await root();

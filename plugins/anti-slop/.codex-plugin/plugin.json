@@ -1,6 +1,6 @@
 {
   "name": "anti-slop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Bundled JavaScript and TypeScript quality checks with pre-edit and post-edit guardrails.",
   "author": {
     "name": "Mike Wallio"
