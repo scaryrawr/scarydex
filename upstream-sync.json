@@ -1701,7 +1701,7 @@
       "source": "scarypilot",
       "plugin": "pstack",
       "path": "external_plugins/pstack",
-      "reviewedThrough": "53263e5b135e6c1dbab762b81b9165bf73eccb6e",
+      "reviewedThrough": "21f6df137b205fe642e19c889175c0dc0a2d758d",
       "reviews": [
         {
           "commit": "1c85a8237372ffc12106211e4ce0f5b29b5df816",
@@ -2907,6 +2907,40 @@
             "Seven mapping regressions cover both commands, transitive reexports before TLC, edits during subprocess evaluation, callback dynamic imports across bug charts, large dependency evidence, computed imports, and symlinked import paths. Four fail against the original implementation.",
             "Mapping import regressions use synthetic TLC output only; no model-checking evidence is claimed without Java/TLC.",
             "Pstack is bumped to 0.15.30-codex.10; dependency-free Node helpers retain the documented Node.js 22.18+ prerequisite."
+          ]
+        },
+        {
+          "commit": "eb21e406ae97bcb1798f964de7fd830710bd59c1",
+          "disposition": "excluded",
+          "reason": "Removes ScaryPilot's Copilot local-provider extension and its catalog/CI registration. Codex pstack has no such extension or dependency.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            ".github/workflows/plugin-platforms.yml",
+            "AGENTS.md",
+            "README.md",
+            "tools/check-extension-bundles.mjs",
+            "tools/smoke-extension-bundles.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/eb21e406ae97bcb1798f964de7fd830710bd59c1",
+            "Compared every parent: 53263e5b135e6c1dbab762b81b9165bf73eccb6e. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Reviewed AGENTS.md, README, plugin-platforms and extension bundle check deletions. No external_plugins/pstack path changes."
+          ]
+        },
+        {
+          "commit": "f05934ef17a671f0102231d22dadc1fa994d07a1",
+          "disposition": "excluded",
+          "reason": "Adds a separate uv guidance plugin and its source-marketplace listing. It is outside the fixed ScaryDex inventory and introduces no pstack dependency.",
+          "paths": [
+            ".github/plugin/marketplace.json",
+            "README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/scaryrawr/scarypilot/commit/f05934ef17a671f0102231d22dadc1fa994d07a1",
+            "Compared every parent: eb21e406ae97bcb1798f964de7fd830710bd59c1. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Reviewed the README and marketplace additions and the candidate's exact shared paths. No external_plugins/pstack path changes."
           ]
         }
       ]
@@ -8573,6 +8607,541 @@
             "Parent comparisons: d27bff41981366ca47893066f61e86eae6442360; pinned rename and deletion paths retained verbatim.",
             "Compared changed-path inventories against every parent, including merge/revert parents; no pstack or root package/lock dependency input changes occur in this candidate.",
             "Inspected the coupled marketplace/README and MCP/manifest diffs; this batch does not establish review of the remaining 61 Cursor candidates."
+          ]
+        },
+        {
+          "commit": "13f7ad17ee83d7d708f21760e1136412efe8026b",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/feishu/.cursor-plugin/plugin.json",
+            "third_party/feishu/CHANGELOG.md",
+            "third_party/feishu/LICENSE",
+            "third_party/feishu/README.md",
+            "third_party/feishu/assets/logo.png",
+            "third_party/feishu/mcp.json",
+            "third_party/google-cloud-bigquery/.cursor-plugin/plugin.json",
+            "third_party/google-cloud-bigquery/CHANGELOG.md",
+            "third_party/google-cloud-bigquery/README.md",
+            "third_party/google-cloud-bigquery/mcp.json",
+            "third_party/lark/.cursor-plugin/plugin.json",
+            "third_party/lark/CHANGELOG.md",
+            "third_party/lark/LICENSE",
+            "third_party/lark/README.md",
+            "third_party/lark/assets/logo.png",
+            "third_party/lark/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/13f7ad17ee83d7d708f21760e1136412efe8026b",
+            "Compared every parent: a3a6c0556a586b84c22bd2f35904bfaa6318568f, fa7facd69d3d250ef708d01dcd4b53234c4f44e8. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
+          ]
+        },
+        {
+          "commit": "6b5df0c105c5077645dd7bd9ae1bf252a4ab7d03",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/framer/.cursor-plugin/plugin.json",
+            "third_party/framer/CHANGELOG.md",
+            "third_party/framer/LICENSE",
+            "third_party/framer/README.md",
+            "third_party/framer/assets/logo.png",
+            "third_party/framer/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/6b5df0c105c5077645dd7bd9ae1bf252a4ab7d03",
+            "Compared every parent: 13f7ad17ee83d7d708f21760e1136412efe8026b. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
+          ]
+        },
+        {
+          "commit": "f2bad5225cb2d4f5e58b45aa36be89d16a558c13",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/framer/.cursor-plugin/plugin.json",
+            "third_party/framer/CHANGELOG.md",
+            "third_party/framer/LICENSE",
+            "third_party/framer/README.md",
+            "third_party/framer/assets/logo.png",
+            "third_party/framer/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/f2bad5225cb2d4f5e58b45aa36be89d16a558c13",
+            "Compared every parent: 13f7ad17ee83d7d708f21760e1136412efe8026b, 6b5df0c105c5077645dd7bd9ae1bf252a4ab7d03. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
+          ]
+        },
+        {
+          "commit": "25ae4470522d95ae19705827e87ce8551e699c21",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/vanta/.cursor-plugin/plugin.json",
+            "third_party/vanta/CHANGELOG.md",
+            "third_party/vanta/LICENSE",
+            "third_party/vanta/README.md",
+            "third_party/vanta/assets/logo.png",
+            "third_party/vanta/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/25ae4470522d95ae19705827e87ce8551e699c21",
+            "Compared every parent: f2bad5225cb2d4f5e58b45aa36be89d16a558c13. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
+          ]
+        },
+        {
+          "commit": "e78ec96e8784227f290854205e1a7a22200209b5",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            "third_party/vanta/CHANGELOG.md",
+            "third_party/vanta/README.md",
+            "third_party/vanta/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/e78ec96e8784227f290854205e1a7a22200209b5",
+            "Compared every parent: 25ae4470522d95ae19705827e87ce8551e699c21. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
+          ]
+        },
+        {
+          "commit": "d1453c11d1dde9714d4c313c97d3a68432265c7f",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/vanta/.cursor-plugin/plugin.json",
+            "third_party/vanta/CHANGELOG.md",
+            "third_party/vanta/LICENSE",
+            "third_party/vanta/README.md",
+            "third_party/vanta/assets/logo.png",
+            "third_party/vanta/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/d1453c11d1dde9714d4c313c97d3a68432265c7f",
+            "Compared every parent: f2bad5225cb2d4f5e58b45aa36be89d16a558c13, e78ec96e8784227f290854205e1a7a22200209b5. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
+          ]
+        },
+        {
+          "commit": "eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10",
+          "disposition": "skipped",
+          "reason": "Statechart's initial portable implementation is already integrated through the ScaryPilot 0.15.30 track, with Codex prerequisites and additional input/publication safeguards. Cursor/Claude packaging and guide pages remain excluded.",
+          "paths": [
+            ".github/workflows/validate-plugins.yml",
+            "harness/pstack/claude-code/.claude-plugin/plugin.json",
+            "harness/pstack/claude-code/README.md",
+            "harness/pstack/claude-code/docs/guide/06-verify-and-ship.md",
+            "harness/pstack/claude-code/plugin.json",
+            "harness/pstack/claude-code/skills/poteto-help/SKILL.md",
+            "harness/pstack/claude-code/skills/statechart/SKILL.md",
+            "harness/pstack/claude-code/skills/statechart/scripts/chart-to-tla.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/compare-charts.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/lib.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.cfg",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.tla",
+            "harness/pstack/claude-code/skills/statechart/scripts/statechart.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/statechart.test.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/sync.mmd",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/upload.mmd",
+            "harness/pstack/claude-code/skills/statechart/scripts/tlc-to-chart.mjs",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/README.md",
+            "pstack/docs/guide/06-verify-and-ship.md",
+            "pstack/plugin.json",
+            "pstack/skills/poteto-help/SKILL.md",
+            "pstack/skills/statechart/SKILL.md",
+            "pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "pstack/skills/statechart/scripts/compare-charts.mjs",
+            "pstack/skills/statechart/scripts/lib.mjs",
+            "pstack/skills/statechart/scripts/model/OutputFolder.cfg",
+            "pstack/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "pstack/skills/statechart/scripts/model/OutputFolder.tla",
+            "pstack/skills/statechart/scripts/statechart.mjs",
+            "pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "pstack/skills/statechart/scripts/test/sync.mmd",
+            "pstack/skills/statechart/scripts/test/upload.mmd",
+            "pstack/skills/statechart/scripts/tlc-to-chart.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10",
+            "Compared every parent: d1453c11d1dde9714d4c313c97d3a68432265c7f. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "plugins/pstack/NOTICE.md",
+            "Baseline caller tests passed 118 tests; 44 TLC-backed checks skipped without an explicitly supplied jar."
+          ]
+        },
+        {
+          "commit": "7698375f92a729f8bb89d113c633dce9ff9dc6db",
+          "disposition": "skipped",
+          "reason": "The six statechart corrections were already carried by the ScaryPilot integration and subsequent Codex fixes. The current port retains stricter parsing, input fingerprints and output ownership.",
+          "paths": [
+            "harness/pstack/claude-code/skills/statechart/SKILL.md",
+            "harness/pstack/claude-code/skills/statechart/scripts/lib.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/statechart.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/statechart.test.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/tlc-to-chart.mjs",
+            "pstack/skills/statechart/SKILL.md",
+            "pstack/skills/statechart/scripts/lib.mjs",
+            "pstack/skills/statechart/scripts/statechart.mjs",
+            "pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "pstack/skills/statechart/scripts/tlc-to-chart.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/7698375f92a729f8bb89d113c633dce9ff9dc6db",
+            "Compared every parent: eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared lib, statechart and tlc-to-chart changes against the current mapping/publication implementation and regression suite.",
+            "plugins/pstack/skills/statechart/scripts/test/statechart.test.mjs"
+          ]
+        },
+        {
+          "commit": "4ec7ffa173eaa70d3d9467a627baf0954645a353",
+          "disposition": "excluded",
+          "reason": "Comment removal and private helper renames do not change caller behavior. The Codex implementation includes later local safeguards and is not overwritten for upstream-only cosmetic parity.",
+          "paths": [
+            "harness/pstack/claude-code/skills/statechart/scripts/lib.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/statechart.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/statechart.test.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/tlc-to-chart.mjs",
+            "pstack/skills/statechart/scripts/lib.mjs",
+            "pstack/skills/statechart/scripts/statechart.mjs",
+            "pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "pstack/skills/statechart/scripts/tlc-to-chart.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/4ec7ffa173eaa70d3d9467a627baf0954645a353",
+            "Compared every parent: 7698375f92a729f8bb89d113c633dce9ff9dc6db. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every changed helper hunk. No public command or data contract changes."
+          ]
+        },
+        {
+          "commit": "86cee774e496801d6bda232672884755b12b3f61",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/stable/.cursor-plugin/plugin.json",
+            "third_party/stable/CHANGELOG.md",
+            "third_party/stable/LICENSE",
+            "third_party/stable/README.md",
+            "third_party/stable/assets/logo.png",
+            "third_party/stable/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/86cee774e496801d6bda232672884755b12b3f61",
+            "Compared every parent: 7698375f92a729f8bb89d113c633dce9ff9dc6db. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
+          ]
+        },
+        {
+          "commit": "9b93e81fb2921b9263d9463c15bafeabfe3903aa",
+          "disposition": "excluded",
+          "reason": "The merge adds Stable MCP packaging and carries the comment/private-helper refactor against its other parent. Neither changes the portable Codex caller contract.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "harness/pstack/claude-code/skills/statechart/scripts/lib.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/statechart.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/statechart.test.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/tlc-to-chart.mjs",
+            "pstack/skills/statechart/scripts/lib.mjs",
+            "pstack/skills/statechart/scripts/statechart.mjs",
+            "pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "pstack/skills/statechart/scripts/tlc-to-chart.mjs",
+            "third_party/stable/.cursor-plugin/plugin.json",
+            "third_party/stable/CHANGELOG.md",
+            "third_party/stable/LICENSE",
+            "third_party/stable/README.md",
+            "third_party/stable/assets/logo.png",
+            "third_party/stable/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/9b93e81fb2921b9263d9463c15bafeabfe3903aa",
+            "Compared every parent: 4ec7ffa173eaa70d3d9467a627baf0954645a353, 86cee774e496801d6bda232672884755b12b3f61. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Both parent comparisons inspected, including the statechart files visible only against the Stable branch parent."
+          ]
+        },
+        {
+          "commit": "b951b8e51567ed3dde6e811313f64600c8dc148c",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            "third_party/vanta/.cursor-plugin/plugin.json",
+            "third_party/vanta/CHANGELOG.md",
+            "third_party/vanta/README.md",
+            "third_party/vanta/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/b951b8e51567ed3dde6e811313f64600c8dc148c",
+            "Compared every parent: d1453c11d1dde9714d4c313c97d3a68432265c7f. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
+          ]
+        },
+        {
+          "commit": "8b3326d99fd4b993cb33a24dad8af03175c642c5",
+          "disposition": "skipped",
+          "reason": "The Vanta merge's other-parent comparison carries the earlier statechart implementation already integrated through ScaryPilot. Vanta MCP regional configuration and source packaging stay excluded.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            ".github/workflows/validate-plugins.yml",
+            "README.md",
+            "harness/pstack/claude-code/.claude-plugin/plugin.json",
+            "harness/pstack/claude-code/README.md",
+            "harness/pstack/claude-code/docs/guide/06-verify-and-ship.md",
+            "harness/pstack/claude-code/plugin.json",
+            "harness/pstack/claude-code/skills/poteto-help/SKILL.md",
+            "harness/pstack/claude-code/skills/statechart/SKILL.md",
+            "harness/pstack/claude-code/skills/statechart/scripts/chart-to-tla.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/compare-charts.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/lib.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.cfg",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.tla",
+            "harness/pstack/claude-code/skills/statechart/scripts/statechart.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/statechart.test.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/sync.mmd",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/upload.mmd",
+            "harness/pstack/claude-code/skills/statechart/scripts/tlc-to-chart.mjs",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/README.md",
+            "pstack/docs/guide/06-verify-and-ship.md",
+            "pstack/plugin.json",
+            "pstack/skills/poteto-help/SKILL.md",
+            "pstack/skills/statechart/SKILL.md",
+            "pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "pstack/skills/statechart/scripts/compare-charts.mjs",
+            "pstack/skills/statechart/scripts/lib.mjs",
+            "pstack/skills/statechart/scripts/model/OutputFolder.cfg",
+            "pstack/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "pstack/skills/statechart/scripts/model/OutputFolder.tla",
+            "pstack/skills/statechart/scripts/statechart.mjs",
+            "pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "pstack/skills/statechart/scripts/test/sync.mmd",
+            "pstack/skills/statechart/scripts/test/upload.mmd",
+            "pstack/skills/statechart/scripts/tlc-to-chart.mjs",
+            "third_party/stable/.cursor-plugin/plugin.json",
+            "third_party/stable/CHANGELOG.md",
+            "third_party/stable/LICENSE",
+            "third_party/stable/README.md",
+            "third_party/stable/assets/logo.png",
+            "third_party/stable/mcp.json",
+            "third_party/vanta/.cursor-plugin/plugin.json",
+            "third_party/vanta/CHANGELOG.md",
+            "third_party/vanta/README.md",
+            "third_party/vanta/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/8b3326d99fd4b993cb33a24dad8af03175c642c5",
+            "Compared every parent: 9b93e81fb2921b9263d9463c15bafeabfe3903aa, b951b8e51567ed3dde6e811313f64600c8dc148c. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Both parents inspected. The merge contains the earlier initial statechart implementation, not the later Pele rewrite.",
+            "plugins/pstack/NOTICE.md"
+          ]
+        },
+        {
+          "commit": "076f4b2f57844ff9eb4ada914d4763884d40146e",
+          "disposition": "deferred",
+          "reason": "Portable rule/path/report improvements require reconciliation with the later TypeScript compiler, which supersedes this intermediate .mjs implementation. Pele/resvg and mise installation are excluded; existing Codex commands and protections must remain.",
+          "paths": [
+            "harness/pstack/claude-code/skills/statechart/SKILL.md",
+            "harness/pstack/claude-code/skills/statechart/scripts/bug-states.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/chart-edges.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/chart-parts.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/chart-to-tla.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/compare-charts.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/lib.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/map-view.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.cfg",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/model/OutputFolder.tla",
+            "harness/pstack/claude-code/skills/statechart/scripts/property-loop.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/read-check.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/regions-chart.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/render.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/rule-book.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/second-replay.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/snapshot.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/spec-text.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/statechart-help.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/statechart.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/band.mmd",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/regions.mmd",
+            "harness/pstack/claude-code/skills/statechart/scripts/test/statechart.test.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/tlc-to-chart-args.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/tlc-to-chart.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/tlc-tools.mjs",
+            "harness/pstack/claude-code/skills/statechart/scripts/ways-in.mjs",
+            "pstack/skills/statechart/SKILL.md",
+            "pstack/skills/statechart/scripts/bug-states.mjs",
+            "pstack/skills/statechart/scripts/chart-edges.mjs",
+            "pstack/skills/statechart/scripts/chart-parts.mjs",
+            "pstack/skills/statechart/scripts/chart-to-tla.mjs",
+            "pstack/skills/statechart/scripts/compare-charts.mjs",
+            "pstack/skills/statechart/scripts/lib.mjs",
+            "pstack/skills/statechart/scripts/map-view.mjs",
+            "pstack/skills/statechart/scripts/model/OutputFolder.cfg",
+            "pstack/skills/statechart/scripts/model/OutputFolder.map.mjs",
+            "pstack/skills/statechart/scripts/model/OutputFolder.tla",
+            "pstack/skills/statechart/scripts/property-loop.mjs",
+            "pstack/skills/statechart/scripts/read-check.mjs",
+            "pstack/skills/statechart/scripts/regions-chart.mjs",
+            "pstack/skills/statechart/scripts/render.mjs",
+            "pstack/skills/statechart/scripts/rule-book.mjs",
+            "pstack/skills/statechart/scripts/second-replay.mjs",
+            "pstack/skills/statechart/scripts/snapshot.mjs",
+            "pstack/skills/statechart/scripts/spec-text.mjs",
+            "pstack/skills/statechart/scripts/statechart-help.mjs",
+            "pstack/skills/statechart/scripts/statechart.mjs",
+            "pstack/skills/statechart/scripts/test/band.mmd",
+            "pstack/skills/statechart/scripts/test/regions.mmd",
+            "pstack/skills/statechart/scripts/test/statechart.test.mjs",
+            "pstack/skills/statechart/scripts/tlc-to-chart-args.mjs",
+            "pstack/skills/statechart/scripts/tlc-to-chart.mjs",
+            "pstack/skills/statechart/scripts/tlc-tools.mjs",
+            "pstack/skills/statechart/scripts/ways-in.mjs"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/076f4b2f57844ff9eb4ada914d4763884d40146e",
+            "Compared every parent: 8b3326d99fd4b993cb33a24dad8af03175c642c5. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Compared the split renderer, property-loop, snapshots and TLC discovery to the current Codex helpers. Later compiler commit 34b1b7c96f09f81a21a6c78f65b7833f7dcb5b24 is not in this pinned batch."
+          ]
+        },
+        {
+          "commit": "642289e6b1eb01c25b02ea041dccaf7b5864e131",
+          "disposition": "excluded",
+          "reason": "Only Cursor and Claude manifest version bumps. Codex release metadata follows the behavior actually ported, not source packaging versions.",
+          "paths": [
+            "harness/pstack/claude-code/.claude-plugin/plugin.json",
+            "harness/pstack/claude-code/plugin.json",
+            "pstack/.cursor-plugin/plugin.json",
+            "pstack/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/642289e6b1eb01c25b02ea041dccaf7b5864e131",
+            "Compared every parent: 076f4b2f57844ff9eb4ada914d4763884d40146e. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected the four manifest version-only hunks."
+          ]
+        },
+        {
+          "commit": "00d5decc6f05669044fd092dec73da9ef6f7eec0",
+          "disposition": "ported",
+          "reason": "Generated formal-verification skills now refer to statechart by skill name for every TLA+ result without copying installed paths or release-specific commands. Codex scope and scratch mutation protections remain.",
+          "paths": [
+            "harness/pstack/claude-code/skills/create-formal-verification-skill/SKILL.md",
+            "pstack/skills/create-formal-verification-skill/SKILL.md"
+          ],
+          "localPaths": [
+            "plugins/pstack/.codex-plugin/plugin.json",
+            "plugins/pstack/skills/create-formal-verification-skill/SKILL.md"
+          ],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/00d5decc6f05669044fd092dec73da9ef6f7eec0",
+            "Compared every parent: 642289e6b1eb01c25b02ea041dccaf7b5864e131. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "plugins/pstack/skills/create-formal-verification-skill/SKILL.md",
+            "bun test tests/pstack.test.mjs tests/pstack-update.test.mjs",
+            "bun run check"
+          ]
+        },
+        {
+          "commit": "4edcb9a04a4a44fa85b4fdf75535005b87d3e4e7",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/4edcb9a04a4a44fa85b4fdf75535005b87d3e4e7",
+            "Compared every parent: 00d5decc6f05669044fd092dec73da9ef6f7eec0. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
+          ]
+        },
+        {
+          "commit": "7c493a17e4d8c7c87941f82f1c2c3b286b23e51d",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/quickbooks-online/.cursor-plugin/plugin.json",
+            "third_party/quickbooks-online/CHANGELOG.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/7c493a17e4d8c7c87941f82f1c2c3b286b23e51d",
+            "Compared every parent: 00d5decc6f05669044fd092dec73da9ef6f7eec0, 4edcb9a04a4a44fa85b4fdf75535005b87d3e4e7. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
+          ]
+        },
+        {
+          "commit": "1054ba5f714dea13afd821db42da4b3c91aa90b7",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/pitchbook/.cursor-plugin/plugin.json",
+            "third_party/pitchbook/CHANGELOG.md",
+            "third_party/pitchbook/LICENSE",
+            "third_party/pitchbook/README.md",
+            "third_party/pitchbook/assets/logo.png",
+            "third_party/pitchbook/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/1054ba5f714dea13afd821db42da4b3c91aa90b7",
+            "Compared every parent: 7c493a17e4d8c7c87941f82f1c2c3b286b23e51d. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
+          ]
+        },
+        {
+          "commit": "e7fb9647db242b96206978d56e8aff4a68718088",
+          "disposition": "excluded",
+          "reason": "Third-party MCP plugin packaging, marketplace listings and mirrored Claude harness content add no pstack runtime dependency. ScaryDex keeps its eight-plugin inventory and Codex manifest.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/pitchbook/.cursor-plugin/plugin.json",
+            "third_party/pitchbook/CHANGELOG.md",
+            "third_party/pitchbook/LICENSE",
+            "third_party/pitchbook/README.md",
+            "third_party/pitchbook/assets/logo.png",
+            "third_party/pitchbook/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/e7fb9647db242b96206978d56e8aff4a68718088",
+            "Compared every parent: 7c493a17e4d8c7c87941f82f1c2c3b286b23e51d, 1054ba5f714dea13afd821db42da4b3c91aa90b7. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "Inspected every parent-relative path inventory and root marketplace/README changes. The changed third_party entries are separately configured integrations, not pstack imports."
           ]
         }
       ]
