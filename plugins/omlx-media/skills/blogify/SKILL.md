@@ -13,7 +13,8 @@ description: >-
 
 Resolve all bundled `scripts/` and `references/` paths relative to this
 installed skill directory, not the workspace. Keep generated outputs in the
-user’s workspace.
+user's workspace. Resolve `<plugin-root>` as two directories above this
+installed skill directory.
 
 
 Produce four reviewable artifacts from the recording: transcript, takeaways,
@@ -25,11 +26,19 @@ the input is video.
 - `$OMLX_BASE_URL` should point at the OpenAI-compatible media endpoint (defaults
   to `http://127.0.0.1:8000` if unset); set `$OMLX_API_KEY` only if the
   endpoint requires auth (otherwise an empty key is assumed).
-- `uv` (runs the bundled Python scripts and auto-installs declared
-  dependencies), `ffmpeg`, `ffprobe`, and ImageMagick (`magick`/`convert`) must
-  be available.
-- Keep all inputs and outputs in the user's workspace. Pass absolute paths; the
-  scripts refuse to write inside the skill directory.
+- Node.js 22.18+, `ffmpeg`, and `ffprobe` for bounded recording preparation.
+- Optional classification needs `uv` and its script-declared dependencies.
+  Legacy deduplication and cropping also need ImageMagick. Do not install
+  dependencies without the user's approval.
+- Use absolute source paths and fresh output directories outside the plugin.
+  Create the common parent if needed, but leave each `output_dir` nonexistent.
+  Never overwrite a recording, preparation manifest, or earlier run.
+- Recording mode requires a literal loopback endpoint. Set `allow_remote: true`
+  only after explicit consent to transmit this recording to the configured
+  endpoint. Separately approve sending transcript text or frames to hosted
+  authors or classifiers.
+- Do not switch to legacy scripts to bypass validation, privacy, missing
+  dependencies, or output-conflict errors.
 
 ## Sandboxed `uv` cache
 
@@ -56,24 +65,35 @@ before drafting. Use `references/authoring.md` for the authoring checklist.
 
 ## Workflow
 
-1. **Transcribe.** Run `uv run scripts/transcribe.py --input <file> --output-dir
-   <dir>`. Produces `transcript.md` (timestamped) and `chunks.json`. The model is
-   auto-discovered (prefers parakeet); override with `--model`. For tuning and
-   limitations, use `references/transcription.md` (no timestamps, no diarization
-   — reconstruct/attribute accordingly).
+1. **Transcribe.** Write arguments to a workspace JSON file, then run
+   `node "<plugin-root>/scripts/media.mjs" transcribe --input-json <args.json>`
+   with `input` and a fresh `output_dir`. Read `manifest.json`, `transcript.md`,
+   and `chunks.json`. The fixed-length chunks preserve source offsets, not
+   word timestamps or speaker labels. For short audio needing only text, pass
+   a new `.txt` `output` instead. Never pass both output forms.
+   Use `references/transcription.md` for limits and the optional silence-aware
+   legacy script workflow.
 2. **Mine takeaways.** From the transcript, synthesize per-topic takeaways in
    the reader's voice. Correct mistranscribed jargon against ground truth
    (slides, repo names). Stay grounded — never invent claims. For long
    recordings, fan out per-topic synthesis to sub-agents.
-3. **Sample frames** (in parallel with 1–2). `uv run scripts/sample_frames.py --input
-   <video> --output-dir <sampled-frames-dir>` grabs scene-change + periodic
-   frames named by timestamp. Then run `uv run scripts/dedupe_frames.py --frames-dir
-   <sampled-frames-dir> --output-dir <dedup-frames-dir>` to drop
-   near-duplicates.
-4. **Classify frames.** `uv run scripts/classify_frames.py --frames-dir <dedup>
-   --output <dir>/manifest.json --context "<one line about the video>"
-   --categories "<A,B,...,OTHER>" --batch-size 4 --select-dir <selected-dir>`. Use a SHORT enum of categories —
-   the vision model is a reliable *classifier*, a poor open-ended captioner. It
+3. **Prepare candidate frames.** In parallel with transcription, run
+   `node "<plugin-root>/scripts/media.mjs" prepare-frames --input-json <args.json>`
+   with the same `input` and a different fresh `output_dir`. Read the manifest
+   for exact requested timestamps and paths. Uniform sampling can miss a brief
+   transition. Request a narrower `start` and `end`, or explicit `seconds`,
+   when needed. This command does not rank, detect scenes, or deduplicate.
+   Request `format: "jpeg"` if using the optional classifier or deduplication
+   scripts. They do not discover the default PNG files.
+4. **Classify frames only when useful.** Inspect a small candidate set directly.
+   For a larger set, run
+   `uv run scripts/classify_frames.py --frames-dir <candidates>
+   --output <dir>/classification.json --context "<one line about the video>"
+   --categories "<A,B,...,OTHER>" --batch-size 4 --select-dir <fresh-selected-dir>`.
+   Keep the preparation manifest separate. Optional deduplication uses
+   `uv run scripts/dedupe_frames.py --frames-dir <candidates> --output-dir <fresh-dir>`.
+   Use a short enum of categories. The vision model is a classifier, not an
+   open-ended captioner. It
    returns constrained JSON labels (validated against the enum). `--batch-size`
    classifies several frames per request to amortize the endpoint's large fixed
    per-request cost (~6–8 s); 4 is a safe default, raise it for distinct frames.
@@ -81,10 +101,11 @@ before drafting. Use `references/authoring.md` for the authoring checklist.
    model is the default; if its per-request cost makes a large frame set
    impractical even when batched, `references/frames.md` documents a **privacy-gated cloud-subagent
    fallback** (only with explicit user consent, since frames leave the machine).
-5. **Pick + polish images.** For chosen frames, re-extract at full resolution
-   with `uv run scripts/extract_frame.py --input <video> --second <secs> --output
-   <dir>/shot.png` and crop overlays with `uv run scripts/crop_frames.py`. Verify picks
-   visually before using them.
+5. **Pick and polish images.** Choose frames against the transcript and output
+   intent. Re-run `prepare-frames` with explicit `seconds` into a fresh directory.
+   Pass source-pixel `crop` geometry to remove overlays, and source `width` for
+   full resolution within the 4096-pixel limit. Verify the images visually
+   before using them. See `references/frames.md` for options and legacy scripts.
 6. **Author the output.** Draft the doc/blog per the requested intent. Add a
    screenshot only where it makes the text easier to understand, placed next to
    the concept, with descriptive alt text. Use `references/authoring.md`.
@@ -100,3 +121,8 @@ before drafting. Use `references/authoring.md` for the authoring checklist.
 - The transcript and the frame filenames share the video timeline, so you can
   line up "demoed at 34:59" with the frame captured at 34:59.
 - Run only the scripts bundled here; do not copy them elsewhere.
+- A preparation manifest records input and timestamps, not transcript accuracy
+  or frame usefulness. Keep jargon correction, attribution, authoring, and
+  final editorial selection in this skill.
+- Failures retain partial files and `failure.json`. They are not complete
+  transcripts or frame sets. Inspect them, then retry with a new `output_dir`.

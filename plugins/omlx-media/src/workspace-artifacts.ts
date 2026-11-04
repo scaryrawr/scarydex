@@ -4,6 +4,7 @@ import { constants as fsConstants } from "node:fs";
 import { Type } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
 import { OmlxToolError } from "./domain.ts";
+import { guardPluginOutput } from "./media-io.ts";
 
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
 
@@ -61,6 +62,7 @@ export async function planImageOutputs(
   const outputs = Array.from({ length: count }, (_, index) => outputForIndex(base, index, count));
 
   for (const output of outputs) {
+    await guardPluginOutput(output);
     await mkdir(path.dirname(output), { recursive: true });
 
     try {

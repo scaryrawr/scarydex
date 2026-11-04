@@ -1,7 +1,52 @@
 # Frames & screenshots
 
-Operational details for `sample_frames.py`, `dedupe_frames.py`,
-`classify_frames.py`, and `crop_frames.py`.
+Bounded frame preparation and optional sampling, classification, and cropping.
+
+## Bounded frame preparation
+
+Run `node "<plugin-root>/scripts/media.mjs" prepare-frames --input-json <args.json>`
+with an absolute video `input` and a fresh `output_dir`. Resolve `<plugin-root>`
+as two directories above the installed skill. This command uses FFmpeg and
+ffprobe only. It does not send frames to a service, classify, rank, detect scenes,
+or deduplicate. Read the returned manifest instead of guessing image paths.
+
+| Option or limit | Frame preparation |
+| --- | --- |
+| `max_frames` | Integer from 1 to 120, default 24 uniform samples. |
+| `start`, `end` | Source seconds within the selected video stream, start inclusive and end exclusive. Defaults to that stream's range. |
+| `seconds` | From 1 to 120 unique nonnegative timestamps in the video range. Mutually exclusive with `start`, `end`, and `max_frames`. |
+| `width` | Integer from 1 to 4096, default 1280. Preserves aspect ratio and never upscales. |
+| `crop` | Integer source-pixel `x`, `y`, `width`, and `height`, contained in the original unrotated video. Applies before scaling. |
+| `format` | `"png"` by default, or `"jpeg"` for `.jpg` classifier candidates. |
+| `timeout_seconds` | Total deadline from 1 to 1800 seconds, default 600. |
+| Source and work | Nonempty local file up to 4 GiB and 2 hours. Video streams have at most 32 megapixels. Total output has at most 256 megapixels. |
+
+The output directory's parent must exist. Outputs must be outside the plugin.
+The complete manifest records canonical source, duration, selected video range,
+sampling mode, timestamps, paths, crop, format, and dimensions. Display rotation
+is not applied. When audio outlasts video, sampling still uses the video range.
+Missing stream duration triggers a bounded local decode-to-null measurement.
+
+The command selects the frame covering each requested instant, including the
+final frame interval before EOF, at FFmpeg microsecond seek precision.
+`frames[].requested_seconds` records requested fractional seconds, not measured
+frame PTS. Filenames use `t_<MMMmSSs>_fNNNN` with rounded seconds and a zero-based
+index. Re-extract using the manifest's fractional timestamps, not the filenames.
+
+Uniform sampling can miss brief transitions. Use transcript offsets to request
+a narrower window or explicit timestamps. Re-extract final images into a fresh
+directory with source-pixel crop geometry and explicit source width within the
+4096-pixel limit. Verify the images visually against the transcript.
+
+The classifier and deduplication scripts discover `.jpg`, not PNG. Request
+`format: "jpeg"` before using them. Save classifier results to a separate
+`classification.json` and use a fresh `--select-dir`. Preserve the preparation
+manifest and its fractional timestamps. Cloud classification requires separate
+recording-specific frame-transmission consent.
+
+Failures retain extracted files and `failure.json`, not a complete manifest.
+Retry into a new directory. Legacy scripts may overwrite or remove samples.
+Use fresh destinations and never use them to bypass a preparation error.
 
 ## Frame extraction policy
 
@@ -125,19 +170,21 @@ machine. Only take this path after the user explicitly consents *for this
 recording*, and never for material they've flagged as confidential. If in doubt,
 stay local.
 
-How to run it (no bundled script — the orchestrating agent drives it, since a
-standalone script can't reach the Codex model gateway):
+The plugin does not register hosted models or agents. Use this option only
+when the host provides vision-capable agents and the approved model. If those
+capabilities are unavailable, keep local classification.
 
-1. Fan out `task` subagents on the vision-capable `gpt-5.6-luna` cloud model,
-   each given a batch of frame paths.
+1. Use the host's available vision-capable agents with the approved model,
+   each given an approved batch of frame paths.
 2. Give each subagent the **same enum + one-line context** contract as the local
    classifier (`build_prompt` in `classify_frames.py`), and require exactly
    `{"file","label","reason"}` per frame, `label` from the fixed enum (else
    `OTHER`/`NONE`).
-3. Merge subagent results into the same `manifest.json` shape the script emits
+3. Merge subagent results into the same classification shape the script emits
    (`[{"file","ts","label","reason"}]`, `ts` via the `t_<MMmSSs>` filename) and
    copy non-`OTHER`/`NONE` frames into the select dir, exactly as `--select-dir`
-   would.
+   would. Write `classification.json` separately and preserve the preparation
+   manifest's fractional timestamps.
 
 Keep the same "classifier, not captioner" discipline: short enum, one label,
 short reason — the cloud path changes *where* inference runs, not the contract.

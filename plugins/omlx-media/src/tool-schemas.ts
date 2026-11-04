@@ -1,5 +1,7 @@
 import { Type } from "@sinclair/typebox";
 
+export { TranscriptionSchema as transcriptionParameters, FramesSchema as framesParameters } from "./media-domain.ts";
+
 export const imageParameters = Type.Object({
   prompt: Type.String({ minLength: 1 }),
   output: Type.String({ minLength: 1 }),
@@ -32,12 +34,4 @@ export const speechParameters = Type.Object({
     Type.Literal("wav"), Type.Literal("mp3"), Type.Literal("opus"),
     Type.Literal("flac"), Type.Literal("pcm"),
   ])),
-}, { additionalProperties: false });
-
-export const transcriptionParameters = Type.Object({
-  input: Type.String({ minLength: 1 }),
-  output: Type.String({ minLength: 1 }),
-  model: Type.Optional(Type.String({ minLength: 1 })),
-  language: Type.Optional(Type.String()),
-  prompt: Type.Optional(Type.String()),
 }, { additionalProperties: false });

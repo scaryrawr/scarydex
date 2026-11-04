@@ -8,11 +8,22 @@ once. Keep credentials, notifications, unrelated windows, and private data out
 of the capture.
 
 Start recording only after the application is ready. Drive the demo with the
-available computer-use tools, pause briefly after meaningful state changes, and
+host's available computer-use tools, pause briefly after meaningful state changes, and
 stop recording immediately after the final state. Never hide failed or
 misleading behavior through editing.
 
-Inspect the raw duration, trim setup and dead time, then add side-by-side
-composition, captions, or local narration only when they improve comprehension.
-Preserve the raw recording and write edits to new files. Report the final path,
-duration, dimensions, and any review points.
+Retain the recordingId from start and use it for status and stop. After an
+interruption, inspect state before retrying. Do not adopt a replacement ID.
+Capture and microphone approval are separate. This prompt provides no UI tools
+or permissions.
+
+For comparisons, follow the skill's
+[evidence-video standard](../../skills/screen-record/references/editing.md#evidence-video-standard).
+Do not use the simple side-by-side helper when it would discard meaningful
+events from the longer clip.
+
+Inspect raw, intermediate, and final frames and motion. Trim only irrelevant
+setup and idle time. Keep source receipts pinned to the captured build and pair
+video with independent final-state assertions. Preserve raw recordings and
+previous derivatives. Write new edits to distinct paths. Report the final path,
+duration, dimensions, and review points.

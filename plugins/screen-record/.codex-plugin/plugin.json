@@ -1,6 +1,6 @@
 {
   "name": "screen-record",
-  "version": "0.1.0",
+  "version": "0.2.2",
   "description": "Record agent-driven demos and edit them into polished videos with local FFmpeg.",
   "author": {
     "name": "Mike Wallio"

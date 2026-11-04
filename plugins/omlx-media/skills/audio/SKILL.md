@@ -8,7 +8,8 @@ description: Generate local OMLX speech or transcribe an audio file into a saved
 Use the bundled Node helper. Resolve `<plugin-root>` as two directories above
 this installed skill directory. No MCP server or dependency install is needed.
 The helper uses `OMLX_BASE_URL` (default `http://127.0.0.1:8000`) and optional
-`OMLX_API_KEY`. Do not expose the key or send recordings to another service.
+`OMLX_API_KEY`. Do not expose the key. Before sending audio to a remote endpoint,
+require the user's explicit consent for that recording.
 
 Write arguments to a temporary JSON file in the workspace, then run:
 
@@ -29,5 +30,10 @@ node "<plugin-root>/scripts/media.mjs" transcribe --input-json <arguments.json>
   chosen model, output file, and transcription text when applicable.
 
 Inspect the output and report its absolute path. Keep files in the workspace.
-For silence-aware chunking and approximate timestamps on long recordings, use
-`blogify` instead. These scripts do not support realtime ASR or streamed playback.
+For recording chunk offsets, frame preparation, or written content, use
+`blogify`. It calls `transcribe` with a fresh `output_dir` instead of `output`.
+Never pass both. This bounded mode preserves sources, requires an existing output
+parent outside the plugin, and defaults to literal loopback with no redirects.
+Set `allow_remote: true` only after recording-specific approval.
+Silence-aware chunking remains an optional legacy script workflow.
+These scripts do not support realtime ASR or streamed playback.
