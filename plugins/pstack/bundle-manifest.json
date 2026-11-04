@@ -2,9 +2,9 @@
   "version": 1,
   "files": {
     "package-lock.json": "39d1207c0719659590ce2e09f4159c202edbb246c090552960f6ca3cfd0dd820",
-    "plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs": "295528e8848dce0b08648fbab8dd993db0c6ccba0eab1602d9e98a04955af3d7",
+    "plugins/pstack/skills/poteto-mode/scripts/orch/orch.mjs": "a135e60e0b68eac74aa7eadd0fdf0a35dc6010705ef352f64b976ecdb1d3296f",
     "plugins/pstack/skills/poteto-mode/scripts/orch/orch.ts": "64fa7df85ff25c25a8a2414fcf66e4f78df9d5fc33bdd3a494bb766cadc92843",
-    "plugins/pstack/skills/poteto-mode/scripts/orch/store.ts": "c8fddcd89140d762627187f0c825680cac8ab511c60660c1cf26a0f3b0dd4a98",
+    "plugins/pstack/skills/poteto-mode/scripts/orch/store.ts": "31cbb36f123093db576e9da4fe8ee1d62e102a7306706b97ca3b3ab961ed6c45",
     "plugins/pstack/skills/poteto-mode/scripts/watch-pr/cli.ts": "bf6e34fe4c8d8f3ae6cd3a29d658431260d297db28501d85a8f19e6a429a2d97",
     "plugins/pstack/skills/poteto-mode/scripts/watch-pr/github.ts": "0ec78df8c1c944d9c18877c3b2ab0bd655f328cf738e21ed252ae97051fb7477",
     "plugins/pstack/skills/poteto-mode/scripts/watch-pr/policy.ts": "58eb1eed910accc7507eca8133d3ea8cb7bdd4135fb88001287bda9279a3ab6f",

@@ -81,6 +81,9 @@ Resolve these paths from the installed plugin root:
   remote, then `origin`; ambiguous push URLs or unavailable identities fail.
   SSH URLs use `ssh -G` to resolve configured host aliases before API lookup;
   this reads SSH configuration without opening a connection.
+  Child queries target the parent's head repository, not a same-named branch
+  upstream. Frontier rows retain both the PR's `repository` and its
+  `headRepository`; existing frontier files without those fields remain readable.
   Origin's CLI adapter is not included.
 - `skills/poteto-mode/scripts/watch-pr/watch-pr.mjs`: optional GitHub PR watcher.
   Review threads are paginated so unresolved findings beyond the first 100 are

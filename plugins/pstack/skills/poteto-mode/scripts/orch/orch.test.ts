@@ -166,6 +166,7 @@ async function withFakeForge<T>({
   currentRows,
   childRows,
   sshConfig,
+  queries = [],
 }: {
   directory: string;
   forge: Forge;
@@ -173,6 +174,12 @@ async function withFakeForge<T>({
   currentRows?: string;
   childRows?: string;
   sshConfig?: string;
+  queries?: readonly {
+    repository: string;
+    filter: "--head" | "--base";
+    branch: string;
+    rows: string;
+  }[];
 }): Promise<T> {
   const bin = join(directory, "bin");
   const outputPath = join(directory, "forge-output.txt");
@@ -192,8 +199,8 @@ async function withFakeForge<T>({
     }\n`
   );
   const { fields } = FORGE_FIXTURES[forge];
-  const list = (filter: string, branch: string): string =>
-    `pr list ${filter} ${branch} --state all --limit 1000 --json ${fields}`;
+  const list = (filter: string, branch: string, repository = "example/project"): string =>
+    `pr list ${filter} ${branch} --state all --limit 1000 --json ${fields} --repo ${repository}`;
   const fake = join(bin, forge);
   const ssh = join(bin, "ssh");
   const nativeSsh = Bun.which("ssh");
@@ -222,6 +229,12 @@ if [ "$(pwd -P)" != "${realpathSync(join(directory, "repo"))}" ]; then
   exit 2
 fi
 case "$*" in
+  ${queries.map(query => `"${list(query.filter, query.branch, query.repository)}")
+    printf '%s\\n' '${query.rows}'
+    ;;`).join("\n  ")}
+  "repo view --json nameWithOwner --jq .nameWithOwner")
+    printf 'example/project\\n'
+    ;;
   "repo view https://github.com/example/project.git --json nameWithOwner --jq .nameWithOwner")
     printf 'example/project\\n'
     ;;
@@ -249,6 +262,9 @@ case "$*" in
     ])}'
     ;;
   "${list("--base", "stack/draft")}")
+    printf '[]\\n'
+    ;;
+  pr\\ list\\ *\\ --repo\\ contributor/project)
     printf '[]\\n'
     ;;
   *)
@@ -552,24 +568,32 @@ describe("Store", () => {
                 branches: "stack/merged",
                 sha: stack.mergedSha,
                 state: "MERGED",
+                repository: "example/project",
+                headRepository: "example/project",
               },
               {
                 pr: 13,
                 branches: "stack/closed",
                 sha: stack.closedSha,
                 state: "CLOSED",
+                repository: "example/project",
+                headRepository: "example/project",
               },
               {
                 pr: 11,
                 branches: "stack/open",
                 sha: stack.openSha,
                 state: "OPEN",
+                repository: "example/project",
+                headRepository: "example/project",
               },
               {
                 pr: 14,
                 branches: "stack/draft",
                 sha: stack.draftSha,
                 state: "OPEN",
+                repository: "example/project",
+                headRepository: "example/project",
               },
             ],
             lowestUnmerged: 11,
@@ -725,7 +749,7 @@ describe("Store", () => {
     });
   });
 
-  it("uses a branch push remote in preference to its fetch remote", async () => {
+  it("uses the push remote without attaching an upstream namesake's child", async () => {
     const { directory, store } = await initializedStore();
     const stack = await makeGitStack(directory);
     git({ repo: stack.repo, args: ["remote", "add", "fork", "git@github.com:contributor/project.git"] });
@@ -735,12 +759,23 @@ describe("Store", () => {
       directory,
       forge: "gh",
       currentRows: forgeRows("gh", [
-        { number: 11, state: "open", head: "stack/open", base: "stack/closed", repository: "contributor/project" },
+        { number: 11, state: "open", head: "stack/open", base: "main", repository: "contributor/project" },
         { number: 12, state: "open", head: "stack/open", base: "main" },
       ]),
       operation: async () => {
         const frontier = await store.frontier.set({ repo: stack.repo });
-        expect(frontier.prs.map(row => row.pr)).toEqual([10, 13, 11, 14]);
+        const bundledStore = join(directory, "bundled-store");
+        expect(runCli(["--store", bundledStore, "--json", "init"]).code).toBe(0);
+        const result = runCli(["--store", bundledStore, "--json", "frontier", "set", "--repo", stack.repo]);
+        expect(result.code).toBe(0);
+        const bundled = JSON.parse(result.stdout);
+        const persisted = JSON.parse(await readFile(join(bundledStore, "frontier.json"), "utf8"));
+        expect([
+          frontier.prs.map(row => row.pr),
+          (await store.frontier.show()).prs.map(row => row.pr),
+          bundled.prs.map((row: { pr: number }) => row.pr),
+          persisted.prs.map((row: { pr: number }) => row.pr),
+        ]).toEqual([[11], [11], [11], [11]]);
       },
     });
   });
@@ -760,6 +795,64 @@ describe("Store", () => {
         expect(frontier.prs.map(row => row.pr)).toEqual([10, 13, 11, 14]);
       },
     });
+  });
+
+  for (const current of ["stack/open", "stack/draft"]) {
+    it(`preserves real fork-to-fork dependencies when resolving from ${current}`, async () => {
+      const { directory, store } = await initializedStore();
+      const stack = await makeGitStack(directory);
+      git({ repo: stack.repo, args: ["remote", "add", "fork", "git@github.com:contributor/project.git"] });
+      for (const branch of ["stack/open", "stack/draft"]) {
+        git({ repo: stack.repo, args: ["config", `branch.${branch}.pushRemote`, "fork"] });
+      }
+      git({ repo: stack.repo, args: ["checkout", current] });
+      const parent = forgeRows("gh", [
+        { number: 11, state: "open", head: "stack/open", base: "main", repository: "contributor/project" },
+      ]);
+      const child = forgeRows("gh", [
+        { number: 14, state: "open", head: "stack/draft", base: "stack/open", repository: "contributor/project" },
+      ]);
+      await withFakeForge({
+        directory,
+        forge: "gh",
+        currentRows: parent,
+        queries: [
+          { repository: "contributor/project", filter: "--base", branch: "stack/open", rows: child },
+          { repository: "example/project", filter: "--head", branch: "stack/draft", rows: "[]" },
+          { repository: "contributor/project", filter: "--head", branch: "stack/draft", rows: child },
+        ],
+        operation: async () => {
+          const frontier = await store.frontier.set({ repo: stack.repo });
+          expect(frontier.prs).toEqual([
+            { pr: 11, branches: "stack/open", sha: stack.openSha, state: "OPEN", repository: "example/project", headRepository: "contributor/project" },
+            { pr: 14, branches: "stack/draft", sha: stack.draftSha, state: "OPEN", repository: "contributor/project", headRepository: "contributor/project" },
+          ]);
+          expect(await store.frontier.show()).toEqual(frontier);
+          const bundledStore = join(directory, "bundled-store");
+          expect(runCli(["--store", bundledStore, "--json", "init"]).code).toBe(0);
+          const result = runCli(["--store", bundledStore, "--json", "frontier", "set", "--repo", stack.repo]);
+          expect(result.code).toBe(0);
+          expect(JSON.parse(result.stdout)).toEqual(frontier);
+          expect(JSON.parse(await readFile(join(bundledStore, "frontier.json"), "utf8"))).toEqual(frontier);
+        },
+      });
+    });
+  }
+
+  it("reads legacy frontiers but rejects incomplete repository identities", async () => {
+    const { directory, store } = await initializedStore();
+    const row = { pr: 11, branches: "stack/open", sha: "abc123", state: "OPEN" };
+    const legacy = { generation: 1, prs: [row], lowestUnmerged: 11 };
+    const file = join(directory, "frontier.json");
+    await writeFile(file, JSON.stringify(legacy));
+    expect(await store.frontier.show()).toEqual(legacy);
+    for (const identity of [
+      { repository: "example/project" },
+      { repository: "example/project", headRepository: "invalid" },
+    ]) {
+      await writeFile(file, JSON.stringify({ ...legacy, prs: [{ ...row, ...identity }] }));
+      await expect(store.frontier.show()).rejects.toThrow("invalid PR repository");
+    }
   });
 
   for (const remoteUrl of [
