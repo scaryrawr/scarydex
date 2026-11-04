@@ -450,6 +450,12 @@ async function pollUntilTerminal<V>(args: {
 }): Promise<V | T.BlockerVerdict | T.TimeoutVerdict> {
   let failures = 0;
   const started = args.dependencies.clock.now();
+  const sleep = async (seconds: number): Promise<void> => {
+    const remaining = args.options.timeout > 0
+      ? Math.max(0, args.options.timeout - (args.dependencies.clock.now() - started))
+      : seconds;
+    await args.dependencies.clock.sleep(Math.min(seconds, remaining));
+  };
 
   while (true) {
     let result: StepResult<V>;
@@ -486,7 +492,7 @@ async function pollUntilTerminal<V>(args: {
           exitCode: 5,
           reason: { kind: "status-unavailable", failure: error.failure },
         });
-      await args.dependencies.clock.sleep(retryInSeconds);
+      await sleep(retryInSeconds);
       continue;
     }
 
@@ -498,7 +504,7 @@ async function pollUntilTerminal<V>(args: {
         deadlinePassed(started, args.options, args.dependencies.clock.now())
       )
         return result.onDeadline();
-      await args.dependencies.clock.sleep(result.seconds);
+      await sleep(result.seconds);
     }
   }
 }

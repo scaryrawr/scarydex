@@ -38,7 +38,7 @@ slice has accepted evidence. Apply the declared race rule and disclose dropouts.
 
 ## Report
 
-Return one consolidated table with worker verdicts, evidence, concrete issues,
+Return one consolidated result table with worker verdicts, evidence, concrete issues,
 and gaps. Missing evidence never counts as a pass. Review changes yourself
 before accepting or integrating them.
 

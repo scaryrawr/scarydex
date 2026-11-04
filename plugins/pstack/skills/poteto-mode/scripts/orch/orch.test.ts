@@ -611,7 +611,46 @@ describe("Store", () => {
         );
       },
     });
+
   });
+
+  it("prefers the sole active PR over closed and merged branch history", async () => {
+      const { directory, store } = await initializedStore();
+      const stack = await makeGitStack(directory);
+      await withFakeForge({
+        directory,
+        forge: "gh",
+        currentRows: forgeRows("gh", [
+          { number: 8, state: "closed", head: "stack/open", base: "main" },
+          { number: 9, state: "merged", head: "stack/open", base: "main" },
+          { number: 11, state: "open", head: "stack/open", base: "stack/closed" },
+        ]),
+        operation: async () => {
+          const frontier = await store.frontier.set({ repo: stack.repo });
+          expect(frontier.prs.map(row => row.pr)).toEqual([10, 13, 11, 14]);
+          expect(frontier.lowestUnmerged).toBe(11);
+        },
+      });
+    });
+
+  it("rejects multiple active PRs rather than choosing one", async () => {
+      const { directory, store } = await initializedStore();
+      const stack = await makeGitStack(directory);
+      await withFakeForge({
+        directory,
+        forge: "gh",
+        currentRows: forgeRows("gh", [
+          { number: 8, state: "closed", head: "stack/open", base: "main" },
+          { number: 11, state: "open", head: "stack/open", base: "stack/closed" },
+          { number: 12, state: "draft", head: "stack/open", base: "stack/closed" },
+        ]),
+        operation: async () => {
+          await expect(store.frontier.set({ repo: stack.repo })).rejects.toThrow(
+            "branch stack/open has multiple pull requests (#11, #12)"
+          );
+        },
+      });
+    });
 
   it("rejects malformed TSV, verdict, frontier, and inbox data", async () => {
     const { directory, store } = await initializedStore();
