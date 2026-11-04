@@ -165,12 +165,14 @@ async function withFakeForge<T>({
   operation,
   currentRows,
   childRows,
+  sshConfig,
 }: {
   directory: string;
   forge: Forge;
   operation: () => Promise<T>;
   currentRows?: string;
   childRows?: string;
+  sshConfig?: string;
 }): Promise<T> {
   const bin = join(directory, "bin");
   const outputPath = join(directory, "forge-output.txt");
@@ -193,6 +195,24 @@ async function withFakeForge<T>({
   const list = (filter: string, branch: string): string =>
     `pr list ${filter} ${branch} --state all --limit 1000 --json ${fields}`;
   const fake = join(bin, forge);
+  const ssh = join(bin, "ssh");
+  const nativeSsh = Bun.which("ssh");
+  if (sshConfig && !nativeSsh) throw new Error("SSH alias regression requires OpenSSH");
+  await writeFile(ssh, sshConfig ? `#!/usr/bin/env bash
+exec "${nativeSsh}" -F "${sshConfig}" "$@"
+` : `#!/usr/bin/env bash
+set -euo pipefail
+case "$*" in
+  "-G -- git@github.com"|"-G -- git@github-work"|"-G -p 2222 -- git@github-work")
+    printf 'host github-work\\nhostname github.com\\nuser git\\n'
+    ;;
+  *)
+    printf 'unexpected ssh arguments: %s\\n' "$*" >&2
+    exit 2
+    ;;
+esac
+`);
+  await chmod(ssh, 0o755);
   await writeFile(
     fake,
     `#!/usr/bin/env bash
@@ -205,7 +225,7 @@ case "$*" in
   "repo view https://github.com/example/project.git --json nameWithOwner --jq .nameWithOwner")
     printf 'example/project\\n'
     ;;
-  "repo view git@github.com:contributor/project.git --json nameWithOwner --jq .nameWithOwner")
+  "repo view https://github.com/contributor/project.git --json nameWithOwner --jq .nameWithOwner")
     printf 'contributor/project\\n'
     ;;
   "${list("--head", "stack/open")}")
@@ -741,6 +761,33 @@ describe("Store", () => {
       },
     });
   });
+
+  for (const remoteUrl of [
+    "git@github-work:example/project.git",
+    "ssh://git@github-work:2222/example/project.git",
+  ]) {
+    it(`resolves an SSH host alias before querying the repository: ${remoteUrl}`, async () => {
+      const { directory, store } = await initializedStore();
+      const stack = await makeGitStack(directory);
+      const sshConfig = join(directory, "ssh_config");
+      await writeFile(sshConfig, "Host github-work\n  HostName github.com\n  User git\n");
+      git({ repo: stack.repo, args: ["remote", "set-url", "--push", "origin", remoteUrl] });
+      await withFakeForge({
+        directory,
+        forge: "gh",
+        sshConfig,
+        operation: async () => {
+          const frontier = await store.frontier.set({ repo: stack.repo });
+          expect(frontier.prs.map(row => row.pr)).toEqual([10, 13, 11, 14]);
+          const bundledStore = join(directory, "bundled-store");
+          expect(runCli(["--store", bundledStore, "--json", "init"]).code).toBe(0);
+          const result = runCli(["--store", bundledStore, "--json", "frontier", "set", "--repo", stack.repo]);
+          expect(result.code).toBe(0);
+          expect(JSON.parse(result.stdout)).toEqual(frontier);
+        },
+      });
+    });
+  }
 
   it("rejects PR rows whose head repository identity is unavailable", async () => {
     const { directory, store } = await initializedStore();

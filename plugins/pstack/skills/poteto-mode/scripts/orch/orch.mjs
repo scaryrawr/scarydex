@@ -4233,6 +4233,30 @@ function gitConfig(repo, key) {
   }
   return result.stdout.trim();
 }
+function canonicalRepositoryUrl(value, repo) {
+  const scp = /^([^/:\s]+):([^/].*)$/.exec(value);
+  const normalized = scp ? `ssh://${scp[1]}/${scp[2]}` : value;
+  if (!normalized.startsWith("ssh://")) return value;
+  if (!URL.canParse(normalized)) {
+    throw new UserError("push remote has an invalid SSH URL");
+  }
+  const remote = new URL(normalized);
+  const destination = remote.username ? `${decodeURIComponent(remote.username)}@${remote.hostname}` : remote.hostname;
+  const args = ["-G"];
+  if (remote.port) args.push("-p", remote.port);
+  args.push("--", destination);
+  const config = runTool({ command: "ssh", args, repo });
+  const hostname = /^hostname[ \t]+(\S+)[ \t]*\r?$/m.exec(config)?.[1];
+  if (!hostname || !URL.canParse(`https://${hostname}`)) {
+    throw new UserError("ssh -G did not return a valid canonical hostname");
+  }
+  const canonical = new URL(`https://${hostname}`);
+  if (canonical.host !== hostname.toLowerCase()) {
+    throw new UserError("ssh -G did not return a valid canonical hostname");
+  }
+  canonical.pathname = remote.pathname;
+  return canonical.href;
+}
 function branchRepository({ branch, forge, repo }) {
   const remote = gitConfig(repo, `branch.${branch}.pushRemote`) ?? gitConfig(repo, "remote.pushDefault") ?? gitConfig(repo, `branch.${branch}.remote`) ?? "origin";
   const urls = runGit({ args: ["remote", "get-url", "--push", "--all", remote], repo }).split("\n");
@@ -4241,7 +4265,7 @@ function branchRepository({ branch, forge, repo }) {
   }
   const repository = runTool({
     command: forge,
-    args: ["repo", "view", urls[0], "--json", "nameWithOwner", "--jq", ".nameWithOwner"],
+    args: ["repo", "view", canonicalRepositoryUrl(urls[0], repo), "--json", "nameWithOwner", "--jq", ".nameWithOwner"],
     repo
   }).trim();
   if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(repository)) {

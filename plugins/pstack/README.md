@@ -79,6 +79,8 @@ Resolve these paths from the installed plugin root:
   active PR can supersede its closed or merged history. Repository identity
   follows `branch.<name>.pushRemote`, `remote.pushDefault`, the branch's fetch
   remote, then `origin`; ambiguous push URLs or unavailable identities fail.
+  SSH URLs use `ssh -G` to resolve configured host aliases before API lookup;
+  this reads SSH configuration without opening a connection.
   Origin's CLI adapter is not included.
 - `skills/poteto-mode/scripts/watch-pr/watch-pr.mjs`: optional GitHub PR watcher.
   Review threads are paginated so unresolved findings beyond the first 100 are
