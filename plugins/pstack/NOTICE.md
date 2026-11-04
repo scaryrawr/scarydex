@@ -137,3 +137,5 @@ expansion, enumerate region combinations lazily, preserve digit-leading TLC
 identifiers, and distinguish generated labels from custom-view validation.
 Generated wrapper modules avoid local module names. Mermaid outputs define their
 phase, failure, path and loop classes, and the CLI flushes captured reports before exit.
+Wrapper-internal operators are allocated against SANY's complete symbol inventory,
+including inherited definitions and declarations, with matching generated configs.

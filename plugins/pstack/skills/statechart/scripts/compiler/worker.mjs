@@ -1616,25 +1616,42 @@ function configText(sections, extra) {
   lines.push(...extra);
   return lines.join("\n");
 }
-var boundRun = (module, wrapper) => [
+function compilerNames(reserved) {
+  const taken = new Set(reserved);
+  const fresh = (base) => {
+    let name = base;
+    for (let suffix = 1; taken.has(name); suffix++) name = `${base}_${suffix}`;
+    taken.add(name);
+    return name;
+  };
+  return {
+    tlc: fresh("ChartTLC"),
+    naturals: fresh("ChartNaturals"),
+    bound: fresh("ChartBound"),
+    budget: fresh("ChartBudget"),
+    broken: fresh("ChartBroken"),
+    mark: fresh("ChartMark")
+  };
+}
+var boundRun = (module, wrapper, names2) => [
   `---- MODULE ${wrapper} ----`,
   `EXTENDS ${module}`,
-  `ChartTLC == INSTANCE TLC`,
-  `ChartNaturals == INSTANCE Naturals`,
-  `ChartBound == ChartNaturals!<(ChartTLC!TLCGet("distinct"), ${RERUN_STATES})`,
+  `${names2.tlc} == INSTANCE TLC`,
+  `${names2.naturals} == INSTANCE Naturals`,
+  `${names2.bound} == ${names2.naturals}!<(${names2.tlc}!TLCGet("distinct"), ${RERUN_STATES})`,
   `====`
 ].join("\n");
-function chartRun({ module, variables, invariants }, tag, wrapper) {
+function chartRun({ module, variables, invariants }, tag, wrapper, names2) {
   const every = [];
   for (const name of invariants) every.push(`(IF ~${name} THEN {"${name}"} ELSE {}) \\cup `);
   return [
     `---- MODULE ${wrapper} ----`,
     `EXTENDS ${module}`,
-    `ChartTLC == INSTANCE TLC`,
-    `ChartNaturals == INSTANCE Naturals`,
-    `ChartBudget == ChartNaturals!<=(ChartTLC!TLCGet("distinct"), ${CHART_STATES})`,
-    `ChartBroken == ${every.join("")}{}`,
-    `ChartMark == ChartBroken = {} \\/ ChartTLC!PrintT(<<"${tag}", <<${variables.join(", ")}>>, ChartBroken>>)`,
+    `${names2.tlc} == INSTANCE TLC`,
+    `${names2.naturals} == INSTANCE Naturals`,
+    `${names2.budget} == ${names2.naturals}!<=(${names2.tlc}!TLCGet("distinct"), ${CHART_STATES})`,
+    `${names2.broken} == ${every.join("")}{}`,
+    `${names2.mark} == ${names2.broken} = {} \\/ ${names2.tlc}!PrintT(<<"${tag}", <<${variables.join(", ")}>>, ${names2.broken}>>)`,
     `====`
   ].join("\n");
 }
@@ -2287,6 +2304,12 @@ var textOf2 = (node, tag) => child(node, tag)?.text ?? "";
 var VARIABLE_KIND = "3";
 function readSany(xml) {
   const modules = child(parseXml(xml), "modules");
+  const names2 = /* @__PURE__ */ new Set();
+  const collectNames = (node) => {
+    if (node.tag === "uniquename") names2.add(node.text);
+    for (const nested of node.children) collectNames(nested);
+  };
+  if (modules) collectNames(modules);
   const symbols = /* @__PURE__ */ new Map();
   for (const entry of child(modules, "context")?.children ?? [])
     symbols.set(textOf2(entry, "UID"), entry.children[1]);
@@ -2307,7 +2330,7 @@ function readSany(xml) {
       variables.push({ uid: Number(uid), name });
   }
   variables.sort((a, b) => a.uid - b.uid);
-  return { variables: variables.map((v) => v.name), definitions };
+  return { variables: variables.map((v) => v.name), definitions, names: names2 };
 }
 function readSpec({
   module,
@@ -2711,6 +2734,7 @@ ${tail(xml)}`);
     };
     const boundedModule = wrapperName("ChartBound");
     const drawingModule = wrapperName("ChartRun");
+    const internal = compilerNames(/* @__PURE__ */ new Set([...sany.names, boundedModule, drawingModule]));
     const rules = stateRules(spec);
     const all = [...rules];
     for (const name of spec.properties) all.push({ kind: "property", name });
@@ -2735,7 +2759,7 @@ ${tail(xml)}`);
         if (invariants.length) extra.push(`INVARIANT ${invariants.join(" ")}`);
         if (properties.length) extra.push(`PROPERTY ${properties.join(" ")}`);
         const bounded = first !== void 0 && !states.complete;
-        if (bounded) extra.push("CONSTRAINT ChartBound");
+        if (bounded) extra.push(`CONSTRAINT ${internal.bound}`);
         const r = await runJava(name, "tlc2.TLC", [
           "-tool",
           ...PINNED_FLAGS,
@@ -2780,7 +2804,7 @@ ${tail(r)}`
       for (const rule of all) if (!verdicts.has(ruleKey(rule))) decide(rule, "not checked");
       return { first, stop, states };
     };
-    fs.writeFileSync(path.join(dir, `${boundedModule}.tla`), boundRun(spec.module, boundedModule));
+    fs.writeFileSync(path.join(dir, `${boundedModule}.tla`), boundRun(spec.module, boundedModule, internal));
     const judged = await judge();
     const exit = exitClass(judged.first.status);
     const failed = (r) => new Error(`TLC could not check ${specFile2} (exit ${r.status}):
@@ -2812,12 +2836,12 @@ ${stopOf(r).message}`);
     };
     if (judged.states.distinct <= CHART_STATES) {
       const tag = `chart-${randomBytes(16).toString("hex")}`;
-      fs.writeFileSync(path.join(dir, `${drawingModule}.tla`), chartRun(spec, tag, drawingModule));
+      fs.writeFileSync(path.join(dir, `${drawingModule}.tla`), chartRun(spec, tag, drawingModule, internal));
       const drawn2 = await runJava(drawingModule, "tlc2.TLC", [
         "-tool",
         ...PINNED_FLAGS,
         "-deadlock",
-        ...config(drawingModule, spec.written, ["INVARIANT ChartMark", "CONSTRAINT ChartBudget"]),
+        ...config(drawingModule, spec.written, [`INVARIANT ${internal.mark}`, `CONSTRAINT ${internal.budget}`]),
         "-dump",
         "dot,actionlabels",
         path.join(dir, "graph"),

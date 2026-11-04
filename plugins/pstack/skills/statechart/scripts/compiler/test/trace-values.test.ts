@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { test } from "node:test";
 import { EC } from "../ir.ts";
 import { readTrace } from "../frontends/trace.ts";
+import { readSany } from "../frontends/spec.ts";
 import { parseValue } from "../frontends/value.ts";
 import { checkView, json } from "../frontends/view.ts";
 import { inspect } from "node:util";
@@ -86,4 +87,19 @@ test("view exports and phase colors are validated before compilation", () => {
   assert.throws(() => checkView({ colors: { phase: "red" } }, inspect), /color/);
   const view = checkView({ group: () => "phase", colors: { phase: "blue" } }, inspect);
   assert.equal(view.group?.({ x: parseValue("1..3") }), "phase");
+});
+
+test("SANY name inventory includes inherited symbols and nested instance names", () => {
+  const sany = readSany(`<modules><RootModule>Example</RootModule><context>
+    <entry><UID>1</UID><ModuleNode><uniquename>Example</uniquename>
+      <OpDeclNodeRef><UID>2</UID></OpDeclNodeRef></ModuleNode></entry>
+    <entry><UID>2</UID><OpDeclNode><uniquename>ChartMark</uniquename><kind>3</kind></OpDeclNode></entry>
+    <entry><UID>3</UID><UserDefinedOpKind><uniquename>ChartBudget</uniquename>
+      <params><FormalParamNode><uniquename>ChartTLC</uniquename></FormalParamNode></params>
+      </UserDefinedOpKind></entry>
+    <entry><UID>4</UID><OpDeclNode><uniquename>ChartBroken</uniquename><kind>2</kind></OpDeclNode></entry>
+  </context></modules>`);
+  assert.deepEqual(sany.variables, ["ChartMark"]);
+  assert.deepEqual([...sany.definitions.keys()], ["ChartMark"]);
+  assert.deepEqual([...sany.names].sort(), ["ChartBroken", "ChartBudget", "ChartMark", "ChartTLC", "Example"]);
 });

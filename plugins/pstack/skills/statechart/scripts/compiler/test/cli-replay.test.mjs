@@ -110,6 +110,62 @@ for (const name of ["ChartBound", "ChartRun"]) {
   });
 }
 
+const internalNames = ["ChartTLC", "ChartNaturals", "ChartBudget", "ChartBroken", "ChartMark", "ChartBound"];
+for (const scenario of [
+  { name: "helper operator", declarations: [{ name: "ChartMark", kind: "UserDefinedOpKind" }] },
+  { name: "variable", rename: ["playback", "ChartMark"], declarations: [] },
+  { name: "invariant", rename: ["TypeOK", "ChartBudget"], declarations: [] },
+  { name: "constant", declarations: [{ name: "ChartBroken", kind: "OpDeclNode" }] },
+  {
+    name: "inherited helpers with occupied suffixes",
+    declarations: internalNames.flatMap(name => [name, `${name}_1`, `${name}_2`]
+      .map(name => ({ name, kind: "UserDefinedOpKind" }))),
+  },
+]) {
+  test(`bundled wrappers preserve ${scenario.name} names using a fake-Java namespace guard`, { skip: !posix }, () => {
+    const root = fixture();
+    try {
+      const source = cases[0];
+      const files = Object.fromEntries(Object.entries(source.files).map(([name, text]) => [
+        name, scenario.rename ? text.replaceAll(scenario.rename[0], scenario.rename[1]) : text,
+      ]));
+      const declarations = scenario.declarations.map(({ name, kind }, i) =>
+        `<entry><UID>${900000 + i}</UID><${kind}><uniquename>${name}</uniquename></${kind}></entry>`,
+      ).join("");
+      files["sany.out"] = files["sany.out"].replace("</context>", `${declarations}</context>`);
+      const names = scenario.declarations.map(({ name }) => name);
+      if (scenario.rename) names.push(scenario.rename[1]);
+      files[`${source.name}.tla`] = files[`${source.name}.tla`].replace(
+        "\n====",
+        "\n" + scenario.declarations.map(({ name, kind }) =>
+          kind === "OpDeclNode" ? `CONSTANT ${name}` : `${name} == TRUE`,
+        ).join("\n") + "\n====",
+      );
+      files["namespace.json"] = JSON.stringify(names);
+      const { directory, java, jar } = prepare(root, { name: source.name, files });
+      const out = path.join(root, "out");
+      const result = spawnSync("node", [
+        cli, path.join(directory, `${source.name}.tla`),
+        "--view", path.join(directory, "view.mjs"), "--out", out,
+      ], {
+        encoding: "utf8", timeout: 15000,
+        env: { ...process.env, JAVA: java, TLA2TOOLS: jar, STATECHART_REPLAY: directory },
+      });
+      assert.equal(result.error, undefined);
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(result.stderr, "");
+      assert.equal(fs.readFileSync(path.join(out, "report.md"), "utf8"), files["report.md"]);
+      const audit = fs.readFileSync(path.join(directory, "wrapper-audit.jsonl"), "utf8")
+        .trim().split("\n").map(line => JSON.parse(line));
+      assert.deepEqual(audit.map(({ kind }) => kind), ["bound", "drawing"]);
+      for (const wrapper of audit)
+        assert.ok(wrapper.names.every(name => !names.includes(name)));
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+}
+
 test("the bundled compiler flushes a report larger than a pipe before exiting", { skip: !posix }, () => {
   const root = fixture();
   try {
