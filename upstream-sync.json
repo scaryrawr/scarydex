@@ -2950,7 +2950,7 @@
       "source": "cursor",
       "plugin": "pstack",
       "path": "pstack",
-      "reviewedThrough": "7a8ee82f49b046335d11e400e602ef7c1a467c5b",
+      "reviewedThrough": "e32b6a2b97565ec45b49a06c010bac3153c22b2b",
       "reviews": [
         {
           "commit": "12d587dfb20741cafc376c42c696c5f6e2a64487",
@@ -12361,6 +12361,376 @@
             "https://github.com/cursor/plugins/commit/7a8ee82f49b046335d11e400e602ef7c1a467c5b",
             "Compared every parent: 23ab063af02bb9b9c97936b0563879dd6bf21a05. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
             "pstack-audit-04.txt preserves every parent and exact path. No additional marketplace plugin, MCP server or harness packaging is imported."
+          ]
+        },
+        {
+          "commit": "8db7971740c7768981c271232c46fec288c5d1cc",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/business-central/CHANGELOG.md",
+            "third_party/business-central/README.md",
+            "third_party/business-central/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/8db7971740c7768981c271232c46fec288c5d1cc",
+            "Compared every parent: 7a8ee82f49b046335d11e400e602ef7c1a467c5b. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "0f77cd5dab1e006de02d6ad221d5620de026473a",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/business-central/.cursor-plugin/plugin.json",
+            "third_party/business-central/CHANGELOG.md",
+            "third_party/business-central/LICENSE",
+            "third_party/business-central/README.md",
+            "third_party/business-central/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/0f77cd5dab1e006de02d6ad221d5620de026473a",
+            "Compared every parent: 23ab063af02bb9b9c97936b0563879dd6bf21a05, 8db7971740c7768981c271232c46fec288c5d1cc. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "760b5966c60c147907f4e6a3ceb9264dd6a91dc2",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/business-central/.cursor-plugin/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/760b5966c60c147907f4e6a3ceb9264dd6a91dc2",
+            "Compared every parent: 0f77cd5dab1e006de02d6ad221d5620de026473a. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "b1695c2019b650ca5d4a66a6a6d805233c806d6d",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/business-central/.cursor-plugin/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/b1695c2019b650ca5d4a66a6a6d805233c806d6d",
+            "Compared every parent: 0f77cd5dab1e006de02d6ad221d5620de026473a, 760b5966c60c147907f4e6a3ceb9264dd6a91dc2. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "009a20871e609f81c5d71c5310598b045488083b",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/gopuff/.cursor-plugin/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/009a20871e609f81c5d71c5310598b045488083b",
+            "Compared every parent: 0f77cd5dab1e006de02d6ad221d5620de026473a. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "23ce314004a470a41bcc534ee1e4f0aff9ad1ae0",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/gopuff/.cursor-plugin/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/23ce314004a470a41bcc534ee1e4f0aff9ad1ae0",
+            "Compared every parent: 009a20871e609f81c5d71c5310598b045488083b. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "6f6c9e62585436f69e560138d46709026fa5c69f",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "third_party/business-central/.cursor-plugin/plugin.json",
+            "third_party/gopuff/.cursor-plugin/plugin.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/6f6c9e62585436f69e560138d46709026fa5c69f",
+            "Compared every parent: b1695c2019b650ca5d4a66a6a6d805233c806d6d, 23ce314004a470a41bcc534ee1e4f0aff9ad1ae0. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "e57ee102fe91181a4fbaf61f0e5cbe5aaad6ad45",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/questrade/.cursor-plugin/plugin.json",
+            "third_party/questrade/CHANGELOG.md",
+            "third_party/questrade/LICENSE",
+            "third_party/questrade/README.md",
+            "third_party/questrade/assets/logo.png",
+            "third_party/questrade/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/e57ee102fe91181a4fbaf61f0e5cbe5aaad6ad45",
+            "Compared every parent: b1695c2019b650ca5d4a66a6a6d805233c806d6d. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "1ba91fc25c0977741dd0e267849e6234b037ed0a",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/gopuff/.cursor-plugin/plugin.json",
+            "third_party/questrade/.cursor-plugin/plugin.json",
+            "third_party/questrade/CHANGELOG.md",
+            "third_party/questrade/LICENSE",
+            "third_party/questrade/README.md",
+            "third_party/questrade/assets/logo.png",
+            "third_party/questrade/mcp.json"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/1ba91fc25c0977741dd0e267849e6234b037ed0a",
+            "Compared every parent: 6f6c9e62585436f69e560138d46709026fa5c69f, e57ee102fe91181a4fbaf61f0e5cbe5aaad6ad45. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "87fe307c7fd9fbabc695c419a9278ecd04a6c7b7",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/gopuff/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/87fe307c7fd9fbabc695c419a9278ecd04a6c7b7",
+            "Compared every parent: 1ba91fc25c0977741dd0e267849e6234b037ed0a. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "4dd1d05818d19792e7cd6e818f1667f95f7e1dbe",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/gopuff/assets/logo.png"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/4dd1d05818d19792e7cd6e818f1667f95f7e1dbe",
+            "Compared every parent: 1ba91fc25c0977741dd0e267849e6234b037ed0a, 87fe307c7fd9fbabc695c419a9278ecd04a6c7b7. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "111ee2eea97ec7e1ee3c0f912e944bb54ca6addf",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/lark-base/.cursor-plugin/plugin.json",
+            "third_party/lark-base/CHANGELOG.md",
+            "third_party/lark-base/LICENSE",
+            "third_party/lark-base/README.md",
+            "third_party/lark-base/assets/logo.png",
+            "third_party/lark-base/mcp.json",
+            "third_party/lark/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/111ee2eea97ec7e1ee3c0f912e944bb54ca6addf",
+            "Compared every parent: 4dd1d05818d19792e7cd6e818f1667f95f7e1dbe. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "ae5650febf4320793844c12c4adaa937f417f8da",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            ".cursor-plugin/marketplace.json",
+            "README.md",
+            "third_party/lark-base/.cursor-plugin/plugin.json",
+            "third_party/lark-base/CHANGELOG.md",
+            "third_party/lark-base/LICENSE",
+            "third_party/lark-base/README.md",
+            "third_party/lark-base/assets/logo.png",
+            "third_party/lark-base/mcp.json",
+            "third_party/lark/README.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/ae5650febf4320793844c12c4adaa937f417f8da",
+            "Compared every parent: 4dd1d05818d19792e7cd6e818f1667f95f7e1dbe, 111ee2eea97ec7e1ee3c0f912e944bb54ca6addf. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "4cdb7b0086a4ecda0803d2c254c523d95a2164d9",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/tailscale/.cursor-plugin/plugin.json",
+            "third_party/tailscale/CHANGELOG.md",
+            "third_party/tailscale/skills/tailscale-setup/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/4cdb7b0086a4ecda0803d2c254c523d95a2164d9",
+            "Compared every parent: ae5650febf4320793844c12c4adaa937f417f8da. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "6ea74587e384e1a8035c09ae33a46fe3f881eb9b",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/tailscale/.cursor-plugin/plugin.json",
+            "third_party/tailscale/CHANGELOG.md",
+            "third_party/tailscale/skills/tailscale-setup/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/6ea74587e384e1a8035c09ae33a46fe3f881eb9b",
+            "Compared every parent: ae5650febf4320793844c12c4adaa937f417f8da, 4cdb7b0086a4ecda0803d2c254c523d95a2164d9. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "8e0a88edfb8373c06199081068de32f75ff9f6c9",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/README.md",
+            "third_party/x/mcp.json",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/8e0a88edfb8373c06199081068de32f75ff9f6c9",
+            "Compared every parent: ae5650febf4320793844c12c4adaa937f417f8da. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "b7716e9a28953fa10fc5b8bfef2568dac7891aad",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/b7716e9a28953fa10fc5b8bfef2568dac7891aad",
+            "Compared every parent: 8e0a88edfb8373c06199081068de32f75ff9f6c9. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "e5a88cb493296a082128570d1a8cda4140517549",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/e5a88cb493296a082128570d1a8cda4140517549",
+            "Compared every parent: b7716e9a28953fa10fc5b8bfef2568dac7891aad. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "e9ad1b7ac8d8ddb66f4fb91c689ad5085c96bbef",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/e9ad1b7ac8d8ddb66f4fb91c689ad5085c96bbef",
+            "Compared every parent: e5a88cb493296a082128570d1a8cda4140517549. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "e32b6a2b97565ec45b49a06c010bac3153c22b2b",
+          "disposition": "excluded",
+          "reason": "Every-parent exact-path review contains only Business Central, Gopuff, Questrade, Lark Base/Lark, Tailscale or X integrations, their listings and their assets. No pstack file or shared pstack runtime dependency changes. These separately configured MCP products and host approval assumptions remain outside the eight-plugin Codex marketplace.",
+          "paths": [
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/e32b6a2b97565ec45b49a06c010bac3153c22b2b",
+            "Compared every parent: e9ad1b7ac8d8ddb66f4fb91c689ad5085c96bbef. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
+            "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
+            "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
           ]
         }
       ]
