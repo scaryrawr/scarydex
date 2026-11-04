@@ -153,6 +153,15 @@ assert.throws(() => parseAgentId("not-an-id"), /Invalid agent id: not-an-id/);
   assert.equal(result.status, 0, result.stderr);
 });
 
+test("reflect local overrides preserve dependencies without modifying the installed cache", async () => {
+  const reflect = await readFile(new URL("../plugins/pstack/skills/reflect/SKILL.md", import.meta.url), "utf8");
+  assert.match(reflect, /Never edit a skill in an installed plugin cache/);
+  assert.match(reflect, /Before approval, show.*dependencies/);
+  assert.match(reflect, /transitive local dependencies.*shared references.*sibling skills/);
+  assert.match(reflect, /rebase.*all copied files/);
+  assert.match(reflect, /Verify every local link and script path/);
+});
+
 test("new skills remain portable and ketchup cannot manufacture visual evidence", async () => {
   const skill = async name => readFile(new URL(`../plugins/pstack/skills/${name}/SKILL.md`, import.meta.url), "utf8");
 
