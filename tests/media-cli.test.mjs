@@ -83,6 +83,9 @@ test("malformed CLI arguments fail before network or file writes", async () => {
     ["speech", { input: "hello", output: path.join(cwd, "bad.wav"), speed: 0 }, /Invalid speech arguments/],
     ["image", { prompt: "test", output: path.join(cwd, "bad.png"), mask: "source.png" }, /require source images/],
     ["image", { prompt: "test", output: path.join(cwd, "bad.png"), variants: 8 }, /Invalid image arguments/],
+    ["transcribe", { input: "", output: path.join(cwd, "bad.txt") }, /Invalid transcription arguments/],
+    ["transcribe", { input: path.join(cwd, "missing.wav"), output: "" }, /Invalid transcription arguments/],
+    ["transcribe", { input: path.join(cwd, "missing.wav"), output: path.join(cwd, "bad.txt"), model: "" }, /Invalid transcription arguments/],
     ["unknown", {}, /Unknown operation/],
   ]) {
     const result = invoke(operation, args); assert.equal(result.status, 1); assert.match(result.stderr, expected); assert.equal(result.stdout, "");
