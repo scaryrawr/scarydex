@@ -4189,7 +4189,7 @@ function listPullRequests({
       "--limit",
       "1000",
       "--json",
-      ["number", query.stateField, query.headField, query.baseField].join(
+      ["number", query.stateField, query.headField, query.baseField, "headRepository"].join(
         ","
       )
     ],
@@ -4212,21 +4212,52 @@ function listPullRequests({
     const state = typeof status === "string" ? query.states.get(status) ?? null : null;
     const head = isRecord(row) ? row[query.headField] : void 0;
     const base = isRecord(row) ? row[query.baseField] : void 0;
-    if (!isRecord(row) || typeof row.number !== "number" || !Number.isSafeInteger(row.number) || row.number < 1 || state === null || typeof head !== "string" || head.length === 0 || typeof base !== "string" || base.length === 0) {
+    const repository = isRecord(row) && isRecord(row.headRepository) ? row.headRepository.nameWithOwner : void 0;
+    if (!isRecord(row) || typeof row.number !== "number" || !Number.isSafeInteger(row.number) || row.number < 1 || state === null || typeof head !== "string" || head.length === 0 || typeof base !== "string" || base.length === 0 || typeof repository !== "string" || !/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(repository)) {
       throw new UserError(`${command} output has an invalid PR row`);
     }
     if (filter === "--head" && head !== branch || filter === "--base" && base !== branch) {
       throw new UserError(`${command} returned a PR outside the requested branch`);
     }
-    return { pr: row.number, state, branch: head, base };
+    return { pr: row.number, state, branch: head, base, repository: repository.toLowerCase() };
   });
+}
+function gitConfig(repo, key) {
+  const result = spawnSync("git", ["config", "--get", key], {
+    cwd: repo,
+    encoding: "utf8"
+  });
+  if (result.status === 1) return void 0;
+  if (result.status !== 0 || !result.stdout.trim()) {
+    throw new UserError(`cannot read ${key}: ${result.error?.message ?? result.stderr.trim()}`);
+  }
+  return result.stdout.trim();
+}
+function branchRepository({ branch, forge, repo }) {
+  const remote = gitConfig(repo, `branch.${branch}.pushRemote`) ?? gitConfig(repo, "remote.pushDefault") ?? gitConfig(repo, `branch.${branch}.remote`) ?? "origin";
+  const urls = runGit({ args: ["remote", "get-url", "--push", "--all", remote], repo }).split("\n");
+  if (urls.length !== 1 || !urls[0]) {
+    throw new UserError(`branch ${branch} needs exactly one push URL for remote ${remote}`);
+  }
+  const repository = runTool({
+    command: forge,
+    args: ["repo", "view", urls[0], "--json", "nameWithOwner", "--jq", ".nameWithOwner"],
+    repo
+  }).trim();
+  if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(repository)) {
+    throw new UserError(`cannot identify the head repository for branch ${branch}`);
+  }
+  return repository.toLowerCase();
 }
 function branchPullRequest({
   branch,
   forge,
   repo
 }) {
-  const rows = listPullRequests({ filter: "--head", branch, forge, repo });
+  const repository = branchRepository({ branch, forge, repo });
+  const rows = listPullRequests({ filter: "--head", branch, forge, repo }).filter(
+    (row2) => row2.repository === repository
+  );
   const active = rows.filter((row2) => row2.state === "OPEN");
   const candidates = active.length > 0 ? active : rows;
   const row = candidates[0];
@@ -4248,7 +4279,7 @@ function openChildren({
   repo
 }) {
   return listPullRequests({ filter: "--base", branch, forge, repo }).filter(
-    (row) => row.state === "OPEN"
+    (row) => row.state === "OPEN" && row.repository === branchRepository({ branch: row.branch, forge, repo })
   );
 }
 function runGit({

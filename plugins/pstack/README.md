@@ -75,6 +75,10 @@ Resolve these paths from the installed plugin root:
 - `skills/poteto-mode/scripts/orch/orch.mjs`: optional durable program store.
   `frontier set --repo <checkout> [--prs <n,...>]` discovers a linear GitHub PR
   base chain, pins local branch SHAs, and checks an optional PR order pin.
+  PR heads must match each local branch's intended push repository before an
+  active PR can supersede its closed or merged history. Repository identity
+  follows `branch.<name>.pushRemote`, `remote.pushDefault`, the branch's fetch
+  remote, then `origin`; ambiguous push URLs or unavailable identities fail.
   Origin's CLI adapter is not included.
 - `skills/poteto-mode/scripts/watch-pr/watch-pr.mjs`: optional GitHub PR watcher.
   Review threads are paginated so unresolved findings beyond the first 100 are

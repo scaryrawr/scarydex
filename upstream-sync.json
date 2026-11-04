@@ -9188,7 +9188,7 @@
         {
           "commit": "b1a129891c49f6b84d0613477f5d021a0782b5e0",
           "disposition": "excluded",
-          "reason": "Only separately configured third-party MCP plugins, source marketplace listings and mirrored Claude harness packaging change. No pstack import or runtime dependency changes.",
+          "reason": "Only bumps pstack from 0.15.31 to 0.15.32 in four Cursor and Claude host manifests. Their packaging is excluded; the Codex-native manifest is versioned independently for the portable changes.",
           "paths": [
             "harness/pstack/claude-code/.claude-plugin/plugin.json",
             "harness/pstack/claude-code/plugin.json",
@@ -9199,7 +9199,7 @@
           "evidence": [
             "https://github.com/cursor/plugins/commit/b1a129891c49f6b84d0613477f5d021a0782b5e0",
             "Compared every parent: 3c0fdb4e76293ebcdaed16f0d096c788bd3b49b2. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
-            "Inspected every parent comparison, including Databricks reverts and Tailscale setup documentation. The fixed Codex inventory and runtime mapping remain authoritative."
+            "Inspected all four version-only manifest hunks; no skill, runtime, third-party integration or dependency changes occur."
           ]
         },
         {

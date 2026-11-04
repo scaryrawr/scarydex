@@ -92,6 +92,7 @@ async function makeGitStack(directory: string): Promise<{
   git({ repo, args: ["config", "user.name", "Orch Test"] });
   git({ repo, args: ["config", "user.email", "orch@example.com"] });
   await writeFile(join(repo, "main.txt"), "main\n");
+  git({ repo, args: ["remote", "add", "origin", "https://github.com/example/project.git"] });
   git({ repo, args: ["add", "."] });
   git({ repo, args: ["commit", "-m", "main"] });
 
@@ -130,17 +131,19 @@ const FORGE_FIXTURES: Readonly<
         state: FixtureState;
         head: string;
         base: string;
+        repository?: string;
       }) => Record<string, unknown>;
     }
   >
 > = {
   gh: {
-    fields: "number,state,headRefName,baseRefName",
-    row: ({ number, state, head, base }) => ({
+    fields: "number,state,headRefName,baseRefName,headRepository",
+    row: ({ number, state, head, base, repository = "example/project" }) => ({
       number,
       state: state === "draft" ? "OPEN" : state.toUpperCase(),
       headRefName: head,
       baseRefName: base,
+      headRepository: { nameWithOwner: repository },
     }),
   },
 };
@@ -151,6 +154,7 @@ function forgeRows(
     state: FixtureState;
     head: string;
     base: string;
+    repository?: string;
   }[]
 ): string {
   return JSON.stringify(prs.map((pr) => FORGE_FIXTURES[forge].row(pr)));
@@ -160,11 +164,13 @@ async function withFakeForge<T>({
   forge,
   operation,
   currentRows,
+  childRows,
 }: {
   directory: string;
   forge: Forge;
   operation: () => Promise<T>;
   currentRows?: string;
+  childRows?: string;
 }): Promise<T> {
   const bin = join(directory, "bin");
   const outputPath = join(directory, "forge-output.txt");
@@ -196,6 +202,12 @@ if [ "$(pwd -P)" != "${realpathSync(join(directory, "repo"))}" ]; then
   exit 2
 fi
 case "$*" in
+  "repo view https://github.com/example/project.git --json nameWithOwner --jq .nameWithOwner")
+    printf 'example/project\\n'
+    ;;
+  "repo view git@github.com:contributor/project.git --json nameWithOwner --jq .nameWithOwner")
+    printf 'contributor/project\\n'
+    ;;
   "${list("--head", "stack/open")}")
     cat "${outputPath}"
     ;;
@@ -206,7 +218,7 @@ case "$*" in
     printf '%s\\n' '${forgeRows(forge, [{ number: 10, state: "merged", head: "stack/merged", base: "main" }])}'
     ;;
   "${list("--base", "stack/open")}")
-    printf '%s\\n' '${forgeRows(forge, [
+    printf '%s\\n' '${childRows ?? forgeRows(forge, [
       { number: 14, state: "draft", head: "stack/draft", base: "stack/open" },
       {
         number: 15,
@@ -651,6 +663,103 @@ describe("Store", () => {
         },
       });
     });
+
+  it("does not prefer a fork's active PR over the intended remote's closed history", async () => {
+    const { directory, store } = await initializedStore();
+    const stack = await makeGitStack(directory);
+    await withFakeForge({
+      directory,
+      forge: "gh",
+      currentRows: forgeRows("gh", [
+        { number: 8, state: "closed", head: "stack/open", base: "stack/closed" },
+        { number: 11, state: "open", head: "stack/open", base: "main", repository: "contributor/project" },
+      ]),
+      operation: async () => {
+        const frontier = await store.frontier.set({ repo: stack.repo });
+        expect(frontier.prs.map(row => row.pr)).toEqual([10, 13, 8, 14]);
+        expect(frontier.prs[2]?.sha).toBe(stack.openSha);
+        expect(frontier.prs[2]?.state).toBe("CLOSED");
+        const bundledStore = join(directory, "bundled-store");
+        expect(runCli(["--store", bundledStore, "--json", "init"]).code).toBe(0);
+        const result = runCli(["--store", bundledStore, "--json", "frontier", "set", "--repo", stack.repo]);
+        expect(result.code).toBe(0);
+        expect(JSON.parse(result.stdout)).toEqual(frontier);
+      },
+    });
+  });
+
+  it("ignores same-name fork candidates before checking active PR ambiguity", async () => {
+    const { directory, store } = await initializedStore();
+    const stack = await makeGitStack(directory);
+    await withFakeForge({
+      directory,
+      forge: "gh",
+      currentRows: forgeRows("gh", [
+        { number: 11, state: "open", head: "stack/open", base: "stack/closed", repository: "Example/Project" },
+        { number: 12, state: "open", head: "stack/open", base: "main", repository: "contributor/project" },
+      ]),
+      operation: async () => {
+        const frontier = await store.frontier.set({ repo: stack.repo });
+        expect(frontier.prs.map(row => row.pr)).toEqual([10, 13, 11, 14]);
+      },
+    });
+  });
+
+  it("uses a branch push remote in preference to its fetch remote", async () => {
+    const { directory, store } = await initializedStore();
+    const stack = await makeGitStack(directory);
+    git({ repo: stack.repo, args: ["remote", "add", "fork", "git@github.com:contributor/project.git"] });
+    git({ repo: stack.repo, args: ["config", "branch.stack/open.remote", "origin"] });
+    git({ repo: stack.repo, args: ["config", "branch.stack/open.pushRemote", "fork"] });
+    await withFakeForge({
+      directory,
+      forge: "gh",
+      currentRows: forgeRows("gh", [
+        { number: 11, state: "open", head: "stack/open", base: "stack/closed", repository: "contributor/project" },
+        { number: 12, state: "open", head: "stack/open", base: "main" },
+      ]),
+      operation: async () => {
+        const frontier = await store.frontier.set({ repo: stack.repo });
+        expect(frontier.prs.map(row => row.pr)).toEqual([10, 13, 11, 14]);
+      },
+    });
+  });
+
+  it("ignores fork children before checking that the stack is linear", async () => {
+    const { directory, store } = await initializedStore();
+    const stack = await makeGitStack(directory);
+    await withFakeForge({
+      directory,
+      forge: "gh",
+      childRows: forgeRows("gh", [
+        { number: 14, state: "open", head: "stack/draft", base: "stack/open" },
+        { number: 15, state: "open", head: "stack/foreign", base: "stack/open", repository: "contributor/project" },
+      ]),
+      operation: async () => {
+        const frontier = await store.frontier.set({ repo: stack.repo });
+        expect(frontier.prs.map(row => row.pr)).toEqual([10, 13, 11, 14]);
+      },
+    });
+  });
+
+  it("rejects PR rows whose head repository identity is unavailable", async () => {
+    const { directory, store } = await initializedStore();
+    const stack = await makeGitStack(directory);
+    await withFakeForge({
+      directory,
+      forge: "gh",
+      currentRows: JSON.stringify([{
+        number: 11,
+        state: "OPEN",
+        headRefName: "stack/open",
+        baseRefName: "main",
+        headRepository: null,
+      }]),
+      operation: async () => {
+        await expect(store.frontier.set({ repo: stack.repo })).rejects.toThrow("output has an invalid PR row");
+      },
+    });
+  });
 
   it("rejects malformed TSV, verdict, frontier, and inbox data", async () => {
     const { directory, store } = await initializedStore();
