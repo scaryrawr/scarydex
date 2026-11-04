@@ -28,12 +28,11 @@ const UNSAFE_PATH = /[\x00-\x1f\x7f\\]/;
 
 const PR_BRANCH = /^upstream-sync\/[a-zA-Z0-9][a-zA-Z0-9._/-]*$/;
 
-// This policy helper runs in workflow jobs that never install dependencies, so its
-// boundary predicates stay dependency-free instead of using a schema library.
-// eslint-disable-next-line anti-slop/no-runtime-typeof -- dependency-free boundary predicate; see check-marketplace's install-free job guard
+// Keep the local review CLI usable without installing repository dependencies.
+// eslint-disable-next-line anti-slop/no-runtime-typeof -- dependency-free boundary predicate for external review data
 const isText = value => typeof value === "string";
 
-// eslint-disable-next-line anti-slop/no-runtime-typeof -- dependency-free boundary predicate; see check-marketplace's install-free job guard
+// eslint-disable-next-line anti-slop/no-runtime-typeof -- dependency-free boundary predicate for external review data
 const plainObject = value => typeof value === "object" && value !== null && !Array.isArray(value);
 
 const openPull = (pull, repository, publisher) => pull.state === "open" &&

@@ -5,8 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
 import { TRACKS, SOURCES, LIMITS, hasOpenProposal, verifiedGitArguments, skipEmptyPlan } from "../tools/upstream-sync.mjs";
-import { parse } from "yaml";
-import { validateRepoSkills, validateUpstreamSetup } from "../tools/check-marketplace.mjs";
+import { validateRepoSkills, validateUpstreamRegistry } from "../tools/check-marketplace.mjs";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname);
 
@@ -427,14 +426,7 @@ test("CLI plans deterministically with two pstack sources and integrated, not co
   const output = path.join(f.directory, "saved.json");
   assert.match(cli(f, "plan", ["--scarypilot", f.scarypilot, "--cursor", f.cursor, "--output", output], 1), /Invalid CLI option: --output/);
   assert.equal(existsSync(output), false);
-  const workflow = parse(readFileSync(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
-  const preparation = workflow.jobs.agent.steps.find(step => step.name === "Prepare full upstream snapshots and immutable plan");
-  const command = preparation.run.slice(preparation.run.indexOf("set -o noclobber"), preparation.run.indexOf('mkdir -p "$RUNNER_TEMP'));
-
-  const localCommand = command.replace("node tools/upstream-sync.mjs plan", `node tools/upstream-sync.mjs plan --root ${JSON.stringify(f.local)}`)
-    .replaceAll("/tmp/gh-aw/upstream-sync/scarypilot", JSON.stringify(f.scarypilot))
-    .replaceAll("/tmp/gh-aw/upstream-sync/cursor", JSON.stringify(f.cursor))
-    .replaceAll("/tmp/gh-aw/upstream-sync/plan.json", JSON.stringify(output));
+  const localCommand = `set -o noclobber\nnode tools/upstream-sync.mjs plan --root ${JSON.stringify(f.local)} --scarypilot ${JSON.stringify(f.scarypilot)} --cursor ${JSON.stringify(f.cursor)} > ${JSON.stringify(output)}`;
 
   const execute = () => spawnSync("bash", ["-e", "-c", localCommand], { cwd: root, encoding: "utf8" });
   const saved = execute();
@@ -708,46 +700,6 @@ test("root-only and cosmetic registry proposals cannot publish without semantic 
   assert.match(cli(f, "verify", ["--plan", file, "--artifact-dir", artifact], 1), /semantic review registry/);
 });
 
-test("compiled runner setup creates safe outputs before existing-only noop append without inference", () => {
-  const f = fixture(), p = plan(f);
-  const workflow = parse(readFileSync(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
-  const steps = workflow.jobs.agent.steps;
-  const preparation = steps.findIndex(item => item.name === "Prepare full upstream snapshots and immutable plan");
-  assert.ok(steps.findIndex(item => item.id === "set-runtime-paths") < preparation);
-  const step = steps[preparation];
-  assert.equal(step.env.GH_AW_SAFE_OUTPUTS, "${{ steps.set-runtime-paths.outputs.GH_AW_SAFE_OUTPUTS }}");
-  const command = step.run.split("\n").find(line => line.includes(" skip-empty "));
-  assert.ok(command);
-  const setup = step.run.slice(step.run.indexOf('mkdir -p "$RUNNER_TEMP'));
-  assert.ok(setup.includes(': >> "$RUNNER_TEMP/gh-aw/safeoutputs/outputs.jsonl"'));
-  const runner = path.join(f.directory, "not-created");
-  const output = path.join(runner, "gh-aw/safeoutputs/outputs.jsonl");
-  const file = savePlan(f, p);
-
-  const execute = () => spawnSync("bash", ["-e", "-c", setup.replace("/tmp/gh-aw/upstream-sync/plan.json", JSON.stringify(file))], {
-    cwd: root, encoding: "utf8", env: { ...process.env, RUNNER_TEMP: runner, GH_AW_SAFE_OUTPUTS: output },
-  });
-
-  assert.equal(execute().status, 0);
-  assert.equal(readFileSync(output, "utf8"), "");
-
-  for (const track of p.tracks) track.commits = [];
-  savePlan(f, p);
-  const result = execute();
-  assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(readFileSync(output, "utf8")), { type: "noop", message: "No upstream changes to review" });
-  const repeated = execute();
-  assert.equal(repeated.status, 0, repeated.stderr);
-  assert.equal(readFileSync(output, "utf8").trim().split("\n").length, 2);
-
-  const missing = spawnSync("node", [helper, "skip-empty", "--plan", file], {
-    encoding: "utf8", env: { ...process.env, GH_AW_SAFE_OUTPUTS: "" },
-  });
-
-  assert.equal(missing.status, 1);
-  assert.match(missing.stderr, /absolute output path/);
-});
-
 test("pstack accepts an increasing Codex port revision and rejects unchanged or older versions", () => {
   const f = fixture();
   const manifest = "plugins/pstack/.codex-plugin/plugin.json";
@@ -836,46 +788,6 @@ test("duplicate detection ignores marker PRs unless publisher and source reposit
   ]) assert.equal(hasOpenProposal([pr], "scaryrawr/scarydex", "publisher"), false);
   assert.equal(hasOpenProposal([], "scaryrawr/scarydex", "publisher"), false);
   assert.throws(() => hasOpenProposal([], "scaryrawr/scarydex", ""), /publisher/);
-});
-
-test("compiled pre-activation duplicate check uses paginated API results and fails closed", async () => {
-  const workflow = parse(readFileSync(path.join(root, ".github/workflows/upstream-sync.lock.yml"), "utf8"));
-  const step = workflow.jobs.pre_activation.steps.find(step => step.id === "existing_proposal");
-  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-  const execute = new AsyncFunction("github", "context", "core", "process", step.with.script);
-
-  const trusted = {
-    state: "open", title: "[upstream-sync] Reviewed port", user: { login: "publisher" },
-    head: { ref: "upstream-sync/review", repo: { full_name: "scaryrawr/scarydex" } },
-  };
-
-  const context = { repo: { owner: "scaryrawr", repo: "scarydex" } };
-  const environment = { env: { GITHUB_WORKSPACE: root, PUBLISHER_LOGIN: "publisher" } };
-  const list = () => {};
-
-  for (const [pulls, expected] of [
-    [[], "true"],
-    [[{ ...trusted, user: { login: "outsider" } }], "true"],
-    [[{ ...trusted, head: { ...trusted.head, repo: { full_name: "publisher/fork" } } }], "true"],
-    [[{ ...trusted, title: "ordinary PR" }, trusted], "false"],
-  ]) {
-    const output = {};
-    await execute({
-      rest: { pulls: { list } },
-      paginate: async (method, params) => {
-        assert.equal(method, list);
-        assert.deepEqual(params, { owner: "scaryrawr", repo: "scarydex", state: "open", per_page: 100 });
-
-        return pulls;
-      },
-    }, context, { setOutput: (key, value) => { output[key] = value; } }, environment);
-    assert.equal(output.run_sync, expected);
-  }
-
-  await assert.rejects(execute({
-    rest: { pulls: { list } },
-    paginate: async () => { throw new Error("API unavailable"); },
-  }, context, { setOutput: () => assert.fail("Failure must not emit a success-shaped output") }, environment), /API unavailable/);
 });
 
 test("invalid UTF-8 Git paths fail closed before nonregular-file mode lookup", () => {
@@ -1023,7 +935,7 @@ test("publication rejects Git-invalid branch names even for patch-only proposals
   }
 });
 
-test("native repo skills validate independently without altering published skill count; compiled publication gate is credential-separated", async () => {
+test("native repo skills and manual upstream registry validate without agentic workflows", async () => {
   assert.equal(await validateRepoSkills(root), 2);
-  assert.deepEqual(await validateUpstreamSetup(root), { tracks: 7 });
+  assert.deepEqual(await validateUpstreamRegistry(root), { tracks: 7 });
 });

@@ -91,9 +91,8 @@ registration, and bundle hashes. `lint` runs Oxlint with this marketplace's own
 anti-slop plugin over code maintained here (`tools/`, `tests/`, `plugins/omlx-media/`);
 ported plugin content and dependency-free shipped skill runtimes stay verbatim under
 the port boundary. Schema validation uses TypeBox in code that runs after
-`bun install`; the trusted `tools/upstream-sync.mjs` policy helper stays dependency-free
-because workflow jobs execute it and everything it imports from bare checkouts, and
-`bun run check` walks that import closure and enforces it. Tests cover Codex hook wire formats,
+`bun install`; `bun run check` also validates the manual upstream review registry.
+Tests cover Codex hook wire formats,
 Anti-Slop’s bundled lint rules, OMLX domain behavior and CLI failures, and pstack
 contract/plan validation. `bun test` spawns `git` in temporary repositories, so run it
 unsandboxed: a sandbox kills those children and reports `actual: null` failures and
@@ -119,8 +118,8 @@ Original Cursor pstack was inspected as a comparison; Cursor-only UI and
 cloud-worker assumptions were not imported. See `THIRD_PARTY_NOTICES.md` and
 plugin-specific notices for attribution and licenses.
 
-The [upstream-sync setup](docs/upstream-sync.md) provides a weekly, review-only
-Codex port workflow, an incremental review registry, and offline safety checks.
-Activation requires two separately scoped Actions secrets. Repository-native
+The [manual upstream review guide](docs/upstream-sync.md) describes local
+Codex port planning, an incremental review registry, and offline safety checks.
+No GitHub Agentic Workflow is installed. Repository-native
 maintenance and documentation skills live in `.agents/skills`, outside the
 published plugin inventory.

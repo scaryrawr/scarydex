@@ -20,9 +20,9 @@ parity. Retain `.codex-plugin/plugin.json`; portable `plugin.json` is recommende
 upstream but the compatibility layout remains supported.
 
 Use concise summaries, not copied upstream documentation. Date external claims
-and link primary sources. The
-[setup references](../../../docs/upstream-sync.md#references) were checked on
-2026-10-03. Recheck changing client and gh-aw behavior before making new claims.
+and link primary sources. Recheck changing client behavior before making new
+claims. Describe upstream review as [manual maintenance](../../../docs/upstream-sync.md),
+not a scheduled GitHub Agentic Workflow.
 Repository-local skills live in `.agents/skills` and are not published plugins.
 
 Validate YAML and local links with `bun run check`. Keep links relative to the
