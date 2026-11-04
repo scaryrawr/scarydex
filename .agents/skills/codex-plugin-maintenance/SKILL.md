@@ -36,7 +36,7 @@ bun run build
 bun run check
 bun run typecheck
 bun test
-node tools/upstream-sync.mjs verify --plan /tmp/gh-aw/upstream-sync/plan.json
+node tools/upstream-sync.mjs verify --plan /tmp/upstream-plan.json
 ```
 
 Do not capture media, perform real inference, dispatch workflows, change GitHub
@@ -44,8 +44,7 @@ settings, or mutate user plugin installations during validation. Test actual
 caller behavior offline. Explain excluded capabilities and deferred gaps in the
 draft PR along with source commit URLs and validation evidence.
 
-In the weekly workflow, publish only through the create-pull-request safe output
-with an explicit `upstream-sync/<short-topic>` branch. Do not seek credentials
-or bypass a deterministic failure. README and package inputs have explicit
-protected-file exceptions within the proposal allowlist. Other protected files
-require separate human maintenance.
+Upstream review and proposal publication are manual; no GitHub Agentic Workflow
+is installed. Create the pinned plan with the local commands in the upstream
+review guide before porting changes. Do not seek credentials or bypass a
+deterministic failure.
