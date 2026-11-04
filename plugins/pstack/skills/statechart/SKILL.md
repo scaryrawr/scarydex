@@ -5,6 +5,10 @@ description: "Draw what an app's user sees as a Mermaid statechart from a TLA+ m
 
 # Statechart
 
+Two workflows are available. The [TypeScript compiler](references/compiler.md) checks invariants and temporal properties, supports full TLC value shapes and emits reader-facing charts and reports. It ships as dependency-free Node `.mjs` bundles, not an upstream launcher or installer. The conversion workflow below retains `from-spec`, `from-chart`, `--fixed`, `--against`, mapping fingerprints and generated-output inventory checks. Their view contracts and output formats differ; do not mix them.
+
+## Existing conversion workflow
+
 The chart shows what an app's user sees. A PM reads it to decide whether that behavior is right. Label each state with what is on the screen, such as "Paying". Label each step with what the user does or sees happen, such as "tap Pay" or "the charge goes through". Keep variable and action names out of labels. The scripts call this user the reader, as in `readerActions` and reader steps.
 
 Resolve this installed skill's absolute directory, then run `node "<skill dir>/scripts/statechart.mjs" --help` for the commands and for how to read a chart. Keep the working directory at the approved workspace. Copy inputs into an approved session scratch folder outside the target repo, and pass their absolute paths. Do not edit the original spec or chart.

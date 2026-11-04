@@ -48,6 +48,8 @@ chosen. Do not add always-applied Copilot instructions or edit Codex config.
 
 Discuss effort separately from model identity. Preserve inherited host settings unless the user chooses supported overrides. Use **poteto-mode**'s job-matched effort guidance only through controls the current host actually exposes; do not invent speed suffixes, model slugs or preference fields the runtime does not consume.
 
+Panel lists set their seat counts. Arena runs one cross-judge from its configured pool, preferring a genuinely different available family. Aliases preserve inheritance, not diversity. When a seat or judge cannot run, report it and follow Arena's dropout guidance rather than inventing a supported model or an independent verdict.
+
 ## Optional project verification
 
 Check whether the project already has a skill or harness for driving the real app. If none exists, offer once to generate one with [create-verification-skill](../create-verification-skill/SKILL.md). Invoke it only if the user accepts; otherwise move on without pushing.

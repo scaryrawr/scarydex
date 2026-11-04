@@ -440,7 +440,7 @@ async function acquireLock(
       throw error;
     }
 
-    let holder = "unknown";
+    let holder: string;
 
     try {
       holder = (await readFile(path, "utf8")).trim() || "unknown";
