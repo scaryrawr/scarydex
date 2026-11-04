@@ -3931,7 +3931,7 @@ function parseFrontier(raw) {
       state
     };
     if (row.repository !== void 0 || row.headRepository !== void 0) {
-      if (!repositoryName(row.repository) || !repositoryName(row.headRepository)) {
+      if (!repositoryIdentity(row.repository) || !repositoryIdentity(row.headRepository)) {
         throw new UserError("frontier.json has an invalid PR repository");
       }
       prs.push({
@@ -4234,19 +4234,28 @@ function listPullRequests({
     if (filter === "--head" && head !== branch || filter === "--base" && base !== branch) {
       throw new UserError(`${command} returned a PR outside the requested branch`);
     }
-    return { pr: row.number, state, branch: head, base, repository: headRepository.toLowerCase(), baseRepository: repository };
+    const hostname = repository.slice(0, repository.indexOf("/"));
+    return { pr: row.number, state, branch: head, base, repository: `${hostname}/${headRepository.toLowerCase()}`, baseRepository: repository };
   });
 }
 function repositoryName(value) {
   return typeof value === "string" && /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(value);
 }
+function repositoryIdentity(value) {
+  return typeof value === "string" && /^(?:[A-Za-z0-9.-]+(?::[0-9]+)?\/)?[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(value);
+}
 function forgeRepository({ forge, repo, url }) {
-  const repository = runTool({
+  const repositoryUrl = runTool({
     command: forge,
-    args: ["repo", "view", ...url ? [url] : [], "--json", "nameWithOwner", "--jq", ".nameWithOwner"],
+    args: ["repo", "view", ...url ? [url] : [], "--json", "url", "--jq", ".url"],
     repo
   }).trim();
-  if (!repositoryName(repository)) {
+  if (!URL.canParse(repositoryUrl)) {
+    throw new UserError("cannot identify the GitHub repository");
+  }
+  const canonical = new URL(repositoryUrl);
+  const repository = `${canonical.host}${canonical.pathname}`;
+  if (canonical.protocol !== "https:" || canonical.username || canonical.password || canonical.search || canonical.hash || !repositoryName(canonical.pathname.slice(1)) || !repositoryIdentity(repository)) {
     throw new UserError("cannot identify the GitHub repository");
   }
   return repository.toLowerCase();
@@ -4724,9 +4733,6 @@ function openStore(directory, options = {}) {
         const repo = resolve(requiredLine(params.repo, "repo directory"));
         const forge = parseForge(params.forge ?? "gh");
         const pin = params.prs === void 0 ? void 0 : params.prs.map((pr) => positiveInteger(pr, "PR"));
-        if (pin !== void 0 && new Set(pin).size !== pin.length) {
-          throw new UserError("--prs must not contain duplicates");
-        }
         const old = await readFrontier(store);
         const prs = resolveFrontier(repo, forge);
         if (pin !== void 0) {

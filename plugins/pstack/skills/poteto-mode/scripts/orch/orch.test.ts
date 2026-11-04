@@ -167,6 +167,7 @@ async function withFakeForge<T>({
   childRows,
   sshConfig,
   queries = [],
+  hostname = "github.com",
 }: {
   directory: string;
   forge: Forge;
@@ -180,6 +181,7 @@ async function withFakeForge<T>({
     branch: string;
     rows: string;
   }[];
+  hostname?: string;
 }): Promise<T> {
   const bin = join(directory, "bin");
   const outputPath = join(directory, "forge-output.txt");
@@ -200,7 +202,7 @@ async function withFakeForge<T>({
   );
   const { fields } = FORGE_FIXTURES[forge];
   const list = (filter: string, branch: string, repository = "example/project"): string =>
-    `pr list ${filter} ${branch} --state all --limit 1000 --json ${fields} --repo ${repository}`;
+    `pr list ${filter} ${branch} --state all --limit 1000 --json ${fields} --repo ${hostname}/${repository}`;
   const fake = join(bin, forge);
   const ssh = join(bin, "ssh");
   const nativeSsh = Bun.which("ssh");
@@ -232,14 +234,14 @@ case "$*" in
   ${queries.map(query => `"${list(query.filter, query.branch, query.repository)}")
     printf '%s\\n' '${query.rows}'
     ;;`).join("\n  ")}
-  "repo view --json nameWithOwner --jq .nameWithOwner")
-    printf 'example/project\\n'
+  "repo view --json url --jq .url")
+    printf 'https://${hostname}/example/project\\n'
     ;;
-  "repo view https://github.com/example/project.git --json nameWithOwner --jq .nameWithOwner")
-    printf 'example/project\\n'
+  "repo view https://${hostname}/example/project.git --json url --jq .url")
+    printf 'https://${hostname}/example/project\\n'
     ;;
-  "repo view https://github.com/contributor/project.git --json nameWithOwner --jq .nameWithOwner")
-    printf 'contributor/project\\n'
+  "repo view https://${hostname}/contributor/project.git --json url --jq .url")
+    printf 'https://${hostname}/contributor/project\\n'
     ;;
   "${list("--head", "stack/open")}")
     cat "${outputPath}"
@@ -264,7 +266,7 @@ case "$*" in
   "${list("--base", "stack/draft")}")
     printf '[]\\n'
     ;;
-  pr\\ list\\ *\\ --repo\\ contributor/project)
+  pr\\ list\\ *\\ --repo\\ ${hostname}/contributor/project)
     printf '[]\\n'
     ;;
   *)
@@ -568,32 +570,32 @@ describe("Store", () => {
                 branches: "stack/merged",
                 sha: stack.mergedSha,
                 state: "MERGED",
-                repository: "example/project",
-                headRepository: "example/project",
+                repository: "github.com/example/project",
+                headRepository: "github.com/example/project",
               },
               {
                 pr: 13,
                 branches: "stack/closed",
                 sha: stack.closedSha,
                 state: "CLOSED",
-                repository: "example/project",
-                headRepository: "example/project",
+                repository: "github.com/example/project",
+                headRepository: "github.com/example/project",
               },
               {
                 pr: 11,
                 branches: "stack/open",
                 sha: stack.openSha,
                 state: "OPEN",
-                repository: "example/project",
-                headRepository: "example/project",
+                repository: "github.com/example/project",
+                headRepository: "github.com/example/project",
               },
               {
                 pr: 14,
                 branches: "stack/draft",
                 sha: stack.draftSha,
                 state: "OPEN",
-                repository: "example/project",
-                headRepository: "example/project",
+                repository: "github.com/example/project",
+                headRepository: "github.com/example/project",
               },
             ],
             lowestUnmerged: 11,
@@ -632,7 +634,7 @@ describe("Store", () => {
               ...forgeParams,
               prs: [10, 10],
             })
-          ).rejects.toThrow("--prs must not contain duplicates");
+          ).rejects.toThrow("frontier pin mismatch");
         },
       });
     });
@@ -797,8 +799,12 @@ describe("Store", () => {
     });
   });
 
-  for (const current of ["stack/open", "stack/draft"]) {
-    it(`preserves real fork-to-fork dependencies when resolving from ${current}`, async () => {
+  for (const { current, childPr } of [
+    { current: "stack/open", childPr: 14 },
+    { current: "stack/draft", childPr: 14 },
+    { current: "stack/open", childPr: 11 },
+  ]) {
+    it(`preserves pinned fork-to-fork dependencies from ${current} with child PR ${childPr}`, async () => {
       const { directory, store } = await initializedStore();
       const stack = await makeGitStack(directory);
       git({ repo: stack.repo, args: ["remote", "add", "fork", "git@github.com:contributor/project.git"] });
@@ -810,7 +816,7 @@ describe("Store", () => {
         { number: 11, state: "open", head: "stack/open", base: "main", repository: "contributor/project" },
       ]);
       const child = forgeRows("gh", [
-        { number: 14, state: "open", head: "stack/draft", base: "stack/open", repository: "contributor/project" },
+        { number: childPr, state: "open", head: "stack/draft", base: "stack/open", repository: "contributor/project" },
       ]);
       await withFakeForge({
         directory,
@@ -822,11 +828,47 @@ describe("Store", () => {
           { repository: "contributor/project", filter: "--head", branch: "stack/draft", rows: child },
         ],
         operation: async () => {
-          const frontier = await store.frontier.set({ repo: stack.repo });
+          const frontier = await store.frontier.set({ repo: stack.repo, prs: [11, childPr] });
           expect(frontier.prs).toEqual([
-            { pr: 11, branches: "stack/open", sha: stack.openSha, state: "OPEN", repository: "example/project", headRepository: "contributor/project" },
-            { pr: 14, branches: "stack/draft", sha: stack.draftSha, state: "OPEN", repository: "contributor/project", headRepository: "contributor/project" },
+            { pr: 11, branches: "stack/open", sha: stack.openSha, state: "OPEN", repository: "github.com/example/project", headRepository: "github.com/contributor/project" },
+            { pr: childPr, branches: "stack/draft", sha: stack.draftSha, state: "OPEN", repository: "github.com/contributor/project", headRepository: "github.com/contributor/project" },
           ]);
+          expect(await store.frontier.show()).toEqual(frontier);
+          const bundledStore = join(directory, "bundled-store");
+          expect(runCli(["--store", bundledStore, "--json", "init"]).code).toBe(0);
+          const result = runCli(["--store", bundledStore, "--json", "frontier", "set", "--repo", stack.repo, "--prs", `11,${childPr}`]);
+          expect(result.code).toBe(0);
+          expect(JSON.parse(result.stdout)).toEqual(frontier);
+          expect(JSON.parse(await readFile(join(bundledStore, "frontier.json"), "utf8"))).toEqual(frontier);
+          await expect(store.frontier.set({ repo: stack.repo, prs: [11, childPr, 11] })).rejects.toThrow("frontier pin mismatch");
+          expect(await store.frontier.show()).toEqual(frontier);
+          const badPin = runCli(["--store", bundledStore, "--json", "frontier", "set", "--repo", stack.repo, "--prs", `11,${childPr},11`]);
+          expect(badPin.code).toBe(1);
+          expect(badPin.stderr).toContain("frontier pin mismatch");
+          expect(JSON.parse(await readFile(join(bundledStore, "frontier.json"), "utf8"))).toEqual(frontier);
+        },
+      });
+    });
+  }
+
+  it("keeps the checkout's Enterprise host when the CLI default host differs", async () => {
+    const { directory, store } = await initializedStore();
+    const stack = await makeGitStack(directory);
+    git({ repo: stack.repo, args: ["remote", "set-url", "origin", "https://ghe.example/example/project.git"] });
+    const previousHost = process.env.GH_HOST;
+    process.env.GH_HOST = "github.com";
+    try {
+      await withFakeForge({
+        directory,
+        forge: "gh",
+        hostname: "ghe.example",
+        operation: async () => {
+          const frontier = await store.frontier.set({ repo: stack.repo });
+          expect(frontier.prs.map(row => row.pr)).toEqual([10, 13, 11, 14]);
+          for (const row of frontier.prs) {
+            expect(row.repository).toBe("ghe.example/example/project");
+            expect(row.headRepository).toBe("ghe.example/example/project");
+          }
           expect(await store.frontier.show()).toEqual(frontier);
           const bundledStore = join(directory, "bundled-store");
           expect(runCli(["--store", bundledStore, "--json", "init"]).code).toBe(0);
@@ -836,8 +878,11 @@ describe("Store", () => {
           expect(JSON.parse(await readFile(join(bundledStore, "frontier.json"), "utf8"))).toEqual(frontier);
         },
       });
-    });
-  }
+    } finally {
+      if (previousHost === undefined) delete process.env.GH_HOST;
+      else process.env.GH_HOST = previousHost;
+    }
+  });
 
   it("reads legacy frontiers but rejects incomplete repository identities", async () => {
     const { directory, store } = await initializedStore();
@@ -846,6 +891,12 @@ describe("Store", () => {
     const file = join(directory, "frontier.json");
     await writeFile(file, JSON.stringify(legacy));
     expect(await store.frontier.show()).toEqual(legacy);
+    const hostless = {
+      ...legacy,
+      prs: [{ ...row, repository: "example/project", headRepository: "contributor/project" }],
+    };
+    await writeFile(file, JSON.stringify(hostless));
+    expect(await store.frontier.show()).toEqual(hostless);
     for (const identity of [
       { repository: "example/project" },
       { repository: "example/project", headRepository: "invalid" },
