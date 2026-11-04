@@ -2950,7 +2950,7 @@
       "source": "cursor",
       "plugin": "pstack",
       "path": "pstack",
-      "reviewedThrough": "e32b6a2b97565ec45b49a06c010bac3153c22b2b",
+      "reviewedThrough": "fd268b808c786469e6dd8c8d9db864d0de4d669e",
       "reviews": [
         {
           "commit": "12d587dfb20741cafc376c42c696c5f6e2a64487",
@@ -12731,6 +12731,61 @@
             "pstack-audit-05.txt records every parent comparison, including empty second-parent trees and carried Business Central/Gopuff listing changes.",
             "Exact pinned candidate paths were checked; none begins pstack/. Root README and marketplace edits only list separate integrations.",
             "The pstack source tree at the final Cursor pin remains byte-identical to c742dd61706fbacc1b95f1a20b7b988cf096ce6c."
+          ]
+        },
+        {
+          "commit": "d31c571c32dc9b176ef55ad88f5482c0a0464498",
+          "disposition": "excluded",
+          "reason": "The final two X guide edits and the merge's X/Tailscale parent comparisons affect only separate MCP integrations. No pstack path, code or dependency changes. Posting/credential workflow assumptions are not imported into portable Codex skills.",
+          "paths": [
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/d31c571c32dc9b176ef55ad88f5482c0a0464498",
+            "Compared every parent: e32b6a2b97565ec45b49a06c010bac3153c22b2b. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-06.txt records both merge parents and all exact source paths.",
+            "Final Cursor pstack tree identity was independently compared to the last integrated pstack feature commit c742dd61706fbacc1b95f1a20b7b988cf096ce6c.",
+            "Only pstack's Cursor cursor and append-only review entries change in this unit."
+          ]
+        },
+        {
+          "commit": "e3ae9f935f71ac44d3816fd166e21345ef94a361",
+          "disposition": "excluded",
+          "reason": "The final two X guide edits and the merge's X/Tailscale parent comparisons affect only separate MCP integrations. No pstack path, code or dependency changes. Posting/credential workflow assumptions are not imported into portable Codex skills.",
+          "paths": [
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/e3ae9f935f71ac44d3816fd166e21345ef94a361",
+            "Compared every parent: d31c571c32dc9b176ef55ad88f5482c0a0464498. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-06.txt records both merge parents and all exact source paths.",
+            "Final Cursor pstack tree identity was independently compared to the last integrated pstack feature commit c742dd61706fbacc1b95f1a20b7b988cf096ce6c.",
+            "Only pstack's Cursor cursor and append-only review entries change in this unit."
+          ]
+        },
+        {
+          "commit": "fd268b808c786469e6dd8c8d9db864d0de4d669e",
+          "disposition": "excluded",
+          "reason": "The final two X guide edits and the merge's X/Tailscale parent comparisons affect only separate MCP integrations. No pstack path, code or dependency changes. Posting/credential workflow assumptions are not imported into portable Codex skills.",
+          "paths": [
+            "third_party/tailscale/.cursor-plugin/plugin.json",
+            "third_party/tailscale/CHANGELOG.md",
+            "third_party/tailscale/skills/tailscale-setup/SKILL.md",
+            "third_party/x/.cursor-plugin/plugin.json",
+            "third_party/x/CHANGELOG.md",
+            "third_party/x/README.md",
+            "third_party/x/mcp.json",
+            "third_party/x/skills/x-api-mcp-guide/SKILL.md"
+          ],
+          "localPaths": [],
+          "evidence": [
+            "https://github.com/cursor/plugins/commit/fd268b808c786469e6dd8c8d9db864d0de4d669e",
+            "Compared every parent: 6ea74587e384e1a8035c09ae33a46fe3f881eb9b, e3ae9f935f71ac44d3816fd166e21345ef94a361. Exact rename sources, destinations and deletions are retained in the pinned plan and batch audit.",
+            "pstack-audit-06.txt records both merge parents and all exact source paths.",
+            "Final Cursor pstack tree identity was independently compared to the last integrated pstack feature commit c742dd61706fbacc1b95f1a20b7b988cf096ce6c.",
+            "Only pstack's Cursor cursor and append-only review entries change in this unit."
           ]
         }
       ]
